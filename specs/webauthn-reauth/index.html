@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<!-- AUTHORED-BY Claude Fable 5 — AI-assisted draft awaiting maintainer review; see SOTD + DECISIONS.md -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redirect-Free WebAuthn Re-Authentication for Solid-OIDC</title>
+  <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
+  <script class="remove">
+    var respecConfig = {
+      specStatus: "CG-DRAFT",
+      group: "cg/solid",
+      shortName: "solid-webauthn-reauth",
+      edDraftURI: "https://jeswr.github.io/solid-webauthn-reauth-spec/",
+      latestVersion: null,
+      github: "jeswr/solid-webauthn-reauth-spec",
+      editors: [
+        {
+          name: "Jesse Wright",
+          url: "https://jeswr.org/#me"
+        }
+      ],
+      copyrightStart: "2026",
+      maxTocLevel: 3,
+      lint: { "no-unused-dfns": false },
+      localBiblio: {
+        "SOLID-OIDC": {
+          title: "Solid-OIDC",
+          href: "https://solidproject.org/TR/oidc",
+          authors: ["Aaron Coburn", "elf Pavlik", "Dmitri Zagidulin"],
+          publisher: "W3C Solid Community Group",
+          status: "Version 0.1.0, Draft Community Group Report"
+        },
+        "SOLID-OIDC-ED": {
+          title: "Solid-OIDC (Editor's Draft)",
+          href: "https://solid.github.io/solid-oidc/",
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "SOLID-PROTOCOL": {
+          title: "Solid Protocol",
+          href: "https://solidproject.org/TR/protocol",
+          authors: ["Sarven Capadisli", "Tim Berners-Lee", "Ruben Verborgh", "Kjetil Kjernsmo"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WEBID": {
+          title: "WebID 1.0",
+          href: "https://www.w3.org/2005/Incubator/webid/spec/identity/",
+          authors: ["Andrei Sambra", "Henry Story", "Tim Berners-Lee"],
+          publisher: "W3C WebID Community Group",
+          status: "Editor's Draft"
+        },
+        "SOLID-WEBAUTHN-ARCH": {
+          title: "Solid WebAuthn — Architecture Specification",
+          href: "https://github.com/jeswr/solid-webauthn/blob/main/spec/ARCHITECTURE.md",
+          authors: ["Jesse Wright", "Samu Lang"],
+          status: "Non-normative architecture document (RFC 4101 protocol model)"
+        },
+        "REAUTH-IMPL": {
+          title: "@jeswr/solid-webauthn-reauth — reference client + wire-format implementation",
+          href: "https://github.com/jeswr/solid-webauthn-reauth",
+          authors: ["Samu Lang", "Jesse Wright"],
+          status: "Reference implementation"
+        },
+        "CSS-WEBAUTHN": {
+          title: "@jeswr/css-webauthn — reference OpenID Provider implementation (Community Solid Server)",
+          href: "https://github.com/jeswr/solid-webauthn",
+          authors: ["Jesse Wright", "Samu Lang"],
+          status: "Reference implementation"
+        },
+        "SP-800-63B": {
+          title: "NIST SP 800-63B-4: Digital Identity Guidelines — Authentication and Authenticator Management",
+          href: "https://pages.nist.gov/800-63-4/sp800-63b.html",
+          publisher: "NIST"
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+
+<section id="abstract">
+  <p>
+    After a normal Solid-OIDC login, a Solid application registers a W3C WebAuthn (passkey)
+    credential — bound to the application's own origin — with the user's OpenID Provider (OP).
+    Thereafter the application <strong>re-authenticates without an interactive redirect</strong>:
+    it fetches a single-use challenge from the OP, produces a WebAuthn assertion in the
+    application's own page, and exchanges the assertion at the OP's token endpoint using OAuth 2.0
+    Token Exchange ([[RFC8693]]) for ordinary Solid-OIDC, DPoP-bound tokens ([[RFC9449]]).
+    Because the credential is origin-bound and the user agent refuses to release it to any other
+    origin, one assertion attests <em>both</em> the user (possession of the authenticator)
+    <em>and</em> the client application (its origin, signed unspoofably into
+    <code>clientDataJSON</code>). Resource Servers (Pods) are unchanged: they consume the issued
+    DPoP-bound token exactly as any other, trusting the OP via the existing
+    <code>solid:oidcIssuer</code> link.
+  </p>
+</section>
+
+<section id="sotd">
+  <p>
+    This document is an <strong>unofficial editor's draft</strong>. It has <strong>no standing
+    whatsoever</strong>: it is not a work item of the
+    <a href="https://www.w3.org/community/solid/">W3C Solid Community Group</a> and is not
+    endorsed by that group, by W3C, or by anyone else. It is published to solicit review before
+    any proposal for adoption.
+  </p>
+  <p>
+    This specification is <strong>implementation-first</strong>: its normative requirements are
+    those enforced by the reference implementations — the OpenID Provider component
+    [[CSS-WEBAUTHN]] and the client / wire-format library [[REAUTH-IMPL]] — with a small number
+    of clearly marked additions. <a href="#impl-status"></a> records, requirement by requirement,
+    which parts are implemented and which are proposed.
+  </p>
+  <p>
+    <strong>Drafting disclosure:</strong> this draft was prepared with AI assistance
+    (Claude&nbsp;Fable&nbsp;5, Anthropic), working from the jointly-authored design corpus
+    ([[SOLID-WEBAUTHN-ARCH]], its ADR log, and the reference implementations), and is
+    <strong>awaiting review by its human editor</strong>. Errors introduced in drafting are the
+    tooling's, not the cited sources'.
+  </p>
+</section>
+
+<section id="introduction">
+  <h2>Introduction</h2>
+  <p><em>This section is non-normative.</em></p>
+  <p>
+    Solid-OIDC [[SOLID-OIDC]] authenticates a user to a Solid application through an interactive,
+    redirect-based OpenID Connect flow. Once the resulting tokens expire, the application must
+    re-authenticate — and a full top-level redirect to the OP is disruptive: it unloads the
+    application, loses in-memory state, and trains users to type credentials into whatever page
+    appears. This specification defines a <strong>redirect-free re-authentication
+    mechanism</strong> built on W3C WebAuthn Level&nbsp;3 [[WEBAUTHN-3]]: a fast,
+    phishing-resistant challenge–response handled entirely between the application and the OP,
+    surfaced to the user as at most a passkey prompt.
+  </p>
+  <p>
+    Two facts fix the architecture and are assumed throughout (rationale and threat analysis in
+    [[SOLID-WEBAUTHN-ARCH]] §3.3):
+  </p>
+  <dl>
+    <dt>F1 — the application is the Relying Party.</dt>
+    <dd>
+      A WebAuthn assertion's RP&nbsp;ID is bound by the <em>user agent</em> to an origin the
+      Relying Party controls. A different-origin OP cannot be the RP for an app-bound credential.
+      The ceremony therefore runs <strong>in the application</strong>, and the OP <strong>verifies
+      a relayed assertion</strong>. This is why the OP cannot host the ceremony as its own login
+      page — doing so would make the OP the RP and destroy the client-attestation guarantee.
+    </dd>
+    <dt>F2 — a WebAuthn key cannot sign HTTP requests.</dt>
+    <dd>
+      The authenticator signs only a server challenge it wraps in
+      <code>authenticatorData</code> and <code>clientDataJSON</code>, with a user gesture each
+      time. WebAuthn is a challenge–response <em>login</em> primitive — which is exactly how it
+      is used here, and why per-request request-signing is out of scope.
+    </dd>
+  </dl>
+  <p>
+    This document is the normative wire specification. The non-normative companion — overview,
+    rationale, C4 diagrams, and the full STRIDE / LINDDUN / attack-tree threat analysis — is the
+    architecture document [[SOLID-WEBAUTHN-ARCH]]. Where the two disagree, this document governs.
+  </p>
+
+  <section id="relationship">
+    <h3>Relationship to existing specifications</h3>
+    <p><em>This section is non-normative.</em></p>
+    <ul>
+      <li><strong>[[WEBAUTHN-3]]</strong> supplies the credential ceremonies, the JSON
+        serialization of their results, and the verification procedures (§7.1, §7.2). This
+        specification adds no new authenticator behaviour.</li>
+      <li><strong>[[RFC8693]]</strong> supplies the grant. This specification is a
+        <em>profile</em> of OAuth 2.0 Token Exchange: it defines one
+        <code>subject_token_type</code> and the verification an OP performs for it
+        (<a href="#token-exchange"></a>).</li>
+      <li><strong>[[RFC9449]]</strong> supplies sender-constraint. The exchange request carries a
+        DPoP proof and the issued token is DPoP-bound (<code>cnf.jkt</code>).</li>
+      <li><strong>[[SOLID-OIDC]]</strong> supplies the identity model: the WebID, the Client ID
+        Document, and the <code>solid:oidcIssuer</code> trust link the Resource Server already
+        uses. Nothing changes at the Resource Server.</li>
+      <li><strong>[[RFC9068]]</strong> is the JWT access-token profile the reference deployments
+        issue; see <a href="#issued-token"></a>.</li>
+    </ul>
+  </section>
+</section>
+
+<section id="conformance">
+  <p>
+    This specification defines three conformance classes — <a>Application</a>,
+    <a>OpenID Provider</a>, and <a>Resource Server</a> — enumerated in
+    <a href="#conformance-classes"></a>. Requirements phrased against a class bind every
+    implementation of that class.
+  </p>
+</section>
+
+<section id="conformance-classes">
+  <h2>Conformance classes</h2>
+  <p>
+    This specification defines three conformance classes. The terms are used in the sense of
+    [[SOLID-OIDC]].
+  </p>
+  <dl>
+    <dt><dfn>Application</dfn> (the WebAuthn Relying Party)</dt>
+    <dd>
+      A Solid-OIDC client running in a user agent at an HTTPS <a>origin</a>, identified by a
+      Client ID Document URI. It is the WebAuthn Relying Party: it runs the registration and
+      assertion ceremonies via <code>navigator.credentials</code> and relays the results to the
+      <a>OpenID Provider</a>. Conformance requirements: <a href="#registration"></a>,
+      <a href="#assertion-options"></a>, <a href="#assertion-bundle"></a>,
+      <a href="#token-exchange"></a> (the client-side requirements, including
+      <a href="#req-client-downgrade"><code>req-client-downgrade</code></a>).
+    </dd>
+    <dt><dfn>OpenID Provider</dfn> (the verifier, key store, and grant)</dt>
+    <dd>
+      A Solid-OIDC OP that additionally stores registered passkey public keys, issues challenges,
+      verifies relayed assertions, and mints tokens via the re-authentication grant. Conformance
+      requirements: <a href="#origin-model"></a>, <a href="#registration"></a>,
+      <a href="#assertion-options"></a>, <a href="#assertion-bundle"></a>,
+      <a href="#verification"></a>, <a href="#challenge-lifecycle"></a>,
+      <a href="#credential-lifecycle"></a>, <a href="#errors"></a>.
+    </dd>
+    <dt><dfn>Resource Server</dfn> (explicitly unmodified — a non-target)</dt>
+    <dd>
+      A Solid-OIDC Resource Server (Pod). This specification imposes <strong>no</strong>
+      requirements on it: it consumes the issued DPoP-bound Solid-OIDC access token exactly as it
+      consumes any other, trusting the OP via the existing <code>solid:oidcIssuer</code> link
+      [[SOLID-OIDC]]. That zero-change property is a design goal; a Resource Server that is
+      entirely unaware of WebAuthn is conforming.
+    </dd>
+  </dl>
+</section>
+
+<section id="terminology">
+  <h2>Terminology</h2>
+  <p>
+    This document uses the wire structures and ceremonies of [[WEBAUTHN-3]]:
+    <code>clientDataJSON</code>, <code>authenticatorData</code>, the <em>UP</em> (User Presence)
+    and <em>UV</em> (User Verification) flags, the <em>signature counter</em>
+    (<code>signCount</code>), the <em>COSE</em> credential public key, and the JSON serialization
+    of ceremony results (<code>PublicKeyCredential.toJSON()</code> →
+    <code>RegistrationResponseJSON</code> /
+    <a href="https://www.w3.org/TR/webauthn-3/#dictdef-authenticationresponsejson"><code>AuthenticationResponseJSON</code></a>).
+  </p>
+  <dl>
+    <dt><dfn>origin</dfn></dt>
+    <dd>
+      A web origin tuple — scheme, host, and port — as observed by the user agent and serialized
+      into <code>clientDataJSON.origin</code>. It is set by the user agent and cannot be forged
+      by script. An origin is <strong>not</strong> a <a>client_id</a>, and the two MUST NOT be
+      compared as strings (<a href="#origin-model"></a>).
+    </dd>
+    <dt><dfn>client_id</dfn></dt>
+    <dd>
+      A Solid-OIDC Client ID Document URI (an HTTPS URI), e.g.
+      <code>https://app.example/clientid.jsonld</code> [[SOLID-OIDC]]. It identifies the
+      <a>Application</a>.
+    </dd>
+    <dt><dfn>allowed-origin set</dfn></dt>
+    <dd>
+      The set of <a>origins</a> from which an assertion is accepted for a given <a>client_id</a>,
+      derived per <a href="#origin-model"></a>.
+    </dd>
+    <dt><dfn>assertion bundle</dfn></dt>
+    <dd>
+      The versioned envelope around a WebAuthn assertion, carried as the [[RFC8693]]
+      <code>subject_token</code> (<a href="#assertion-bundle"></a>).
+    </dd>
+    <dt><dfn data-lt="canonical base64url">canonical base64url</dfn></dt>
+    <dd>
+      The unpadded base64url encoding of [[RFC4648]] §5 (as used throughout [[WEBAUTHN-3]]),
+      with the additional property that the string is the <em>unique</em> encoding of its byte
+      content: its length modulo 4 is never 1, and any unused low-order bits of the final
+      character are zero — equivalently, decoding then re-encoding the string yields the
+      identical string. See <a href="#canonicality"></a>.
+    </dd>
+    <dt><dfn>per-client RP ID</dfn></dt>
+    <dd>
+      The WebAuthn RP&nbsp;ID an OP expects for a given <a>client_id</a>: the lowercased host of
+      the Client ID Document URI, with no port (<a href="#origin-model"></a>).
+    </dd>
+  </dl>
+</section>
+
+<section id="overview" class="informative">
+  <h2>Protocol overview</h2>
+  <p><em>This section is non-normative.</em></p>
+  <p>
+    <strong>Registration</strong> runs once per ⟨application, device⟩, after a normal
+    Solid-OIDC login:
+  </p>
+  <pre class="nohighlight" aria-label="Registration sequence diagram">
+User            Application (RP)                 OpenID Provider
+ |                    |                                 |
+ |                    |-- POST register-options ------->|   (authenticated)
+ |                    |&lt;- creation options -------------|   challenge, rp.id = per-client RP ID,
+ |                    |                                 |   UV required, residentKey required
+ |&lt;-- gesture (UV) ---|  navigator.credentials.create() |
+ |--- attestation --->|                                 |
+ |                    |-- POST register {credential,    |
+ |                    |        clientId} -------------->|   verify origin ∈ allowed-origin set,
+ |                    |                                 |   per-client RP ID, challenge (single-use);
+ |                    |&lt;- 201 Created ------------------|   store ⟨WebID, client_id, credentialId,
+ |                    |                                 |          COSE key, signCount⟩</pre>
+  <p>
+    <strong>Re-authentication</strong> runs whenever the application needs a fresh token, with no
+    top-level navigation:
+  </p>
+  <pre class="nohighlight" aria-label="Re-authentication sequence diagram">
+Application (RP)                OpenID Provider                    Resource Server (Pod)
+ |                                     |                                 |
+ |-- GET /resource (expired token) ------------------------------------>|
+ |&lt;- 401 WWW-Authenticate: DPoP ----------------------------------------|  (ordinary Solid-OIDC)
+ |                                     |                                 |
+ |-- POST assertion-options ---------->|   fresh single-use challenge,   |
+ |&lt;- request options ------------------|   allowCredentials: [],         |
+ |                                     |   userVerification: required    |
+ |   navigator.credentials.get()       |   (passkey prompt; discoverable |
+ |   → assertion                       |    credential selects the user) |
+ |                                     |                                 |
+ |-- POST token endpoint ------------->|   grant_type = token-exchange,  |
+ |   subject_token = assertion bundle  |   DPoP proof on the request     |
+ |   subject_token_type =              |                                 |
+ |     urn:solid:token-type:           |   verify: decode (fail-closed), |
+ |       webauthn-assertion            |   embedding, consume challenge, |
+ |                                     |   resolve credential → WebID,   |
+ |                                     |   WebAuthn L3 §7.2 (origin,     |
+ |                                     |   rpIdHash, UV, sig, signCount) |
+ |&lt;- { access_token, token_type:      |                                 |
+ |     "DPoP", issued_token_type }     |   mint DPoP-bound token,        |
+ |                                     |   webid = resolved WebID        |
+ |-- GET /resource, Authorization: DPoP &lt;token> + DPoP proof ----------->|
+ |&lt;- 200 ----------------------------------------------------------------|</pre>
+  <p>
+    The credential is <em>discoverable</em> (a resident passkey): the assertion-options request is
+    unauthenticated and returns an empty <code>allowCredentials</code>, the authenticator selects
+    the passkey, and the OP resolves who the user is <em>from the assertion itself</em> at the
+    token exchange.
+  </p>
+</section>
+
+<section id="origin-model">
+  <h2>The per-client RP ID and origin model</h2>
+  <p>Each <a>Application</a> is its own WebAuthn Relying Party.</p>
+  <p id="req-rpid-per-client">
+    The <a>OpenID Provider</a> MUST derive the expected WebAuthn RP&nbsp;ID <strong>per
+    request</strong> from the authenticated <a>client_id</a>: the lowercased host of the Client ID
+    Document URI, with no port. It MUST do so consistently at registration
+    (<a href="#registration"></a>), at assertion-options (<a href="#assertion-options"></a>), and
+    at verification (<a href="#verification"></a>). It MUST NOT substitute a single
+    deployment-wide RP&nbsp;ID when a host is derivable from the <code>client_id</code> (always
+    the case for a valid <code>http(s)</code> URI). A deployment-wide RP&nbsp;ID MAY be configured
+    as a fallback used <em>only</em> when no host is derivable.
+  </p>
+  <p id="req-origin-set">
+    The <a>OpenID Provider</a> MUST compute the <a>allowed-origin set</a> for a
+    <a>client_id</a> as exactly the single normalised <a>origin</a> of the <code>client_id</code>
+    URI. Normalisation lowercases the scheme and host, elides the default port for the scheme,
+    and discards any path, query, or fragment. Origins declared <em>inside</em> the Client ID
+    Document are out of scope for this version and MUST NOT be added to the allowed-origin set
+    (they require a proof-of-control mechanism deferred to a future profile; see
+    <a href="#open-issues"></a>).
+  </p>
+  <p id="req-origin-check">
+    The <a>OpenID Provider</a> MUST verify, at registration and at every assertion, that
+    <code>clientDataJSON.origin</code> (after the same normalisation) is a member of the
+    <a>allowed-origin set</a> for the authenticated <a>client_id</a>. It MUST NOT compare
+    <code>clientDataJSON.origin</code> to the <code>client_id</code> as a string. This check is
+    the phishing-resistance gate.
+  </p>
+  <p class="note">
+    Because the verifier asserts <code>rpIdHash == SHA-256(expected RP ID)</code> and the
+    expected RP&nbsp;ID is derived from the authenticated <code>client_id</code>, the triple
+    ⟨signed <code>rpIdHash</code>, the registered credential's <code>client_id</code>, the
+    authenticated <code>client_id</code>⟩ is a checked invariant: an assertion whose
+    <code>rpIdHash</code> is for a host other than the authenticated client's fails verification.
+    This is what lets one OP serve multiple applications without the origin check being the sole
+    per-app discriminator ([[SOLID-WEBAUTHN-ARCH]] §8.2).
+  </p>
+</section>
+
+<section id="registration">
+  <h2>Registration</h2>
+  <p>
+    Registration binds a passkey to a ⟨<a>Application</a>, device⟩ pair and stores its public key
+    at the <a>OpenID Provider</a>. It runs over two authenticated endpoints, reached after a
+    normal Solid-OIDC login; in the reference implementation [[CSS-WEBAUTHN]] they are
+    <code>POST /.account/account/&lt;id&gt;/webauthn/register-options</code> and
+    <code>POST /.account/account/&lt;id&gt;/webauthn/register</code>. The endpoint paths are not
+    normative; their behaviour is.
+  </p>
+
+  <section id="registration-options">
+    <h3>Registration options</h3>
+    <p>
+      On an authenticated request naming the target <a>client_id</a> (and, when the account has
+      several, the WebID), the <a>OpenID Provider</a> MUST return WebAuthn
+      <code>PublicKeyCredentialCreationOptions</code> (the JSON serialization of [[WEBAUTHN-3]])
+      carrying:
+    </p>
+    <ul>
+      <li>a fresh, single-use <code>challenge</code>, recorded as outstanding per
+        <a href="#challenge-lifecycle"></a> and bound to the authenticated
+        ⟨WebID, <a>client_id</a>⟩;</li>
+      <li><code>rp.id</code> set to the <a>per-client RP ID</a>
+        (<a href="#req-rpid-per-client"><code>req-rpid-per-client</code></a>);</li>
+      <li><span id="req-uv-reg"><code>authenticatorSelection.userVerification</code> =
+        <code>"required"</code>;</span></li>
+      <li><span id="req-resident-key"><code>authenticatorSelection.residentKey</code> =
+        <code>"required"</code> (equivalently <code>requireResidentKey: true</code>).</span>
+        The only defined re-authentication path is discoverable
+        (<a href="#assertion-options"></a> returns an empty <code>allowCredentials</code>), so a
+        non-resident credential could never be selected at assertion time;</li>
+      <li><code>excludeCredentials</code> listing the credentials already registered for the
+        ⟨WebID, <a>client_id</a>⟩, so the same authenticator does not register twice.</li>
+    </ul>
+    <p id="req-user-handle">
+      The user handle (<code>user.id</code>) MUST be an opaque per-account value that is not
+      derivable from the WebID; in particular it MUST NOT be <code>SHA-256(WebID)</code> or any
+      other deterministic function of the WebID, which would be an offline-confirmable
+      cross-application correlator (<a href="#privacy"></a>). The reference implementation mints
+      a random per-account handle and persists it.
+    </p>
+  </section>
+
+  <section id="registration-verify">
+    <h3>Registration verification</h3>
+    <p>
+      On the registration request carrying the attestation (the WebAuthn
+      <code>RegistrationResponseJSON</code> plus the declared <code>clientId</code>), the
+      <a>OpenID Provider</a> MUST, in order:
+    </p>
+    <ol>
+      <li>reject the request unless the bundle's declared <code>clientId</code> equals the
+        authenticated <a>client_id</a>;</li>
+      <li>reject the request unless <code>clientDataJSON.crossOrigin</code> is <code>false</code>
+        or absent <strong>and</strong> no <code>topOrigin</code> is present
+        (<a href="#req-no-embed"><code>req-no-embed</code></a>);</li>
+      <li>atomically consume the registration challenge (<a href="#challenge-lifecycle"></a>),
+        checking the ⟨WebID, <a>client_id</a>⟩ binding it was issued with; reject if it is
+        unknown, expired, already used, or bound to a different context;</li>
+      <li>verify the attestation per [[WEBAUTHN-3]]
+        <a href="https://www.w3.org/TR/webauthn-3/#sctn-registering-a-new-credential">§7.1</a>
+        with the expected challenge, the <a>allowed-origin set</a>
+        (<a href="#req-origin-check"><code>req-origin-check</code></a>), the <a>per-client RP ID</a>
+        (<a href="#req-rpid-per-client"><code>req-rpid-per-client</code></a>), and User Verification required
+        (<a href="#req-uv-reg"><code>req-uv-reg</code></a>);</li>
+      <li>on success, store the credential record — <code>credentialId</code>, the COSE credential
+        public key, <code>signCount</code>, and any <code>transports</code> — keyed by
+        ⟨WebID, <a>client_id</a>, <code>credentialId</code>⟩.</li>
+    </ol>
+    <p>
+      Attestation conveyance of <code>none</code> is acceptable. Multiple credentials MAY be
+      registered per ⟨WebID, <a>client_id</a>⟩ (one per device).
+    </p>
+  </section>
+</section>
+
+<section id="assertion-options">
+  <h2>The assertion-options endpoint</h2>
+  <p>
+    The <a>OpenID Provider</a> MUST expose an assertion-options endpoint that returns WebAuthn
+    <code>PublicKeyCredentialRequestOptions</code> (JSON serialization) for the redirect-free
+    re-authentication ceremony. In the reference implementations the conventional location is
+    <code>POST &lt;issuer&gt;/.oidc/webauthn/assertion-options</code>; the path is not normative
+    and MAY be deployment-configured, but the conventional default aids interoperability with
+    clients that discover nothing.
+  </p>
+  <p>This endpoint:</p>
+  <ul>
+    <li>MUST accept <code>POST</code> (issuing a single-use challenge is a state-changing,
+      non-cacheable operation). It MUST reject other methods with HTTP <code>405</code>
+      (<code>Allow: POST</code>). An OP MAY additionally expose the challenge as a safe
+      <code>GET</code> read where its challenge issuance is genuinely side-effect-free.</li>
+    <li>is <strong>unauthenticated</strong> and <strong>cross-origin</strong> (the
+      <a>Application</a>'s origin differs from the OP's). It is therefore a
+      discoverable-credential ceremony: the request body is empty and the returned
+      <code>allowCredentials</code> MUST be empty. The authenticator selects a resident passkey,
+      and the verifier resolves the ⟨WebID, <a>client_id</a>⟩ from the presented
+      <code>credentialId</code> at the token exchange (<a href="#verification"></a>).</li>
+    <li><span id="req-challenge-singleuse">MUST return a fresh, single-use
+      <code>challenge</code>, recorded as outstanding per
+      <a href="#challenge-lifecycle"></a>. Two calls MUST return distinct challenges.</span></li>
+    <li><span id="req-uv-options">MUST set <code>userVerification</code> =
+      <code>"required"</code>.</span></li>
+    <li>SHOULD set <code>rpId</code> to the host of the request's <code>Origin</code> header;
+      this value is advisory (the user agent uses it to select the credential), because the
+      verifier re-derives and enforces the <a>per-client RP ID</a> at the token exchange
+      (<a href="#req-rpid-per-client"><code>req-rpid-per-client</code></a>).</li>
+  </ul>
+  <p>
+    Because this challenge is issued before any client or WebID is authenticated, it is issued
+    <strong>unbound</strong>; single-use consumption (<a href="#challenge-lifecycle"></a>)
+    together with the per-client RP&nbsp;ID, origin, and credential checks at verification are
+    the controls on this path.
+  </p>
+  <p id="req-cors">
+    Cross-origin requests to this endpoint, and to the registration endpoints, MUST be answered
+    with CORS headers restricted to the <a>allowed-origin set</a> of the calling client; an
+    <a>OpenID Provider</a> MUST NOT use <code>Access-Control-Allow-Origin: *</code> for these
+    endpoints.
+  </p>
+</section>
+
+<section id="assertion-bundle">
+  <h2>The assertion bundle</h2>
+  <p id="req-bundle-format">
+    The re-authentication grant carries the WebAuthn assertion as the [[RFC8693]]
+    <code>subject_token</code>. Its <code>subject_token_type</code> is the URI
+  </p>
+  <pre class="nohighlight">urn:solid:token-type:webauthn-assertion</pre>
+  <p>
+    defined by this specification (<a href="#registrations"></a>; [[RFC8693]] §3 permits any URI
+    as a token-type identifier, so no IANA registration is required for this version).
+  </p>
+  <p>
+    The <code>subject_token</code> value MUST be the unpadded base64url encoding
+    ([[RFC4648]] §5) of the UTF-8 JSON serialization of the <a>assertion bundle</a>, a versioned
+    envelope with exactly these members:
+  </p>
+  <dl>
+    <dt><code>version</code></dt>
+    <dd>
+      A JSON number. This version of the specification defines version <code>1</code>. An
+      <a>OpenID Provider</a> MUST reject a bundle whose <code>version</code> it does not support
+      (<a href="#errors"></a>).
+    </dd>
+    <dt><code>credential</code></dt>
+    <dd>
+      The WebAuthn
+      <a href="https://www.w3.org/TR/webauthn-3/#dictdef-authenticationresponsejson"><code>AuthenticationResponseJSON</code></a>
+      produced by <code>PublicKeyCredential.toJSON()</code> [[WEBAUTHN-3]]:
+      <code>id</code>, <code>rawId</code>, <code>type</code> (<code>"public-key"</code>), and a
+      <code>response</code> object carrying base64url <code>clientDataJSON</code>,
+      <code>authenticatorData</code>, and <code>signature</code>, with an optional
+      <code>userHandle</code>.
+    </dd>
+  </dl>
+  <p>
+    Reusing the W3C WebAuthn JSON serialization means user agents and WebAuthn libraries produce
+    and consume the inner <code>credential</code> directly; no bespoke encoding is introduced.
+  </p>
+
+  <section id="bundle-validation">
+    <h3>Fail-closed decoding</h3>
+    <p id="req-fail-closed">
+      The decode path is a security surface: the <a>OpenID Provider</a> runs it on the untrusted
+      <code>subject_token</code> before any cryptography. An OP MUST treat a
+      <code>subject_token</code> that is not valid base64url, not valid UTF-8, not valid JSON,
+      not a JSON object, of an unsupported <code>version</code>, or missing or ill-typed in any
+      required <code>credential</code> field as a <strong>malformed bundle</strong> and reject it
+      with <code>invalid_request</code> (<a href="#errors"></a>) without proceeding to any later
+      verification step. Specifically, before cryptographic verification the OP MUST check that:
+    </p>
+    <ul>
+      <li><code>credential.id</code> and <code>credential.rawId</code> are present, non-empty
+        <a>canonical base64url</a> strings;</li>
+      <li><code>credential.type</code> is exactly <code>"public-key"</code>;</li>
+      <li><code>credential.response</code> is an object whose <code>clientDataJSON</code>,
+        <code>authenticatorData</code>, and <code>signature</code> members are present, non-empty
+        <a>canonical base64url</a> strings; and</li>
+      <li><code>credential.response.userHandle</code>, when present and non-null, is itself a
+        non-empty <a>canonical base64url</a> string.</li>
+    </ul>
+    <p>
+      These checks are structural only — they guard the parse, not the content; the WebAuthn
+      signature re-authenticates the bytes (<a href="#verification"></a>). Their purpose is that
+      a malformed credential yields a clean, uniform <code>invalid_request</code> rather than a
+      deeper exception, and that no non-canonical string reaches a string-keyed lookup.
+    </p>
+  </section>
+
+  <section id="canonicality">
+    <h3>Canonical base64url</h3>
+    <p id="req-canonical-b64u">
+      Every base64url field above MUST be <a>canonical base64url</a>: unpadded [[RFC4648]] §5
+      base64url whose decoding re-encodes to the identical string. An <a>OpenID Provider</a> MUST
+      reject (as a malformed bundle) any field that is:
+    </p>
+    <ol>
+      <li>padded (<code>=</code> is outside the unpadded alphabet), or contains any character
+        outside <code>A–Z a–z 0–9 - _</code>;</li>
+      <li>of an impossible length — unpadded base64url packs 4 characters into 3 bytes, so a
+        final group of exactly 1 character (<code>length mod 4 == 1</code>) can never be produced
+        by an encoder; or</li>
+      <li>non-canonical in its final character — for a final group of 2 characters the last
+        character's low 4 bits, and for a final group of 3 characters the last character's low
+        2 bits, are unused and MUST be zero.</li>
+    </ol>
+    <p>
+      A single decode → re-encode round-trip detects all three classes: only a canonical string
+      re-encodes to itself.
+    </p>
+    <p class="note">
+      <strong>Why this matters.</strong> Classes 2 and 3 are alphabet-valid strings no encoder
+      emits. A non-canonical string such as <code>"AB"</code> decodes to the same bytes as its
+      canonical form <code>"AA"</code> yet is a <em>distinct</em> string — an aliasing /
+      malleability hazard wherever the string form is used as a key, most importantly the
+      <code>credential.id</code> used for the stored-credential lookup
+      (<a href="#verification"></a> step 4): without canonicality, one credential has many
+      aliases, and any dedupe, rate-limit, or audit keyed on the string can be split across them.
+      Requiring canonical base64url makes string identity coincide with byte identity.
+    </p>
+  </section>
+
+  <section id="bundle-example" class="informative">
+    <h3>Example</h3>
+    <p>The base64url <code>subject_token</code> decodes to this assertion bundle (the fixture the
+      reference tests mint):</p>
+    <pre class="json">
+{
+  "version": 1,
+  "credential": {
+    "id": "PfYagP...JOSjA",
+    "rawId": "PfYagP...JOSjA",
+    "type": "public-key",
+    "response": {
+      "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0Iiwi...",
+      "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MdAAAAAA",
+      "signature": "MEUCIQ...Dq8Q",
+      "userHandle": "b3BhcXVlLXJhbmRvbS1oYW5kbGU"
+    }
+  }
+}</pre>
+  </section>
+</section>
+
+<section id="token-exchange">
+  <h2>The token exchange profile</h2>
+  <p>
+    Re-authentication is an OAuth 2.0 Token Exchange [[RFC8693]] at the OP's token endpoint
+    (located via OpenID Connect discovery), with:
+  </p>
+  <ul>
+    <li><code>grant_type</code> = <code>urn:ietf:params:oauth:grant-type:token-exchange</code>
+      ([[RFC8693]] §2.1);</li>
+    <li><code>subject_token</code> = the encoded <a>assertion bundle</a>
+      (<a href="#assertion-bundle"></a>);</li>
+    <li><code>subject_token_type</code> = <code>urn:solid:token-type:webauthn-assertion</code>;</li>
+    <li><code>client_id</code> = the <a>Application</a>'s Client ID Document URI, sent as a body
+      parameter (the Application is a public client,
+      <code>token_endpoint_auth_method: none</code>, per [[SOLID-OIDC]]); and</li>
+    <li>a DPoP proof [[RFC9449]] in the <code>DPoP</code> header of the request
+      ([[RFC9449]] §5).</li>
+  </ul>
+  <p id="req-dpop-required">
+    The grant MUST require a valid DPoP proof: an <a>OpenID Provider</a> MUST reject an exchange
+    request with no DPoP proof or an invalid one (<code>invalid_dpop_proof</code> /
+    <code>use_dpop_nonce</code>, [[RFC9449]] §12.2; <a href="#errors"></a>). This profile issues
+    <strong>only sender-constrained tokens</strong>; there is no Bearer variant.
+  </p>
+  <p>
+    The authenticated <a>client_id</a> — established by dereferencing the Client ID Document per
+    [[SOLID-OIDC]] — is the input to all per-client checks in <a href="#verification"></a>.
+  </p>
+
+  <section id="issued-token">
+    <h3>The issued token</h3>
+    <p id="req-idp-verified">
+      On success the <a>OpenID Provider</a> MUST mint an ordinary Solid-OIDC access token bound
+      to the exchange request's DPoP public key (a <code>cnf</code> claim whose <code>jkt</code>
+      member is the JWK SHA-256 thumbprint of that key, [[RFC9449]] §6.1), whose
+      <code>webid</code> claim is the WebID resolved in <a href="#verification"></a>, and return
+      a token-endpoint response with:
+    </p>
+    <ul>
+      <li><code>token_type</code> = <code>"DPoP"</code> ([[RFC9449]] §5); and</li>
+      <li><code>issued_token_type</code> = <code>urn:ietf:params:oauth:token-type:access_token</code>
+        ([[RFC8693]] §2.2.1 — <code>issued_token_type</code> is REQUIRED in a successful
+        token-exchange response and describes the <em>issued</em> token, which here is an
+        ordinary access token).</li>
+    </ul>
+    <p>
+      Where the deployment issues JWT access tokens (as the reference deployments do), the token
+      SHOULD follow the JWT access-token profile [[RFC9068]] (<code>typ: "at+jwt"</code>). The
+      shape of the access token is otherwise whatever the OP's Solid-OIDC deployment already
+      issues from its interactive flow — this grant changes <em>how the user is authenticated</em>,
+      never <em>what is issued</em>.
+    </p>
+    <p class="note">
+      The published Solid-OIDC report [[SOLID-OIDC]] defines the <code>webid</code> claim on the
+      DPoP-bound ID Token (§8.1) and leaves "the definition of a global access token" out of
+      scope; deployed Solid servers (Community Solid Server and derivatives) accept a DPoP-bound
+      [[RFC9068]] access token carrying a <code>webid</code> claim. This profile follows deployed
+      practice, and will track Solid-OIDC as its access-token story lands
+      (<a href="#open-issues"></a>).
+    </p>
+  </section>
+
+  <section id="client-requirements">
+    <h3>Client requirements</h3>
+    <p id="req-client-downgrade">
+      <strong>Downgrade refusal.</strong> An <a>Application</a> MUST reject a token-exchange
+      response whose <code>token_type</code> is not <code>DPoP</code> (compared
+      case-insensitively, [[RFC6749]] §5.1) and MUST NOT use the returned token. A Bearer token
+      accepted here would subsequently be sent with an <code>Authorization: DPoP</code> scheme —
+      a downgrade that silently drops the sender-constraint this profile exists to provide.
+    </p>
+    <p id="req-single-keypair">
+      <strong>Key continuity.</strong> The <a>Application</a> MUST present resource requests with
+      DPoP proofs signed by the <em>same</em> key pair whose proof accompanied the token-exchange
+      request — the key the issued token is bound to (<code>cnf.jkt</code>). Per [[RFC9449]] §7
+      the resource proof carries the <code>ath</code> claim (the base64url SHA-256 hash of the
+      access token). A fresh, non-extractable key pair SHOULD be generated per session; the key
+      MUST NOT be persisted in extractable form.
+    </p>
+    <p id="req-client-nonce">
+      An <a>Application</a> SHOULD handle a <code>use_dpop_nonce</code> challenge from the token
+      endpoint by retrying the exchange once with the server-supplied nonce, per [[RFC9449]] §8.
+      Each retry MUST reuse the same key pair; the assertion bundle itself MUST NOT be re-sent
+      after a <em>successful</em> consumption of its challenge (the challenge is single-use, so a
+      replayed bundle fails; a retry after a <code>use_dpop_nonce</code> error is safe because
+      the OP MUST NOT consume the challenge on a request rejected for a missing or stale DPoP
+      nonce — see <a href="#verification"></a>).
+    </p>
+  </section>
+</section>
+
+<section id="verification">
+  <h2>OpenID Provider verification requirements</h2>
+  <p>
+    The <a>OpenID Provider</a> MUST verify the relayed assertion in the following order.
+    DPoP-proof validation ([[RFC9449]] §4.3), including any nonce demand, precedes the sequence
+    below — a request failing DPoP MUST NOT consume the challenge (so a
+    <code>use_dpop_nonce</code> retry is possible, <a href="#req-client-nonce"><code>req-client-nonce</code></a>). The
+    challenge MUST then be consumed <strong>before</strong> any cryptographic check, so that a
+    presented assertion is never replayable even when a later step fails:
+  </p>
+  <ol>
+    <li>
+      <strong>Decode.</strong> Decode the <code>subject_token</code> into an
+      <a>assertion bundle</a>, enforcing the fail-closed structural and canonicality rules of
+      <a href="#bundle-validation"></a> and <a href="#canonicality"></a>. A malformed or
+      unsupported-version bundle is <code>invalid_request</code>.
+    </li>
+    <li id="req-no-embed">
+      <strong>Embedding.</strong> Reject the assertion unless
+      <code>clientDataJSON.crossOrigin</code> is <code>false</code> or absent
+      <strong>and</strong> no <code>topOrigin</code> is present, so an assertion produced inside
+      a cross-origin iframe is never accepted.
+    </li>
+    <li id="req-challenge-consume">
+      <strong>Single-use challenge.</strong> Atomically consume the challenge named in
+      <code>clientDataJSON.challenge</code> (<a href="#challenge-lifecycle"></a>); reject if it
+      is unknown, expired, or already consumed.
+    </li>
+    <li>
+      <strong>Resolve the credential and WebID.</strong> Look up the stored credential record by
+      ⟨authenticated <a>client_id</a>, <code>credentialId</code>⟩ and read its WebID — the OP
+      does not know the user up front; the assertion proves who they are. Reject if no record
+      exists, or if the record is bound to a different <code>client_id</code>.
+    </li>
+    <li>
+      <strong>Cryptographic verification</strong> per [[WEBAUTHN-3]]
+      <a href="https://www.w3.org/TR/webauthn-3/#sctn-verifying-assertion">§7.2</a> against the
+      stored COSE credential public key, asserting: the expected <code>challenge</code>;
+      <code>clientDataJSON.origin</code> ∈ the <a>allowed-origin set</a>
+      (<a href="#req-origin-check"><code>req-origin-check</code></a>); <code>rpIdHash == SHA-256(</code><a>per-client RP
+      ID</a><code>)</code> (<a href="#req-rpid-per-client"><code>req-rpid-per-client</code></a>);
+      <span id="req-uv">User Verification present — the OP MUST reject an assertion whose UV
+      flag is unset</span>; a valid signature over
+      <code>authenticatorData&nbsp;‖&nbsp;SHA-256(clientDataJSON)</code>; and
+      <span id="req-signcount">a signature counter strictly greater than the stored counter
+      where the authenticator reports a non-zero one</span>.
+    </li>
+    <li>
+      <strong>Advance state.</strong> On success, persist the new <code>signCount</code> so a
+      later replay at the same count is rejected. Where the authenticator reports a non-zero
+      counter that did not advance, the OP SHOULD record a clone-suspicion anomaly. A
+      <code>signCount</code> of <code>0</code> throughout is the normal synced-passkey case and
+      is not an anomaly.
+    </li>
+  </ol>
+  <p>
+    On success the OP mints the token per <a href="#issued-token"></a>. The OP MUST trust no part
+    of the bundle that is not covered by the WebAuthn signature; the embedding pre-check (step 2)
+    operates on the unverified parse only as a defence-in-depth fast path, since the same bytes
+    are re-authenticated by the signature in step 5.
+  </p>
+</section>
+
+<section id="challenge-lifecycle">
+  <h2>The challenge lifecycle</h2>
+  <p>
+    A challenge issued by an <a>OpenID Provider</a> MUST be short-lived and
+    <strong>single-use</strong>. The OP MUST maintain a consumed-challenge record so that the
+    first consumption of a challenge succeeds and every subsequent attempt fails. Consumption
+    MUST be an <strong>atomic check-and-consume</strong> at the OP deployment boundary: a
+    single-node OP MAY use an in-memory store; a clustered or multi-process OP MUST use a store
+    shared across instances so replays cannot race between instances.
+  </p>
+  <p id="req-challenge-bound">
+    Where the issuing endpoint authenticates the ⟨WebID, <a>client_id</a>⟩ context — the
+    registration ceremony (<a href="#registration"></a>) — the OP MUST bind the challenge to that
+    context at issue and verify the binding on consume, so a challenge minted for one
+    account/application cannot be redeemed for another. The assertion-options challenge
+    (<a href="#assertion-options"></a>) is necessarily issued unbound (no context is
+    authenticated at issue); single-use consumption plus the per-client checks at verification
+    are the controls on that path.
+  </p>
+  <p class="note">
+    A self-contained <em>signed</em> challenge removes session affinity but not the replay
+    record: a signed challenge alone is replayable until expiry. The consumed-challenge record is
+    required either way ([[SOLID-WEBAUTHN-ARCH]] §8.3).
+  </p>
+</section>
+
+<section id="credential-lifecycle">
+  <h2>Credential lifecycle and revocation</h2>
+  <p>
+    An <a>OpenID Provider</a> MUST allow the account owner to list and delete registered
+    credential records over an authenticated account route (in the reference implementation,
+    <code>GET</code>/<code>POST /.account/account/&lt;id&gt;/webauthn/credentials</code>). The
+    listing MUST return non-secret metadata only and MUST NOT return the stored COSE public key.
+    Deleting a credential MUST cause subsequent assertions for that <code>credentialId</code> to
+    fail.
+  </p>
+  <p>
+    Revocation does not retroactively invalidate already-issued access tokens; the short token
+    lifetime of this flow bounds the post-revocation gap. An OP SHOULD keep this flow's
+    access-token lifetime short, and MAY additionally support OAuth token revocation
+    [[RFC7009]] for immediacy. Recovery from a lost authenticator is the normal Solid-OIDC login
+    followed by re-registration: the passkey is a re-authentication <em>accelerator</em>, never
+    the sole factor.
+  </p>
+</section>
+
+<section id="rs-trust">
+  <h2>Resource Server trust</h2>
+  <p>
+    This specification adds no requirement to the <a>Resource Server</a>. The RS↔OP trust
+    relationship is the existing Solid-OIDC <code>solid:oidcIssuer</code> link: the RS accepts
+    the issued DPoP-bound access token because its issuer is authoritative for the WebID —
+    the WebID Profile document contains a matching
+    <code>?webid solid:oidcIssuer ?iss</code> statement ([[SOLID-OIDC]] §6.1) — exactly as for a
+    token obtained by the interactive flow. A Resource Server MUST NOT need any WebAuthn
+    awareness.
+  </p>
+</section>
+
+<section id="errors">
+  <h2>Error responses</h2>
+  <p id="req-coarse-error">
+    Failures map to OAuth token-endpoint errors [[RFC6749]] [[RFC8693]] [[RFC9449]]. To deny an
+    enumeration oracle, every <strong>assertion-validation</strong> failure — unknown credential,
+    origin not allowed, bad signature, <code>signCount</code> regression, UV absent, embedded
+    context, per-client RP-ID mismatch, client-binding mismatch, and challenge
+    unknown/expired/replayed — MUST be returned as a single coarse wire error:
+    <code>invalid_grant</code> with one generic description. The precise reason MUST NOT be
+    exposed on the wire; it MAY be recorded in an audit log
+    (<a href="#security-enumeration"></a>).
+  </p>
+  <p>Only request-shape errors that are not assertion validation keep a distinct code:</p>
+  <table class="def">
+    <thead>
+      <tr><th>Condition</th><th>Wire error</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Malformed or unsupported-version <a>assertion bundle</a>, including any
+          canonical-base64url failure (<a href="#bundle-validation"></a>)</td>
+        <td><code>invalid_request</code></td>
+      </tr>
+      <tr>
+        <td>Missing or empty <code>subject_token</code>; unsupported
+          <code>subject_token_type</code></td>
+        <td><code>invalid_request</code></td>
+      </tr>
+      <tr>
+        <td>DPoP proof absent or invalid; nonce required</td>
+        <td><code>invalid_dpop_proof</code> / <code>use_dpop_nonce</code> ([[RFC9449]] §12.2)</td>
+      </tr>
+      <tr>
+        <td>Any assertion-validation failure (<a href="#req-coarse-error"><code>req-coarse-error</code></a>)</td>
+        <td><code>invalid_grant</code></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note" id="note-8693-tension">
+    <strong>Relationship to RFC 8693 §2.2.2.</strong> RFC 8693 directs that when a
+    <code>subject_token</code> is "invalid for any reason" the error <code>MUST</code> be
+    <code>invalid_request</code>. This profile deliberately distinguishes a token that is
+    <em>malformed as a request artefact</em> (<code>invalid_request</code> — re-encode and
+    resend) from an assertion that is well-formed but <em>fails validation as a grant</em>
+    (<code>invalid_grant</code> — re-run the ceremony with a fresh challenge), matching RFC 6749
+    §5.2's <code>invalid_grant</code> semantics and giving clients an actionable recovery signal
+    while keeping the validation-failure reason coarse. This divergence is flagged for Community
+    Group review (<a href="#open-issues"></a>); the reference implementations implement the table
+    above.
+  </p>
+  <p>
+    The registration, assertion-options, and token endpoints SHOULD be rate-limited; an
+    over-limit request SHOULD be answered with HTTP <code>429</code>.
+  </p>
+</section>
+
+<section id="security">
+  <h2>Security considerations</h2>
+  <p>
+    <em>This section maps the threat model to the normative requirements that mitigate each
+    threat; the full STRIDE / LINDDUN / attack-tree treatment is in [[SOLID-WEBAUTHN-ARCH]] §9,
+    which this section references rather than restates.</em> The five headline threats below are
+    the reference implementation's threat model ([[REAUTH-IMPL]] <code>DESIGN.md</code> §4);
+    three further considerations follow.
+  </p>
+
+  <section id="security-phishing">
+    <h3>Phishing and application impersonation</h3>
+    <p>
+      The user agent binds the assertion's RP&nbsp;ID and <code>clientDataJSON.origin</code> to
+      the calling page's origin, and neither can be forged by script. The OP-side mitigations are
+      the per-client RP&nbsp;ID derivation (<a href="#req-rpid-per-client"><code>req-rpid-per-client</code></a>), the
+      allowed-origin set derived from the authenticated <code>client_id</code>
+      (<a href="#req-origin-set"><code>req-origin-set</code></a>), and the normalised membership check — never a string
+      compare of an origin against a <code>client_id</code>
+      (<a href="#req-origin-check"><code>req-origin-check</code></a>). An assertion produced for a look-alike origin, or
+      relayed claiming a different application's origin, fails verification. The
+      <strong>OP is the trust anchor</strong>: the client relays and cannot self-attest, so a
+      malicious or buggy client library weakens nothing.
+    </p>
+  </section>
+
+  <section id="security-downgrade">
+    <h3>Token downgrade and confused-deputy</h3>
+    <p>
+      Issuance is DPoP-only (<a href="#req-dpop-required"><code>req-dpop-required</code></a>,
+      <a href="#req-idp-verified"><code>req-idp-verified</code></a>); the client refuses a non-DPoP response
+      (<a href="#req-client-downgrade"><code>req-client-downgrade</code></a>) so a Bearer token is never carried under an
+      <code>Authorization: DPoP</code> scheme; and one key pair spans the token-endpoint proof
+      and every resource proof (<a href="#req-single-keypair"><code>req-single-keypair</code></a>), preserving [[RFC9449]]
+      sender-constraint continuity end to end. Theft of the issued token alone is useless
+      without the private key.
+    </p>
+  </section>
+
+  <section id="security-untrusted-input">
+    <h3>Untrusted input on the verifier surface</h3>
+    <p>
+      The <code>subject_token</code> is attacker-supplied bytes hitting the OP before any
+      authentication of the user. The mitigations are the fail-closed structural decode
+      (<a href="#req-fail-closed"><code>req-fail-closed</code></a>) — every field the verifier later reads is presence- and
+      type-checked before any cryptography, so a malformed credential is a clean
+      <code>invalid_request</code>, never a deeper exception — and the canonical-base64url
+      requirement (<a href="#req-canonical-b64u"><code>req-canonical-b64u</code></a>), which closes the string-aliasing /
+      malleability hazard on string-keyed credential lookups, dedupe, and audit.
+    </p>
+  </section>
+
+  <section id="security-registration">
+    <h3>Credential handling during registration</h3>
+    <p>
+      Registration rides an already-authenticated session and never handles the login
+      credential: the client relays JSON between the authenticator and the OP's authenticated
+      endpoints. The OP binds the registration challenge to the authenticated
+      ⟨WebID, <code>client_id</code>⟩ (<a href="#req-challenge-bound"><code>req-challenge-bound</code></a>), requires the
+      declared <code>clientId</code> to equal the authenticated one, verifies origin and
+      RP&nbsp;ID exactly as at assertion time, and rejects embedded contexts
+      (<a href="#registration-verify"></a>). Discoverable, user-verified credentials are forced
+      at creation (<a href="#req-resident-key"><code>req-resident-key</code></a>, <a href="#req-uv-reg"><code>req-uv-reg</code></a>) so the assertion
+      path's assumptions hold. Any non-2xx or malformed step aborts with no partial state.
+    </p>
+  </section>
+
+  <section id="security-replay">
+    <h3>Replay, freshness, and revocation are OP-side</h3>
+    <p>
+      Replay protection is the single-use, short-TTL, atomically-consumed challenge
+      (<a href="#challenge-lifecycle"></a>, <a href="#req-challenge-consume"><code>req-challenge-consume</code></a>) — consumed
+      <em>before</em> cryptographic verification so a presented assertion is dead even when a
+      later step fails — plus the strictly-increasing <code>signCount</code> where reported
+      (<a href="#req-signcount"><code>req-signcount</code></a>). Revocation is the credential-record deletion of
+      <a href="#credential-lifecycle"></a>, bounded by short token lifetimes. These controls are
+      deliberately and exclusively the <strong>OP's</strong>: the client is stateless (a fresh
+      key pair and a fresh ceremony per upgrade; nothing cached to steal), and a conforming
+      client MUST NOT be assumed to provide any replay or freshness control.
+    </p>
+  </section>
+
+  <section id="security-enumeration">
+    <h3>Account and credential enumeration</h3>
+    <p>
+      The coarse wire error (<a href="#req-coarse-error"><code>req-coarse-error</code></a>) prevents a caller from using the
+      token-endpoint response to distinguish which validation check failed — in particular
+      whether a guessed <code>credentialId</code> exists. Audit logs MAY record the precise
+      reason, with identifiers hash-truncated (<a href="#privacy"></a>).
+    </p>
+  </section>
+
+  <section id="security-ssrf">
+    <h3>Server-side request forgery (SSRF)</h3>
+    <p>
+      The <a>client_id</a> is attacker-supplied and dereferenced server-side. An OP that fetches
+      Client ID Documents MUST do so with a hardened fetcher: HTTPS only; no private, loopback,
+      or link-local destinations, validated at connect time (after DNS resolution) to close
+      DNS-rebinding; a response body-size cap; no automatic redirect following; and a timeout.
+      Credentials MUST never appear in fetched URLs or logs.
+    </p>
+  </section>
+
+  <section id="security-embedding">
+    <h3>Embedding (iframe)</h3>
+    <p>
+      The OP requires <code>crossOrigin == false</code> (or absent) and rejects any
+      <code>topOrigin</code> (<a href="#req-no-embed"><code>req-no-embed</code></a>), so an embedding parent cannot
+      harvest a victim application's assertion. The defined re-authentication ceremony runs in
+      the application's own top-level page, so this costs nothing. A future profile MAY accept
+      <code>crossOrigin == true</code> against an explicit <code>topOrigin</code> allow-list
+      (<a href="#open-issues"></a>).
+    </p>
+  </section>
+
+  <section id="security-assurance">
+    <h3>Assurance and residual risks</h3>
+    <p>
+      Requiring User Verification (<a href="#req-uv"><code>req-uv</code></a>, <a href="#req-uv-reg"><code>req-uv-reg</code></a>) makes the
+      ceremony multi-factor: the target is AAL2, and AAL3 where the authenticator is device-bound
+      [[SP-800-63B]]. Two residual risks are accepted and documented: synced-passkey clone
+      detection via <code>signCount</code> is weak (synced passkeys commonly report
+      <code>signCount = 0</code>), mitigated by UV; and a malicious application the user logs
+      into can register its own passkey — but that credential is origin-bound to <em>that</em>
+      application and usable by no other, equivalent to the user having logged that application
+      in ([[SOLID-WEBAUTHN-ARCH]] §9.5–§9.6).
+    </p>
+  </section>
+</section>
+
+<section id="privacy">
+  <h2>Privacy considerations</h2>
+  <p><em>This section is non-normative except where it restates requirements defined above.</em></p>
+  <ul>
+    <li>
+      <strong>No new cross-application correlator.</strong> A passkey is scoped per
+      ⟨user, application-origin⟩; the mechanism introduces no identifier that links a user across
+      applications beyond the WebID the user already presents. The OP learns
+      ⟨WebID, <code>client_id</code>⟩ per re-authentication — exactly what it already learns in
+      the interactive Solid-OIDC flow.
+    </li>
+    <li>
+      <strong>Non-derivable user handle.</strong> The WebAuthn user handle is a random
+      per-account value (<a href="#req-user-handle"><code>req-user-handle</code></a>). A deterministic handle such as
+      <code>SHA-256(WebID)</code> would let any party holding an assertion offline-confirm a
+      WebID guess — an offline-confirmable cross-application correlator — and is prohibited. The
+      <code>userHandle</code> relayed inside the assertion bundle therefore reveals nothing about
+      the WebID to intermediaries.
+    </li>
+    <li>
+      <strong>Log minimisation.</strong> Audit logs record hash-truncated identifiers rather than
+      full WebIDs, credential ids, or challenges; the coarse wire error keeps precise failure
+      reasons off the wire (<a href="#req-coarse-error"><code>req-coarse-error</code></a>).
+    </li>
+    <li>
+      <strong>No secrets in the bundle.</strong> The assertion bundle contains no long-lived
+      secret: signatures, identifiers, and public data only. Its interception (already prevented
+      by TLS) would not enable replay, because the embedded challenge is single-use.
+    </li>
+    <li>
+      <strong>Attestation.</strong> Attestation conveyance of <code>none</code> is acceptable
+      (<a href="#registration-verify"></a>), so the OP does not learn — and is not encouraged to
+      demand — the authenticator's make and model, avoiding a device-fingerprinting vector.
+    </li>
+    <li>
+      <strong>Non-repudiation.</strong> Authentication events are attributable by design; this is
+      the intended behaviour of an authentication protocol, not an incidental leak.
+    </li>
+  </ul>
+</section>
+
+<section id="registrations">
+  <h2>Registrations</h2>
+  <p>
+    This section records the identifiers this specification defines, in the style of the IANA
+    OAuth registries. <strong>No IANA registration is made for this version</strong>: the
+    identifiers live under <code>urn:solid:</code>, and [[RFC8693]] §3 permits any URI as a
+    token-type identifier ("Other URIs MAY be used to indicate other token types"). If the
+    mechanism generalises beyond Solid, a future profile MAY register an
+    <code>urn:ietf:params:oauth:token-type:webauthn-assertion</code> in the IANA "OAuth URI"
+    registry via a thin IETF Internet-Draft (<a href="#open-issues"></a>).
+  </p>
+
+  <section id="reg-token-type">
+    <h3>Token type identifier</h3>
+    <table class="def">
+      <tbody>
+        <tr><th>URN</th><td><code>urn:solid:token-type:webauthn-assertion</code></td></tr>
+        <tr><th>Common name</th><td>Solid WebAuthn assertion bundle</td></tr>
+        <tr><th>Used as</th><td><code>subject_token_type</code> in an [[RFC8693]] token-exchange
+          request (this profile does not use it as an <code>issued_token_type</code>,
+          <code>requested_token_type</code>, or <code>actor_token_type</code>)</td></tr>
+        <tr><th>Token syntax</th><td>Unpadded base64url of a UTF-8 JSON
+          <a>assertion bundle</a> (<a href="#assertion-bundle"></a>)</td></tr>
+        <tr><th>Change controller</th><td>This specification (W3C Solid Community Group, on
+          adoption)</td></tr>
+        <tr><th>Reference</th><td><a href="#assertion-bundle"></a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="reg-grant-type">
+    <h3>Grant type (profiled, not defined)</h3>
+    <p>
+      This specification defines no new grant type. It profiles the existing
+      <code>urn:ietf:params:oauth:grant-type:token-exchange</code> ([[RFC8693]] §2.1): an OP
+      conforming to this specification recognises the profile by the
+      <code>subject_token_type</code> above and applies <a href="#verification"></a> to it.
+      Token-exchange requests with other <code>subject_token_type</code> values are outside this
+      specification.
+    </p>
+  </section>
+
+  <section id="reg-bundle-version">
+    <h3>Assertion-bundle version registry</h3>
+    <table class="def">
+      <thead><tr><th>Version</th><th>Status</th><th>Reference</th></tr></thead>
+      <tbody>
+        <tr><td><code>1</code></td><td>Current</td><td><a href="#assertion-bundle"></a></td></tr>
+      </tbody>
+    </table>
+    <p>
+      Future versions are assigned by this specification's change controller. An OP rejects
+      unknown versions (<a href="#req-fail-closed"><code>req-fail-closed</code></a>); a deprecated version gets a documented
+      sunset window.
+    </p>
+  </section>
+</section>
+
+<section id="impl-status" class="informative">
+  <h2>Implementation status</h2>
+  <p><em>This section is non-normative.</em></p>
+  <p>
+    Two reference implementations exist, jointly authored (Samu Lang, Jesse Wright), and this
+    specification was written <em>from</em> them (implementation-first):
+  </p>
+  <ul>
+    <li><strong>[[CSS-WEBAUTHN]]</strong> (<code>@jeswr/css-webauthn</code>, in the
+      <code>jeswr/solid-webauthn</code> monorepo) — the OP side on the Community Solid Server:
+      registration + per-account user-handle store, passkey store, assertion-options endpoint,
+      atomic challenge cache, hardened Client-ID-Document fetcher, assertion verifier, the
+      token-exchange grant, rate limiting, audit logging, and the credentials list/delete
+      route.</li>
+    <li><strong>[[REAUTH-IMPL]]</strong> (<code>@jeswr/solid-webauthn-reauth</code>) — the client
+      and the shared wire-format layer: registration helper, redirect-free token provider, the
+      DPoP-bound exchange with downgrade refusal and nonce retry, and the fail-closed
+      canonical-base64url bundle codec plus origin-normalisation helpers an OP verifier can
+      reuse.</li>
+  </ul>
+  <table class="def">
+    <thead>
+      <tr><th>Requirement</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Per-client RP ID, allowed-origin set, normalised origin check
+          (<a href="#origin-model"></a>)</td>
+        <td>Implemented (OP + shared helpers)</td>
+      </tr>
+      <tr>
+        <td>Registration options + verification, opaque user handle
+          (<a href="#registration"></a>)</td>
+        <td>Implemented (OP; client-side helper in [[REAUTH-IMPL]])</td>
+      </tr>
+      <tr>
+        <td>Assertion-options endpoint, discoverable ceremony, restricted CORS
+          (<a href="#assertion-options"></a>)</td>
+        <td>Implemented (OP)</td>
+      </tr>
+      <tr>
+        <td>Assertion bundle v1 + fail-closed structural decode
+          (<a href="#bundle-validation"></a>)</td>
+        <td>Implemented (both)</td>
+      </tr>
+      <tr>
+        <td>Canonical base64url (round-trip) rejection (<a href="#canonicality"></a>)</td>
+        <td>Implemented in the [[REAUTH-IMPL]] protocol layer; <strong>proposed</strong> for the
+          [[CSS-WEBAUTHN]] verifier (its codec predates the rule — adoption pending)</td>
+      </tr>
+      <tr>
+        <td>DPoP-required exchange, DPoP-bound issued token, coarse errors
+          (<a href="#token-exchange"></a>, <a href="#verification"></a>,
+          <a href="#errors"></a>)</td>
+        <td>Implemented (OP), except as below</td>
+      </tr>
+      <tr>
+        <td><code>issued_token_type</code> = <code>…token-type:access_token</code> in the
+          success response (<a href="#issued-token"></a>)</td>
+        <td><strong>Proposed correction</strong> — the [[CSS-WEBAUTHN]] grant currently returns
+          the <em>subject</em> token's type
+          (<code>urn:solid:token-type:webauthn-assertion</code>) as
+          <code>issued_token_type</code>; per [[RFC8693]] §2.2.1 that parameter identifies the
+          <em>issued</em> token, so this specification requires
+          <code>urn:ietf:params:oauth:token-type:access_token</code> and the implementation
+          needs a one-line fix</td>
+      </tr>
+      <tr>
+        <td>Client downgrade refusal, key continuity, nonce retry
+          (<a href="#client-requirements"></a>)</td>
+        <td>Implemented (client; unit-tested)</td>
+      </tr>
+      <tr>
+        <td>DPoP-failure-precedes-challenge-consumption ordering
+          (<a href="#verification"></a> preamble)</td>
+        <td><strong>Proposed</strong> — implied by the reference client's nonce retry; the
+          ordering guarantee is made explicit here and needs an OP-side conformance test</td>
+      </tr>
+      <tr>
+        <td>Challenge lifecycle (atomic single-use, registration binding)
+          (<a href="#challenge-lifecycle"></a>)</td>
+        <td>Implemented (OP; concurrent-replay tested)</td>
+      </tr>
+      <tr>
+        <td>Credential list/delete route (<a href="#credential-lifecycle"></a>)</td>
+        <td>Implemented (OP)</td>
+      </tr>
+      <tr>
+        <td>SSRF-hardened Client-ID-Document fetch (<a href="#security-ssrf"></a>)</td>
+        <td>Implemented (OP, <code>HardenedFetcher</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="open-issues" class="informative">
+  <h2>Open issues</h2>
+  <p><em>This section is non-normative.</em> The following are open for Community Group
+    discussion and may change before any final report:</p>
+  <ul>
+    <li>Whether to accept origins declared <em>inside</em> the Client ID Document (beyond the
+      <code>client_id</code> URI origin), and the proof-of-control mechanism that would make it
+      safe (<a href="#req-origin-set"><code>req-origin-set</code></a>).</li>
+    <li>Whether a future profile should accept <code>crossOrigin == true</code> against an
+      explicit <code>topOrigin</code> allow-list (<a href="#req-no-embed"><code>req-no-embed</code></a>).</li>
+    <li>The <code>invalid_grant</code>-vs-<code>invalid_request</code> divergence from
+      [[RFC8693]] §2.2.2 for assertion-validation failures
+      (<a href="#note-8693-tension"><code>note-8693-tension</code></a>).</li>
+    <li>Aligning the issued-token requirements with Solid-OIDC once its access-token definition
+      lands (<a href="#issued-token"></a>).</li>
+    <li>Whether to pursue IANA registration of
+      <code>urn:ietf:params:oauth:token-type:webauthn-assertion</code> and a thin IETF
+      Internet-Draft if the mechanism generalises beyond Solid
+      (<a href="#registrations"></a>).</li>
+    <li>Whether the assertion-options response should advertise the accepted bundle version(s)
+      for forward migration (<a href="#reg-bundle-version"></a>).</li>
+  </ul>
+</section>
+
+<section id="acknowledgements" class="informative appendix">
+  <h2>Acknowledgements</h2>
+  <p>
+    The protocol was designed and implemented jointly by <strong>Samu Lang</strong> and
+    <strong>Jesse Wright</strong> in the <code>jeswr/solid-webauthn</code> monorepo (architecture,
+    ADR log, Bikeshed draft, and the CSS OP component) and the
+    <code>jeswr/solid-webauthn-reauth</code> client library. This document ports that normative
+    content to a standalone Community Group-track editor's draft, adds the canonicality,
+    client-conformance, and registration sections, and records the divergences for review.
+  </p>
+</section>
+
+</body>
+</html>
