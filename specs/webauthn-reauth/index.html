@@ -493,10 +493,26 @@ Application (RP)                OpenID Provider                    Resource Serv
     the controls on this path.
   </p>
   <p id="req-cors">
-    Cross-origin requests to this endpoint, and to the registration endpoints, MUST be answered
-    with CORS headers restricted to the <a>allowed-origin set</a> of the calling client; an
-    <a>OpenID Provider</a> MUST NOT use <code>Access-Control-Allow-Origin: *</code> for these
-    endpoints.
+    <strong>CORS.</strong> On the <em>registration</em> endpoints
+    (<a href="#registration"></a>), where the target <a>client_id</a> is known from the
+    authenticated request, cross-origin responses MUST carry CORS headers restricted to that
+    client's <a>allowed-origin set</a>; an <a>OpenID Provider</a> MUST NOT use
+    <code>Access-Control-Allow-Origin: *</code> there. On the <em>assertion-options</em>
+    endpoint no client is identified (the request is unauthenticated and bodyless), so a
+    per-client restriction is not computable: an OP SHOULD restrict
+    <code>Access-Control-Allow-Origin</code> to a configured allowlist or to the union of the
+    <a>allowed-origin sets</a> of clients holding at least one registered credential, and MAY
+    otherwise reflect the request's <code>Origin</code>. Responses from the assertion-options
+    endpoint MUST NOT require or include credentials (cookies or HTTP authentication;
+    <code>Access-Control-Allow-Credentials</code> MUST NOT be <code>true</code> where the
+    allowed origin is reflected).
+  </p>
+  <p class="note">
+    The challenge is deliberately <em>not</em> a secret: possession of a challenge grants
+    nothing — every security check happens at the token exchange
+    (<a href="#verification"></a>), and the challenge is single-use
+    (<a href="#challenge-lifecycle"></a>). CORS restriction on the assertion-options endpoint is
+    abuse hygiene (it complements rate limiting), not a security boundary.
   </p>
 </section>
 
@@ -1157,9 +1173,16 @@ Application (RP)                OpenID Provider                    Resource Serv
         <td>Implemented (OP; client-side helper in [[REAUTH-IMPL]])</td>
       </tr>
       <tr>
-        <td>Assertion-options endpoint, discoverable ceremony, restricted CORS
+        <td>Assertion-options endpoint, discoverable ceremony
           (<a href="#assertion-options"></a>)</td>
         <td>Implemented (OP)</td>
+      </tr>
+      <tr>
+        <td>CORS discipline (<a href="#req-cors"><code>req-cors</code></a>)</td>
+        <td><strong>Partially delegated</strong> — the [[CSS-WEBAUTHN]] routes rely on the
+          Community Solid Server's global CORS middleware (origin-reflecting), which satisfies
+          the assertion-options MAY but not the registration-endpoint per-client MUST; an
+          OP-side restriction is proposed</td>
       </tr>
       <tr>
         <td>Assertion bundle v1 + fail-closed structural decode

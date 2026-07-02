@@ -195,6 +195,29 @@ derived: no new correlator, non-derivable user handle, log truncation,
 attestation=none as an anti-fingerprinting default) — the old Bikeshed draft
 had no privacy section.
 
+## 13. CORS rule split per endpoint (roborev round-1 Medium — fixed)
+
+**Decision.** The Bikeshed draft's blanket rule ("CORS restricted to the
+allowed-origin set of the calling client, never `*`, on the assertion-options
+and registration endpoints") was **unimplementable as stated** for
+assertion-options: that endpoint is unauthenticated and bodyless, so no
+`client_id` exists from which to derive an allowed-origin set (caught by the
+codex review of commit `0f1f311`). Reworded `req-cors`: registration endpoints
+(client known) keep the per-client MUST; assertion-options gets a SHOULD
+(configured allowlist, or the union of registered clients' allowed origins)
+with origin-reflection as a MAY, plus a MUST NOT on credentialed responses —
+and a note explaining the challenge is deliberately non-secret, so CORS there
+is abuse hygiene, not a security boundary.
+
+**Alternatives.** (a) Require a `client_id` in the assertion-options request —
+rejected: it would break the deployed bodyless contract, and the OP could not
+*authenticate* the claimed client anyway (any caller can name any client_id),
+so the restriction would add cost without a security property. (b) Keep the
+blanket MUST — rejected: unimplementable, and the reference OP in fact
+delegates CORS to CSS's global origin-reflecting middleware. Implementation
+status marks the registration-endpoint per-client CORS MUST as proposed
+(currently satisfied only by the deployment's global middleware behaviour).
+
 ## Follow-ups (for the orchestrator / builder)
 
 1. **Publish** (orchestrator step, per the bead): create `jeswr/
