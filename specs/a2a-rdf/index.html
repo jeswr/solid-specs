@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<!-- AUTHORED-BY Claude Fable 5 — AI-assisted draft awaiting maintainer review; see SOTD + DECISIONS.md -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RDF Protocol Documents — an A2A Extension</title>
+  <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
+  <script class="remove">
+    var respecConfig = {
+      specStatus: "unofficial",
+      shortName: "a2a-rdf",
+      edDraftURI: "https://jeswr.github.io/a2a-rdf-extension/",
+      latestVersion: null,
+      github: "jeswr/a2a-rdf-extension",
+      editors: [
+        {
+          name: "Jesse Wright",
+          url: "https://jeswr.org/#me"
+        }
+      ],
+      copyrightStart: "2026",
+      maxTocLevel: 3,
+      lint: { "no-unused-dfns": false },
+      localBiblio: {
+        "A2A": {
+          title: "Agent2Agent (A2A) Protocol Specification, version 1.0.0",
+          href: "https://a2a-protocol.org/latest/specification/",
+          publisher: "Linux Foundation — the A2A Project",
+          status: "Released specification (v1.0.0)"
+        },
+        "A2A-EXTENSIONS": {
+          title: "Extensions in A2A (topic guide)",
+          href: "https://a2a-protocol.org/latest/topics/extensions/",
+          publisher: "Linux Foundation — the A2A Project"
+        },
+        "A2A-GOVERNANCE": {
+          title: "A2A Extension and Protocol Binding Governance",
+          href: "https://github.com/a2aproject/A2A/blob/main/docs/topics/extension-and-binding-governance.md",
+          publisher: "Linux Foundation — the A2A Project"
+        },
+        "AGORA": {
+          title: "A Scalable Communication Protocol for Networks of Large Language Models (AGORA)",
+          href: "https://arxiv.org/abs/2410.11905",
+          authors: ["Samuele Marro", "Emanuele La Malfa", "Jesse Wright", "Guohao Li", "Nigel Shadbolt", "Michael Wooldridge", "Philip Torr"],
+          status: "arXiv preprint 2410.11905"
+        },
+        "ANP": {
+          title: "Agent Network Protocol (ANP)",
+          href: "https://agent-network-protocol.com/",
+          status: "Community specification"
+        },
+        "ODRL-DELEGATION": {
+          title: "The ODRL Agent-Delegation Profile",
+          href: "https://w3id.org/jeswr/odrl-delegation",
+          authors: ["Jesse Wright"],
+          status: "Draft profile specification (implemented by @jeswr/solid-odrl)"
+        },
+        "AGENT-AUTHZ": {
+          title: "Agent Authorization Credentials",
+          href: "https://github.com/jeswr/agent-authz-credential-spec",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Editor's Draft (CCG-shaped; not an adopted CCG work item)"
+        },
+        "AGENTIC-SOLID-NOTE": {
+          title: "Agentic Solid: Architecture Overview",
+          href: "https://github.com/jeswr/agentic-solid-note",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Editor's Draft"
+        },
+        "SOLID-A2A-IMPL": {
+          title: "@jeswr/solid-a2a — NL→RDF upgrade codec: hash-pinned SHACL protocol documents",
+          href: "https://github.com/jeswr/solid-a2a",
+          status: "Reference implementation (experimental)"
+        },
+        "SOLID-AGENT-CARD-IMPL": {
+          title: "@jeswr/solid-agent-card — WebID-anchored agent descriptor (A2A Agent Card + RDF description)",
+          href: "https://github.com/jeswr/solid-agent-card",
+          status: "Reference implementation (experimental)"
+        },
+        "A2A-ISSUE-1577": {
+          title: "[Feat]: for the data model of a2a, adopt the semantics of existing standards (ADMS, DCAT etc) — a2aproject/A2A#1577",
+          href: "https://github.com/a2aproject/A2A/issues/1577",
+          status: "Open feature request"
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+
+<section id="abstract">
+  <p>
+    This document specifies <strong>RDF Protocol Documents</strong>, an extension to the
+    Agent2Agent (A2A) protocol [[A2A]] defined through A2A's own extension mechanism
+    (specification §4.6) — no changes to core A2A are proposed. Two agents that interact
+    repeatedly negotiate <em>once</em> in natural language, then crystallise the routine into a
+    <strong>Protocol Document</strong>: a content-addressed (hash-pinned) RDF document whose body
+    is a SHACL shape [[shacl]]. Thereafter every exchange under that protocol is a
+    SHACL-validated RDF graph carried in ordinary A2A message <code>Part</code>s —
+    machine-checkable, vocabulary-grounded, and requiring no LLM inference on the hot path.
+    The extension defines the extension URI and Agent Card declaration, the upgrade handshake
+    (including a fail-closed <em>no-silent-downgrade</em> rule for security-bearing exchanges),
+    the message-content binding for handshake, intent, and response payloads, and how an intent
+    composes with ODRL policies [[odrl-model]] and Agent Authorization Credentials
+    [[AGENT-AUTHZ]] for the authorization story. The design follows the hash-pinned
+    protocol-document result of AGORA [[AGORA]], made RDF/SHACL-native.
+  </p>
+</section>
+
+<section id="sotd">
+  <p>
+    This is an <strong>unofficial draft</strong> prepared as a candidate proposal to the Linux
+    Foundation A2A project under its extension governance process [[A2A-GOVERNANCE]]. It has
+    <strong>not</strong> been submitted to, discussed with, or endorsed by the A2A project; per
+    that process, submission is a proposal issue on <code>a2aproject/A2A</code>, which only the
+    editor (not an automated agent) will open. Until the proposal is sponsored, the extension URI
+    lives under the editor's <code>w3id.org/jeswr</code> namespace; if the extension is adopted
+    into the A2A organization, a successor URI under
+    <code>https://a2a-protocol.org/extensions/</code> would supersede it (see
+    <a href="#versioning"></a>).
+  </p>
+  <p>
+    This draft was AI-assisted (drafted by Claude Fable 5 against the A2A v1.0.0 specification,
+    the A2A extensions topic guide, and the <code>@jeswr/solid-a2a</code> reference codec) and
+    awaits review by its human editor. The implementation-status inventory in
+    <a href="#implementation-status"></a> was verified against the named repositories on
+    2026-07-03.
+  </p>
+</section>
+
+<section id="introduction" class="informative">
+  <h2>Introduction</h2>
+  <p>
+    A2A [[A2A]] gives heterogeneous agents a common envelope: discovery via Agent Cards, tasks,
+    and messages whose <code>Part</code>s carry text, files, or structured data. The natural-language
+    parts maximise reach — any two LLM-backed agents can talk — but they carry two standing
+    costs. First, <em>inference cost and nondeterminism</em>: two agents that perform the same
+    routine exchange thousands of times pay LLM inference, latency, and a nonzero
+    misinterpretation risk on every round. Second, <em>opacity</em>: an enterprise that must
+    audit or policy-check agent traffic has only prose to parse.
+  </p>
+  <p>
+    AGORA [[AGORA]] showed that networks of LLM agents scale when routine exchanges
+    <em>crystallise into protocol documents</em>: negotiated once in natural language, pinned by
+    a cryptographic hash, and executed deterministically thereafter. This extension carries that
+    result one step further by making the protocol document's body a <strong>SHACL shape</strong>
+    [[shacl]] over an <strong>RDF</strong> data model [[rdf11-concepts]]: post-handshake
+    payloads are not merely "the JSON we agreed on" but schema-validated, vocabulary-grounded
+    Linked Data. That buys:
+  </p>
+  <ul>
+    <li><strong>Determinism and cost:</strong> after the one-time handshake, neither side runs a
+      model to produce or interpret a message — validation is a SHACL engine, not an LLM.</li>
+    <li><strong>Auditability:</strong> every message is a typed graph against a published shape;
+      policy engines, provenance recorders, and monitors consume it directly.</li>
+    <li><strong>A standard validation stack:</strong> RDF 1.1, SHACL, and JSON-LD 1.1
+      [[json-ld11]] are W3C Recommendations — the extension imports a mature ecosystem rather
+      than inventing a schema language.</li>
+    <li><strong>Composability with authorization:</strong> an RDF intent can reference the ODRL
+      policy [[odrl-model]] it exercises and be accompanied by the Verifiable Credential chain
+      that authorizes the acting agent [[AGENT-AUTHZ]] — the graph the receiver validates is the
+      same graph its policy engine evaluates (see <a href="#authorization"></a>).</li>
+  </ul>
+  <p>
+    The extension is deliberately shaped to A2A's published extension mechanics: it is a
+    <em>profile-style</em> extension in the taxonomy of [[A2A-EXTENSIONS]] (it overlays structure
+    on core messages), defines no new RPC methods, adds no task states, and modifies no core data
+    structure — all payloads ride in the existing <code>Part</code> content fields, all custom
+    per-part attributes live in <code>Part.metadata</code>, and per-message tagging uses the
+    core <code>Message.extensions</code> field, exactly as §4.6 of [[A2A]] provides. Related
+    prior discussion in the A2A tracker: <a href="#related-work"></a>.
+  </p>
+
+  <section id="relationship">
+    <h3>Relationship to other documents</h3>
+    <p>
+      This extension is the L5 (agent-communication) protocol piece of the accountable-agent
+      architecture mapped in [[AGENTIC-SOLID-NOTE]]. It <em>composes with</em> — and deliberately
+      does not restate — the ODRL Agent-Delegation Profile [[ODRL-DELEGATION]] (delegation-chain
+      semantics, fail-closed policy evaluation) and Agent Authorization Credentials
+      [[AGENT-AUTHZ]] (per-hop Verifiable Credentials over those policies). The
+      <code>@jeswr/solid-a2a</code> library [[SOLID-A2A-IMPL]] is the reference codec for the
+      handshake and payload formats defined here; <code>@jeswr/solid-agent-card</code>
+      [[SOLID-AGENT-CARD-IMPL]] is the reference producer of the Agent Card declaration.
+    </p>
+  </section>
+</section>
+
+<section id="conformance">
+  <p>
+    Two conformance classes are defined. An <dfn>offering agent</dfn> is an A2A agent (server
+    role) that declares this extension in its Agent Card and accepts protocol-document exchanges.
+    A <dfn>consuming client</dfn> is an A2A client that activates this extension and sends
+    protocol-document exchanges. A single implementation frequently plays both roles; the
+    requirements below name the role they bind.
+  </p>
+</section>
+
+<section id="terminology">
+  <h2>Terminology</h2>
+  <dl>
+    <dt><dfn>Protocol Document</dfn> (PD)</dt>
+    <dd>A content-addressed RDF document, typed <code>a2a:ProtocolDocument</code>, whose body is
+      one SHACL request shape (and optionally one response shape) plus Dublin Core metadata. Its
+      identity for pinning purposes is its <a>protocol hash</a>, not its IRI.</dd>
+    <dt><dfn>protocol hash</dfn></dt>
+    <dd>The string <code>sha256:</code> followed by the lowercase hexadecimal SHA-256 digest of
+      the canonical N-Quads form of the Protocol Document's full graph (see
+      <a href="#pd-hashing"></a>).</dd>
+    <dt><dfn>upgrade handshake</dfn></dt>
+    <dd>The two-message exchange (<a>upgrade offer</a>, <a>upgrade response</a>) by which one
+      party proposes moving from natural language to a specific pinned Protocol Document.</dd>
+    <dt><dfn>upgrade offer</dfn> / <dfn>upgrade response</dfn></dt>
+    <dd>The structured payloads defined in <a href="#handshake"></a>.</dd>
+    <dt><dfn>intent</dfn></dt>
+    <dd>An RDF graph, typed <code>a2a:Intent</code>, expressing a requested action; under an
+      active protocol it MUST conform to the pinned Protocol Document's request shape.</dd>
+    <dt><dfn>security-bearing exchange</dfn></dt>
+    <dd>An exchange whose misinterpretation has authorization, financial, or data-integrity
+      consequences (granting access, transferring value, deleting data, presenting credentials).
+      Which exchanges are security-bearing is the offering party's judgement; the extension's
+      no-silent-downgrade rule (<a href="#downgrade"></a>) gives that judgement teeth.</dd>
+  </dl>
+
+  <section id="namespaces">
+    <h3>Namespaces</h3>
+    <table class="def">
+      <thead><tr><th>Prefix</th><th>Namespace</th></tr></thead>
+      <tbody>
+        <tr><td><code>a2a:</code></td><td><code>https://w3id.org/jeswr/a2a#</code> (the intent/handshake vocabulary; w3id redirect pending — see <a href="#implementation-status"></a>)</td></tr>
+        <tr><td><code>sh:</code></td><td><code>http://www.w3.org/ns/shacl#</code></td></tr>
+        <tr><td><code>schema:</code></td><td><code>https://schema.org/</code></td></tr>
+        <tr><td><code>acl:</code></td><td><code>http://www.w3.org/ns/auth/acl#</code></td></tr>
+        <tr><td><code>dcterms:</code></td><td><code>http://purl.org/dc/terms/</code></td></tr>
+        <tr><td><code>odrl:</code></td><td><code>http://www.w3.org/ns/odrl/2/</code></td></tr>
+      </tbody>
+    </table>
+    <p class="note">
+      The <code>a2a:</code> RDF namespace predates this extension (it is the
+      <code>@jeswr/solid-a2a</code> vocabulary) and is distinct from the <a href="#extension-uri">
+      extension URI</a>. The prefix collision with the A2A protocol's own name is unfortunate but
+      contained: the namespace never appears in A2A envelope fields, only inside RDF payloads.
+    </p>
+  </section>
+</section>
+
+<section id="identity">
+  <h2>Extension identity and declaration</h2>
+
+  <section id="extension-uri">
+    <h3>Extension URI</h3>
+    <p>The extension is identified by the URI:</p>
+    <pre class="nohighlight">https://w3id.org/jeswr/a2a-rdf/v1</pre>
+    <p>
+      Per §4.6.3 of [[A2A]], the version is carried in the URI; a breaking change to this
+      specification MUST mint a new URI (<code>…/v2</code>). This URI is the value used in
+      <code>AgentCard.capabilities.extensions[].uri</code>, in the <code>A2A-Extensions</code>
+      service parameter, and in <code>Message.extensions</code> /
+      <code>Artifact.extensions</code> arrays. It is an identifier first; the w3id redirect to
+      this document is pending (interim location:
+      <code>https://github.com/jeswr/a2a-rdf-extension</code>).
+    </p>
+  </section>
+
+  <section id="declaration">
+    <h3>Agent Card declaration</h3>
+    <p>
+      An <a>offering agent</a> declares the extension with an <code>AgentExtension</code> object
+      (§4.4.4 of [[A2A]]: <code>uri</code>, <code>description</code>, <code>required</code>,
+      <code>params</code>) inside <code>AgentCard.capabilities.extensions</code>:
+    </p>
+    <pre class="json">
+{
+  "capabilities": {
+    "extensions": [
+      {
+        "uri": "https://w3id.org/jeswr/a2a-rdf/v1",
+        "description": "Accepts SHACL-validated RDF intents under hash-pinned protocol documents; negotiates upgrades from natural language.",
+        "required": false,
+        "params": {
+          "formats": ["text/turtle", "application/ld+json"],
+          "nlNegotiation": true,
+          "protocolDocuments": [
+            {
+              "name": "Grant access",
+              "source": "https://alice.pod.example/protocols/grant-access",
+              "hash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}</pre>
+    <p>The <code>params</code> object is defined as follows (all members optional):</p>
+    <table class="def">
+      <thead><tr><th>Member</th><th>Type</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>formats</code></td>
+          <td>array of string</td>
+          <td>RDF media types the agent accepts and produces for extension payloads. When absent,
+            defaults to <code>["text/turtle"]</code>. An offering agent MUST support
+            <code>text/turtle</code> [[turtle]] and SHOULD support
+            <code>application/ld+json</code> [[json-ld11]] (the interop baseline;
+            <a href="#binding"></a>).</td>
+        </tr>
+        <tr>
+          <td><code>nlNegotiation</code></td>
+          <td>boolean</td>
+          <td>Whether the agent will negotiate <em>new</em> Protocol Documents in natural
+            language (the AGORA loop). <code>false</code> means only the pre-declared
+            <code>protocolDocuments</code> are spoken. Default: <code>true</code>.</td>
+        </tr>
+        <tr>
+          <td><code>protocolDocuments</code></td>
+          <td>array of object</td>
+          <td>Protocol Documents the agent already implements, each
+            <code>{"name"?: string, "source": string, "hash": string}</code> where
+            <code>source</code> is a dereferenceable HTTPS URL for the PD and <code>hash</code>
+            is its <a>protocol hash</a>. Pre-declaring lets a client that already implements a
+            listed PD skip the handshake entirely (<a href="#handshake-skip"></a>).</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Per the guidance of [[A2A-EXTENSIONS]] that data-only extensions and generally
+      capability-adding extensions should not be card-<code>required</code>, an offering agent
+      SHOULD declare <code>"required": false</code>: the extension's baseline behaviour degrades
+      gracefully to ordinary natural-language A2A for extension-unaware clients. Card-level
+      <code>required: true</code> is reserved for agents that <em>only</em> accept structured
+      RDF exchanges (e.g. an audited enterprise endpoint); such an agent MUST reject requests
+      that do not activate the extension, as §4.6 of [[A2A]] provides. Note the distinction from
+      the per-exchange <code>required</code> flag of an <a>upgrade offer</a>
+      (<a href="#required-semantics"></a>).
+    </p>
+  </section>
+
+  <section id="activation">
+    <h3>Activation</h3>
+    <p>
+      Activation follows §3.2.6 / §4.6 of [[A2A]] unchanged: a <a>consuming client</a> requests
+      activation by listing the extension URI in the <code>A2A-Extensions</code> service
+      parameter (an HTTP header in HTTP-based bindings; gRPC metadata in gRPC bindings), and an
+      agent that activates it SHOULD echo the URI in the response's <code>A2A-Extensions</code>.
+      In addition:
+    </p>
+    <ul>
+      <li>Every <code>Message</code> or <code>Artifact</code> that carries an extension payload
+        part (<a href="#binding"></a>) MUST list the extension URI in its
+        <code>extensions</code> array (the core per-message tagging field, §4.1.4 of [[A2A]]).</li>
+      <li>An agent that has <em>not</em> activated the extension for a request MUST NOT be
+        assumed to have interpreted extension parts; senders MUST treat un-echoed activation as
+        "peer is speaking baseline A2A" — which, for a <code>required</code> offer, triggers the
+        no-silent-downgrade rule (<a href="#downgrade"></a>).</li>
+    </ul>
+  </section>
+</section>
+
+<section id="protocol-documents">
+  <h2>Protocol Documents</h2>
+
+  <section id="pd-model">
+    <h3>Data model</h3>
+    <p>
+      A Protocol Document is an RDF graph containing exactly one subject typed
+      <code>a2a:ProtocolDocument</code> (the PD subject), with:
+    </p>
+    <table class="def">
+      <thead><tr><th>Property</th><th>Card.</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>a2a:requestShape</code></td><td>1..*</td><td>IRI(s) of the
+          <code>sh:NodeShape</code>(s) every request <a>intent</a> under this protocol MUST
+          conform to. The shape triples are part of the PD graph (self-contained: nothing to
+          fetch at validation time).</td></tr>
+        <tr><td><code>a2a:responseShape</code></td><td>0..*</td><td>IRI(s) of the
+          <code>sh:NodeShape</code>(s) a structured response MUST conform to, when the protocol
+          defines one.</td></tr>
+        <tr><td><code>dcterms:title</code>, <code>dcterms:description</code>,
+          <code>dcterms:hasVersion</code></td><td>0..1 each</td><td>Human-readable metadata.</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The PD graph MUST be self-contained: a validator MUST NOT dereference IRIs mentioned in
+      the shapes (no <code>owl:imports</code>-style loading) — everything the SHACL engine needs
+      is inside the hashed graph. Example (execution-verified against the reference codec):
+    </p>
+    <pre class="turtle">
+@prefix a2a: &lt;https://w3id.org/jeswr/a2a#&gt;.
+@prefix schema: &lt;https://schema.org/&gt;.
+@prefix sh: &lt;http://www.w3.org/ns/shacl#&gt;.
+@prefix rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt;.
+@prefix dcterms: &lt;http://purl.org/dc/terms/&gt;.
+
+&lt;https://alice.pod.example/protocols/grant-access&gt; a a2a:ProtocolDocument;
+    dcterms:title "Grant access";
+    dcterms:hasVersion "1.0.0";
+    a2a:requestShape a2a:GrantIntentShape.
+a2a:GrantIntentShape a sh:NodeShape;
+    sh:targetClass a2a:Intent;
+    sh:property [ a sh:PropertyShape;
+        sh:path a2a:action; sh:minCount 1; sh:maxCount 1; sh:name "action";
+        sh:node [ a sh:NodeShape;
+            sh:property
+                [ a sh:PropertyShape; sh:path rdf:type; sh:minCount 1; sh:hasValue a2a:GrantAction ],
+                [ a sh:PropertyShape; sh:path schema:object; sh:minCount 1; sh:name "target"; sh:nodeKind sh:IRI ],
+                [ a sh:PropertyShape; sh:path schema:recipient; sh:minCount 1; sh:name "recipient"; sh:nodeKind sh:IRI ],
+                [ a sh:PropertyShape; sh:path a2a:mode; sh:minCount 1; sh:name "mode"; sh:nodeKind sh:IRI ] ] ].</pre>
+  </section>
+
+  <section id="pd-hashing">
+    <h3>Content addressing</h3>
+    <p>
+      The <a>protocol hash</a> pins the <em>content</em> of a PD independent of where it is
+      hosted. It is computed as:
+    </p>
+    <ol>
+      <li>Canonicalize the PD's full graph to canonical N-Quads using RDFC-1.0
+        [[rdf-canon]].</li>
+      <li>Compute the SHA-256 digest of the UTF-8 bytes of that canonical form.</li>
+      <li>Render as <code>"sha256:" + lowercase-hex(digest)</code>.</li>
+    </ol>
+    <p>
+      A party that dereferences a PD from a <code>protocolSource</code> (or a card-declared
+      <code>source</code>) MUST recompute the hash over the fetched graph and MUST reject the
+      document — treating the exchange as never upgraded — if it does not equal the pinned hash.
+      The hash, not the URL and not TLS, is the trust anchor: a compromised or substituted host
+      cannot alter a pinned protocol.
+    </p>
+    <p class="note" title="Reference-codec canonicalization gap">
+      The current reference codec [[SOLID-A2A-IMPL]] computes its hash over a deterministic,
+      blank-node-normalised sorted N-Quads form that is <em>not</em> RDFC-1.0. This
+      specification normatively requires RDFC-1.0 (the W3C Recommendation exists precisely so
+      independent implementations agree on canonical bytes); aligning the codec is a tracked
+      implementation gap, not a spec concession — see <a href="#implementation-status"></a>.
+      Because the algorithm is named inside the hash string's prefix scheme, a future
+      algorithm change is expressible (<code>sha256:</code> today) without breaking parsing.
+    </p>
+    <p>
+      PDs SHOULD be published at HTTPS URLs whose representations are immutable (content-addressed
+      paths or versioned documents); a PD is typically hosted in the offering party's own storage
+      (in the Solid deployment profile, a pod) so protocol definitions inherit the host's access
+      control and availability story.
+    </p>
+  </section>
+</section>
+
+<section id="handshake">
+  <h2>The upgrade handshake</h2>
+  <p>
+    The handshake is how two agents move a conversation from natural language onto a pinned
+    Protocol Document. It is a pair of extension payloads carried in ordinary A2A messages
+    (binding in <a href="#binding"></a>); it adds no RPC methods and no task states.
+  </p>
+
+  <section id="offer">
+    <h3>Upgrade offer</h3>
+    <table class="def">
+      <thead><tr><th>Member</th><th>Type</th><th>Req.</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>kind</code></td><td>string</td><td>yes</td><td>The literal
+          <code>"upgrade-offer"</code>.</td></tr>
+        <tr><td><code>protocolHash</code></td><td>string</td><td>yes</td><td>The <a>protocol
+          hash</a> of the offered PD.</td></tr>
+        <tr><td><code>protocolSource</code></td><td>string</td><td>yes</td><td>HTTPS URL from
+          which the PD can be fetched (and MUST be hash-verified; <a href="#pd-hashing"></a>).</td></tr>
+        <tr><td><code>required</code></td><td>boolean</td><td>yes</td><td><code>true</code>
+          marks this a <a>security-bearing exchange</a> that MUST NOT be silently downgraded to
+          natural language (<a href="#downgrade"></a>). Receivers MUST reject an offer whose
+          <code>required</code> is present but not a JSON boolean — a malformed flag MUST NOT be
+          coerced to <code>false</code>.</td></tr>
+        <tr><td><code>protocolName</code></td><td>string</td><td>no</td><td>Human-readable
+          protocol name.</td></tr>
+      </tbody>
+    </table>
+    <pre class="json">
+{
+  "kind": "upgrade-offer",
+  "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+  "protocolSource": "https://alice.pod.example/protocols/grant-access",
+  "required": true,
+  "protocolName": "Grant access"
+}</pre>
+  </section>
+
+  <section id="response">
+    <h3>Upgrade response</h3>
+    <table class="def">
+      <thead><tr><th>Member</th><th>Type</th><th>Req.</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>kind</code></td><td>string</td><td>yes</td><td>The literal
+          <code>"upgrade-response"</code>.</td></tr>
+        <tr><td><code>protocolHash</code></td><td>string</td><td>yes</td><td>MUST equal the
+          offer's <code>protocolHash</code> — a response about a different hash answers nothing
+          (<a href="#downgrade"></a>).</td></tr>
+        <tr><td><code>accept</code></td><td>boolean</td><td>yes</td><td>Accept or decline.
+          Receivers MUST reject a response whose <code>accept</code> is missing or not a JSON
+          boolean — it MUST NOT default to <code>false</code>, which could otherwise authorise
+          NL fallback.</td></tr>
+        <tr><td><code>reason</code></td><td>string</td><td>no</td><td>Human-readable reason on
+          decline.</td></tr>
+      </tbody>
+    </table>
+    <p>
+      Both payloads also have an equivalent RDF form (one subject typed
+      <code>a2a:UpgradeOffer</code> / <code>a2a:UpgradeResponse</code> with predicates
+      <code>a2a:protocolHash</code>, <code>a2a:protocolSource</code>, <code>a2a:protocolName</code>,
+      <code>a2a:required</code>, <code>a2a:accept</code>, <code>a2a:reason</code>;
+      booleans as <code>xsd:boolean</code> literals). A handshake graph MUST contain exactly one
+      such typed subject; receivers MUST reject ambiguous graphs (zero, multiple, or mixed
+      handshake subjects) rather than splice triples across subjects.
+    </p>
+  </section>
+
+  <section id="downgrade">
+    <h3>The no-silent-downgrade rule</h3>
+    <p>
+      Given an offer <var>O</var> and a purported response <var>R</var>, natural-language
+      fallback for the exchange is permitted <strong>only</strong> when <em>all</em> of the
+      following hold — otherwise the sender MUST NOT proceed in natural language:
+    </p>
+    <ol>
+      <li><code>R.protocolHash == O.protocolHash</code> — a response about any other protocol
+        (or an unparseable / absent response) never authorises downgrade (fail closed; this
+        forecloses using an unrelated decline to justify NL fallback);</li>
+      <li><code>O.required == false</code> — a security-bearing offer declined means the
+        exchange is <strong>aborted</strong> with an error (<a href="#errors"></a>), not
+        retried in prose; and</li>
+      <li><code>R.accept == false</code> — if the peer accepted, the exchange proceeds in
+        validated RDF and NL is simply not used.</li>
+    </ol>
+    <p>
+      The rule is the codec-level half of downgrade resistance: it makes silent downgrade a
+      protocol violation rather than a default. It does not by itself authenticate the response —
+      transport/message authentication is the A2A binding's concern, and credential-level
+      protections compose via <a href="#authorization"></a>.
+    </p>
+  </section>
+
+  <section id="required-semantics">
+    <h3>Two <code>required</code> flags, two scopes</h3>
+    <table class="def">
+      <thead><tr><th>Flag</th><th>Scope</th><th>Effect</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>AgentExtension.required</code></td>
+          <td>Agent Card — the whole agent</td>
+          <td>§4.6 of [[A2A]]: clients MUST activate and comply with the extension to talk to
+            this agent at all.</td>
+        </tr>
+        <tr>
+          <td><code>UpgradeOffer.required</code></td>
+          <td>One offered exchange</td>
+          <td>This specification: <em>this</em> exchange must run under the pinned PD or be
+            aborted — never silently downgraded to NL (<a href="#downgrade"></a>).</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="handshake-skip">
+    <h3>Skipping the handshake for card-declared protocols</h3>
+    <p>
+      When an Agent Card pre-declares a PD in <code>params.protocolDocuments</code>
+      (<a href="#declaration"></a>) and the client already implements a PD with the same
+      <a>protocol hash</a>, the client MAY send a conforming intent directly — tagging the part
+      with that hash (<a href="#part-metadata"></a>) — without a prior offer/response round. The
+      Agent Card declaration <em>is</em> the standing offer. The agent MUST still validate the
+      intent against the shape before acting.
+    </p>
+  </section>
+</section>
+
+<section id="binding">
+  <h2>Message-content binding</h2>
+  <p>
+    All extension payloads ride in A2A <code>Part</code>s (§4.1.6 of [[A2A]]): the
+    <code>data</code> content field for JSON payloads, the <code>text</code> content field with
+    an RDF <code>mediaType</code> for serialized RDF. Core data structures are never altered;
+    per-part attributes go in <code>Part.metadata</code>, per §4.6's extension-point rules.
+  </p>
+
+  <section id="part-metadata">
+    <h3>Part metadata keys</h3>
+    <p>Two metadata keys are defined, namespaced by the extension URI:</p>
+    <table class="def">
+      <thead><tr><th>Key</th><th>Value</th><th>On</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>https://w3id.org/jeswr/a2a-rdf/v1/kind</code></td>
+          <td>one of <code>"upgrade-offer"</code>, <code>"upgrade-response"</code>,
+            <code>"intent"</code>, <code>"intent-response"</code>, <code>"authorization"</code></td>
+          <td>every extension part (REQUIRED — receivers dispatch on it without sniffing
+            payloads)</td>
+        </tr>
+        <tr>
+          <td><code>https://w3id.org/jeswr/a2a-rdf/v1/protocolHash</code></td>
+          <td>the <a>protocol hash</a> the part claims conformance to</td>
+          <td><code>intent</code> and <code>intent-response</code> parts (REQUIRED)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="part-profiles">
+    <h3>Part profiles</h3>
+    <table class="def">
+      <thead><tr><th><code>kind</code></th><th>Content field</th><th><code>mediaType</code></th><th>Payload</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>upgrade-offer</code> / <code>upgrade-response</code></td>
+          <td><code>data</code></td>
+          <td><code>application/json</code></td>
+          <td>The JSON object of <a href="#offer"></a> / <a href="#response"></a>. (The RDF form
+            MAY instead be sent as a <code>text</code> part with an RDF media type; the JSON
+            form is the interop baseline.)</td>
+        </tr>
+        <tr>
+          <td><code>intent</code></td>
+          <td><code>text</code> or <code>data</code></td>
+          <td><code>text/turtle</code> for <code>text</code>;
+            <code>application/ld+json</code> for <code>data</code></td>
+          <td>The <a>intent</a> graph. MUST contain exactly one subject typed
+            <code>a2a:Intent</code> and MUST conform to the pinned PD's
+            <code>a2a:requestShape</code>(s).</td>
+        </tr>
+        <tr>
+          <td><code>intent-response</code></td>
+          <td><code>text</code> or <code>data</code></td>
+          <td>as for <code>intent</code></td>
+          <td>The structured response graph; MUST conform to the PD's
+            <code>a2a:responseShape</code>(s) when the PD defines any.</td>
+        </tr>
+        <tr>
+          <td><code>authorization</code></td>
+          <td><code>data</code></td>
+          <td><code>application/vp</code> (or <code>application/ld+json</code>)</td>
+          <td>A [[vc-data-model-2.0]] Verifiable Presentation packaging the acting agent's
+            Agent Authorization Credential chain, root-first, per [[AGENT-AUTHZ]]
+            (<a href="#authorization"></a>).</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      A receiving agent MUST SHACL-validate every <code>intent</code> part against the pinned
+      PD's request shape(s) <em>before acting on it</em>, and MUST refuse (with the error of
+      <a href="#errors"></a>) an intent that does not conform, whose claimed
+      <code>protocolHash</code> is unknown to the conversation, or whose graph is ambiguous
+      (zero or multiple <code>a2a:Intent</code> subjects). Validation is against the local,
+      hash-verified copy of the PD only — never against shapes fetched at message time.
+    </p>
+    <p>
+      An example intent graph under the grant-access PD of <a href="#pd-model"></a>
+      (execution-verified against the reference codec, including its <code>conforms: true</code>
+      validation result):
+    </p>
+    <pre class="turtle">
+@prefix a2a: &lt;https://w3id.org/jeswr/a2a#&gt;.
+@prefix schema: &lt;https://schema.org/&gt;.
+@prefix acl: &lt;http://www.w3.org/ns/auth/acl#&gt;.
+
+&lt;urn:a2a:intent:kxs8cv&gt; a a2a:Intent;
+    a2a:action [ a a2a:GrantAction;
+        schema:object &lt;https://alice.pod.example/notes/&gt;;
+        schema:recipient &lt;https://bob.example/profile#me&gt;;
+        a2a:mode acl:Read, acl:Write ].</pre>
+  </section>
+</section>
+
+<section id="authorization">
+  <h2>Composing with authorization: ODRL policies and Agent Authorization Credentials</h2>
+  <p>
+    This extension defines <em>how a request is expressed and validated</em>, not whether the
+    requester is authorized. The authorization story composes from two companion documents,
+    which this section binds by reference and deliberately does not restate:
+  </p>
+  <ul>
+    <li>The <strong>ODRL Agent-Delegation Profile</strong> [[ODRL-DELEGATION]] defines the
+      fail-closed semantics of the delegation chain — scope, expiry, prohibitions, duties, and
+      delegation depth over [[odrl-model]] / [[odrl-vocab]] policies.</li>
+    <li><strong>Agent Authorization Credentials</strong> [[AGENT-AUTHZ]] defines the per-hop
+      [[vc-data-model-2.0]] credential (subject carrying <code>svc:authorizes</code> — the
+      agent's WebID — and <code>svc:policy</code> — the ODRL Agreement), its policy-content
+      binding, revocation, and the packaging of a chain as a Verifiable Presentation,
+      root-first.</li>
+  </ul>
+  <p>Binding points:</p>
+  <ol>
+    <li>A message whose <code>intent</code> part expresses a <a>security-bearing exchange</a>
+      SHOULD carry an <code>authorization</code> part (<a href="#part-profiles"></a>) presenting
+      the acting agent's credential chain in the <em>same</em> <code>Message</code>, so the
+      receiver validates shape and mandate together.</li>
+    <li>The intent graph MAY reference the exercised policy directly
+      (e.g. <code>&lt;intent&gt; odrl:hasPolicy &lt;policy-iri&gt;</code>); when it does, the IRI
+      MUST match (one of) the <code>svc:policy</code> value(s) in the presented chain — a
+      mismatch is a refusal.</li>
+    <li>The receiver's decision procedure is the verification algorithm of [[AGENT-AUTHZ]]
+      (signatures ∪ status ∪ revocation, then the fail-closed chain evaluation of
+      [[ODRL-DELEGATION]]) applied to the presented chain, with the SHACL-validated intent as
+      the action under test. Absence of a verifiable grant is a denial.</li>
+  </ol>
+  <p class="note">
+    Nothing in this section is specific to Solid: the credentials are ordinary VC 2.0 documents
+    and the policies ordinary ODRL. In the Solid deployment profile the WebIDs, pods, and access
+    control of [[AGENTIC-SOLID-NOTE]] supply the identity and storage layers.
+  </p>
+</section>
+
+<section id="errors">
+  <h2>Error signalling</h2>
+  <p>
+    Extensions cannot add enum values or alter core structures (§4.6 limitations, per
+    [[A2A-EXTENSIONS]]), so failures are signalled with core mechanisms plus one metadata key:
+    a refusing agent SHOULD fail the request using the binding's standard error path (e.g. a
+    JSON-RPC error or a failed task state) and SHOULD attach, on the error's message or
+    metadata, the key
+    <code>https://w3id.org/jeswr/a2a-rdf/v1/error</code> with one of:
+  </p>
+    <table class="def">
+      <thead><tr><th>Code</th><th>Raised when</th></tr></thead>
+      <tbody>
+        <tr><td><code>"protocol-required"</code></td><td>a <code>required</code> offer was
+          declined, or a card-required agent received a non-activated request — the exchange is
+          aborted, not downgraded.</td></tr>
+        <tr><td><code>"validation-failed"</code></td><td>an intent/response part did not conform
+          to the pinned shape (the SHACL validation report MAY be attached as a
+          <code>text/turtle</code> part).</td></tr>
+        <tr><td><code>"unknown-protocol"</code></td><td>the part's claimed
+          <code>protocolHash</code> is not one negotiated or card-declared for this
+          conversation.</td></tr>
+        <tr><td><code>"hash-mismatch"</code></td><td>a fetched PD failed hash verification.</td></tr>
+        <tr><td><code>"authorization-failed"</code></td><td>the presented credential chain did
+          not verify or did not cover the intent (per <a href="#authorization"></a>).</td></tr>
+      </tbody>
+    </table>
+</section>
+
+<section id="dependencies">
+  <h2>Extension dependencies</h2>
+  <p>
+    This extension has <strong>no required dependencies</strong> on other A2A extensions. The
+    authorization composition (<a href="#authorization"></a>) depends only on W3C document
+    formats (VC 2.0, ODRL), not on any A2A extension. Per [[A2A-EXTENSIONS]], a client
+    activates this extension alone.
+  </p>
+</section>
+
+<section id="versioning">
+  <h2>Versioning</h2>
+  <ul>
+    <li>The extension version is the <code>/v1</code> segment of the extension URI; breaking
+      changes MUST mint <code>/v2</code> (§4.6.3 of [[A2A]]).</li>
+    <li>Protocol Documents version independently of the extension: a changed PD is a different
+      graph, hence a different <a>protocol hash</a> — pinning makes PD versioning automatic.
+      <code>dcterms:hasVersion</code> is informative labelling only.</li>
+    <li>If the extension is adopted under A2A governance [[A2A-GOVERNANCE]], the successor URI
+      would follow the official <code>https://a2a-protocol.org/extensions/</code> prefix; this
+      document would then declare the mapping and deprecate the <code>w3id.org/jeswr</code>
+      URI.</li>
+  </ul>
+</section>
+
+<section id="security">
+  <h2>Security considerations</h2>
+  <p>In addition to §4.6's general guidance (validate all extension data rigorously; apply the
+    same authentication and authorization to extension traffic as to core traffic):</p>
+  <ul>
+    <li><strong>Untrusted RDF.</strong> Every extension payload is attacker-controlled input.
+      Parsers MUST be hardened: enforce size limits before parsing; never dereference IRIs found
+      in payloads (no <code>owl:imports</code>, no context fetching for JSON-LD beyond a
+      locally-pinned context); treat malformed graphs as refusals, never best-effort repairs.
+      Handshake graphs with zero/multiple/mixed typed subjects MUST be rejected
+      (<a href="#response"></a>) — splicing predicates across subjects is a spoofing vector.</li>
+    <li><strong>Boolean strictness.</strong> The <code>required</code> and <code>accept</code>
+      flags are security-bearing. A missing or non-boolean value MUST cause rejection of the
+      message, never a default: coercing a malformed <code>required</code> to <code>false</code>
+      or a malformed <code>accept</code> to <code>false</code> re-opens the downgrade the rule
+      exists to close.</li>
+    <li><strong>Downgrade resistance.</strong> The rule of <a href="#downgrade"></a> is
+      normative and fail-closed: an unrelated, absent, or unparseable response never authorises
+      natural-language fallback, and a declined <code>required</code> offer aborts. Implementers
+      MUST NOT add "helpful" NL retries around a refused security-bearing exchange.</li>
+    <li><strong>PD fetching (SSRF and substitution).</strong> <code>protocolSource</code> is a
+      user/peer-supplied URL. Fetchers MUST require HTTPS, SHOULD refuse private, loopback, and
+      link-local address targets (including post-DNS-resolution, in server-side deployments),
+      MUST cap response size and time, and SHOULD NOT follow cross-origin redirects. Hash
+      verification (<a href="#pd-hashing"></a>) MUST happen before any use of the fetched
+      graph; the hash — not the URL, not TLS — is what makes the PD trustworthy.</li>
+    <li><strong>Replay.</strong> A conforming intent is a valid graph regardless of when it is
+      replayed. Shape validity is not freshness: receivers of security-bearing intents MUST rely
+      on the A2A envelope (unique <code>messageId</code>, <code>taskId</code>/<code>contextId</code>
+      scoping) and, where credentials are presented, on the challenge/domain binding of the
+      Verifiable Presentation ([[AGENT-AUTHZ]] presentations) for replay resistance — and SHOULD
+      treat a repeated <code>messageId</code> within a context as a duplicate, not a new
+      instruction.</li>
+    <li><strong>Validation cost.</strong> SHACL validation over attacker-supplied graphs can be
+      made expensive (deep <code>sh:node</code> recursion, large graphs). Receivers SHOULD bound
+      graph size and validation time and refuse over-limit inputs; PDs a party agrees to speak
+      SHOULD be reviewed for pathological shapes before acceptance — accepting a PD is accepting
+      a validation workload.</li>
+    <li><strong>Card-level <code>required</code> pressure.</strong> Marking the whole extension
+      card-required excludes baseline clients; per [[A2A-EXTENSIONS]], use it only where an
+      RDF-only surface is genuinely intended (see <a href="#declaration"></a>).</li>
+  </ul>
+</section>
+
+<section id="privacy" class="informative">
+  <h2>Privacy considerations</h2>
+  <p>
+    Structured, vocabulary-grounded messages are easier to mine than prose; the same property
+    that enables auditing enables profiling. Agent Card <code>protocolDocuments</code> listings
+    reveal what routines an agent speaks — publishers should treat the card as public metadata
+    and keep sensitive protocols negotiable-on-request (<code>nlNegotiation</code>) rather than
+    card-listed. Authorization parts carry credential chains: present the minimal chain, per the
+    minimisation guidance of [[AGENT-AUTHZ]].
+  </p>
+</section>
+
+<section id="implementation-status">
+  <h2>Implementation status — the honest inventory</h2>
+  <p>Verified against the named repositories on 2026-07-03. Nothing below is an endorsement by
+    the A2A project.</p>
+  <table class="def">
+    <thead><tr><th>Piece</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Handshake codec (offer/response encode/decode, strict-boolean parsing, RDF forms) +
+          the no-silent-downgrade decision</td>
+        <td><strong>Implemented (experimental)</strong> — [[SOLID-A2A-IMPL]]
+          (<code>encodeUpgradeOffer</code>/<code>decodeUpgradeOffer</code>/
+          <code>mayDowngradeToNl</code>/<code>handshakeToRdf</code>…)</td>
+      </tr>
+      <tr>
+        <td>Protocol Documents: build, serialize, hash, fetch-and-verify; SHACL validation of
+          intents against a PD</td>
+        <td><strong>Implemented (experimental)</strong> — [[SOLID-A2A-IMPL]]
+          (<code>buildProtocolDocument</code>/<code>verifyProtocolDocument</code>/
+          <code>validateIntent</code>), <em>except</em> the canonicalization: the codec hashes a
+          deterministic sorted-N-Quads form, not RDFC-1.0 as this spec requires — a tracked
+          alignment gap (<a href="#pd-hashing"></a>)</td>
+      </tr>
+      <tr>
+        <td>Intent data model (NL→RDF translation with an injectable-LLM seam, Turtle/JSON-LD
+          round-trip)</td>
+        <td><strong>Implemented (experimental)</strong> — [[SOLID-A2A-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>Agent Card production (WebID-anchored descriptor where the
+          <code>AgentExtension</code> entry and <code>protocolDocuments</code> would be
+          emitted)</td>
+        <td><strong>Implemented (experimental)</strong> — [[SOLID-AGENT-CARD-IMPL]]; emitting
+          the exact <code>params</code> schema of <a href="#declaration"></a> is an alignment
+          task</td>
+      </tr>
+      <tr>
+        <td>A2A transport integration (the <code>A2A-Extensions</code> activation flow, Part
+          assembly/dispatch inside an A2A SDK runtime)</td>
+        <td><strong>Not implemented</strong> — the reference codec is deliberately
+          transport-free; wiring it into an A2A SDK is the natural first joint work item of a
+          proposal collaboration</td>
+      </tr>
+      <tr>
+        <td>Authorization composition end-to-end (intent + AAC presentation verified
+          together)</td>
+        <td><strong>Specified by composition only</strong> — the pieces exist separately
+          ([[AGENT-AUTHZ]] verification via <code>@jeswr/solid-vc</code> +
+          <code>@jeswr/solid-odrl</code>); no integrated implementation yet</td>
+      </tr>
+      <tr>
+        <td>A2A project registry entry / governance status</td>
+        <td><strong>Proposed only</strong> — no proposal issue opened yet
+          ([[A2A-GOVERNANCE]] proposal phase; maintainer-gated)</td>
+      </tr>
+      <tr>
+        <td><code>w3id.org/jeswr/a2a-rdf</code> and <code>w3id.org/jeswr/a2a#</code>
+          redirects</td>
+        <td><strong>Pending</strong> — w3id PRs not yet raised</td>
+      </tr>
+    </tbody>
+  </table>
+  <section id="related-work" class="informative">
+    <h3>Related work in the A2A tracker</h3>
+    <p>
+      A search of <code>a2aproject/A2A</code> issues and discussions (2026-07-03) found no
+      existing RDF- or SHACL-based extension proposal. The nearest neighbour is
+      [[A2A-ISSUE-1577]], which asks the <em>core</em> data model to adopt the semantics of
+      existing vocabularies (ADMS, DCAT); this extension is complementary — it leaves the core
+      model untouched and brings standard semantics to the <em>payload</em> layer via the
+      extension mechanism, which may satisfy part of that issue's motivation without a core
+      change. A proposal should reference it.
+    </p>
+  </section>
+</section>
+
+<section id="example" class="informative">
+  <h2>Worked example — a full exchange</h2>
+  <p>
+    Alice's agent (client) asks Bob's agent (server) to grant Bob read+write access to a
+    container. The exchange is security-bearing, so the offer is <code>required</code>. Payloads
+    marked ✔ were generated and validated with the reference codec [[SOLID-A2A-IMPL]].
+  </p>
+
+  <h3>0. Discovery</h3>
+  <p>Bob's Agent Card carries the declaration of <a href="#declaration"></a> (with the
+    grant-access PD pre-listed). Alice's agent does not yet implement that PD, so it runs the
+    full handshake rather than the skip of <a href="#handshake-skip"></a>.</p>
+
+  <h3>1. Offer (Alice → Bob)</h3>
+  <pre class="http">
+POST /a2a HTTP/1.1
+Host: agent.bob.example
+Content-Type: application/json
+A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
+
+{
+  "jsonrpc": "2.0", "method": "SendMessage", "id": "1",
+  "params": { "message": {
+    "messageId": "m-1", "role": "ROLE_USER",
+    "extensions": ["https://w3id.org/jeswr/a2a-rdf/v1"],
+    "parts": [
+      { "text": "I'd like to set up access sharing. Happy to do this over your grant-access protocol." },
+      { "data": {
+          "kind": "upgrade-offer",
+          "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+          "protocolSource": "https://alice.pod.example/protocols/grant-access",
+          "required": true,
+          "protocolName": "Grant access"
+        },
+        "mediaType": "application/json",
+        "metadata": { "https://w3id.org/jeswr/a2a-rdf/v1/kind": "upgrade-offer" } }
+    ] } }
+}</pre>
+  <p>✔ offer object. Bob's agent fetches the PD from <code>protocolSource</code> (HTTPS,
+    size/time-capped), recomputes the hash, and confirms it matches. ✔ hash round-trip.</p>
+
+  <h3>2. Accept (Bob → Alice)</h3>
+  <pre class="http">
+HTTP/1.1 200 OK
+Content-Type: application/json
+A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
+
+{
+  "jsonrpc": "2.0", "id": "1",
+  "result": { "message": {
+    "messageId": "m-2", "role": "ROLE_AGENT",
+    "extensions": ["https://w3id.org/jeswr/a2a-rdf/v1"],
+    "parts": [
+      { "data": {
+          "kind": "upgrade-response",
+          "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+          "accept": true
+        },
+        "mediaType": "application/json",
+        "metadata": { "https://w3id.org/jeswr/a2a-rdf/v1/kind": "upgrade-response" } }
+    ] } }
+}</pre>
+  <p>Had Bob declined, <code>required: true</code> means Alice's agent aborts with
+    <code>"protocol-required"</code> — it does not re-ask in prose
+    (<a href="#downgrade"></a>).</p>
+
+  <h3>3. Validated intent (Alice → Bob)</h3>
+  <pre class="http">
+POST /a2a HTTP/1.1
+Host: agent.bob.example
+Content-Type: application/json
+A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
+
+{
+  "jsonrpc": "2.0", "method": "SendMessage", "id": "2",
+  "params": { "message": {
+    "messageId": "m-3", "role": "ROLE_USER", "contextId": "ctx-1",
+    "extensions": ["https://w3id.org/jeswr/a2a-rdf/v1"],
+    "parts": [
+      { "text": "@prefix a2a: <https://w3id.org/jeswr/a2a#>.\n@prefix schema: <https://schema.org/>.\n@prefix acl: <http://www.w3.org/ns/auth/acl#>.\n\n<urn:a2a:intent:kxs8cv> a a2a:Intent;\n    a2a:action [ a a2a:GrantAction;\n        schema:object <https://alice.pod.example/notes/>;\n        schema:recipient <https://bob.example/profile#me>;\n        a2a:mode acl:Read, acl:Write ].",
+        "mediaType": "text/turtle",
+        "metadata": {
+          "https://w3id.org/jeswr/a2a-rdf/v1/kind": "intent",
+          "https://w3id.org/jeswr/a2a-rdf/v1/protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b"
+        } }
+    ] } }
+}</pre>
+  <p>✔ intent graph; ✔ SHACL validation against the PD returns <code>conforms: true</code>. Bob's
+    agent validates the graph against the pinned request shape, then hands the intent to its
+    authorization layer. Were this a delegated agent acting under a mandate, the message would
+    also carry an <code>authorization</code> part with the credential-chain presentation
+    (<a href="#authorization"></a>). No LLM ran on either side of this step.</p>
+
+  <h3>4. Outcome (Bob → Alice)</h3>
+  <p>Bob's agent performs the grant and replies; if the PD had declared an
+    <code>a2a:responseShape</code>, the reply would carry a conforming
+    <code>intent-response</code> part. On validation failure it would instead fail the request
+    with <code>"validation-failed"</code> and MAY attach the SHACL report as a Turtle part
+    (<a href="#errors"></a>).</p>
+</section>
+
+</body>
+</html>
