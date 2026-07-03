@@ -537,7 +537,7 @@
       Exactly today's Solid, unmodified. <em>Server:</em> conforms to [[SOLID-PROTOCOL]] with
       [[WAC]] or [[ACP]] and [[SOLID-OIDC]]. <em>Agent / principal tooling:</em> authenticates
       with DPoP-bound Solid-OIDC [[RFC9449]]; each agent holds its own WebID [[WEBID]], linked
-      from its principal's profile. A server MAY additionally implement the access-controlled
+      from its principal's profile. A server can additionally implement the access-controlled
       query interface [[SOLID-SPARQL-QUERY]] — an orthogonal server capability, valuable at
       every stage.
     </p>
@@ -849,8 +849,8 @@
     <li>
       <strong>The accountability trail is itself personal data.</strong> PROV records, delegation
       chains, and agreements reveal who delegated what to whom, when, and for what purpose. They
-      are ordinary pod resources and MUST (per the component specs' own terms) sit under access
-      control like any other resource; "auditable by the parties with standing" is an
+      are ordinary pod resources, and the component specifications require them to sit under
+      access control like any other resource; "auditable by the parties with standing" is an
       access-control policy decision, not a property of publishing the trail to the world.
     </li>
     <li>
