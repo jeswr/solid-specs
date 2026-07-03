@@ -285,7 +285,7 @@
             {
               "name": "Grant access",
               "source": "https://alice.pod.example/protocols/grant-access",
-              "hash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b"
+              "hash": "sha256:4af1e70e42283872cbc0dd3a5eeaa1bd86adda728c993447bed8930d990ab509"
             }
           ]
         }
@@ -428,14 +428,23 @@ a2a:GrantIntentShape a sh:NodeShape;
       The hash, not the URL and not TLS, is the trust anchor: a compromised or substituted host
       cannot alter a pinned protocol.
     </p>
+    <p>
+      Within this extension, the <code>sha256:</code> prefix denotes exactly this construction —
+      RDFC-1.0 canonical N-Quads, then SHA-256 — as a fixed pair. A change to <em>either</em> the
+      canonicalization or the digest algorithm is a breaking change to this specification: it
+      MUST use a new, distinct prefix <em>and</em> is only introducible under a new extension URI
+      (<a href="#versioning"></a>). Implementations MUST reject hash strings whose prefix they
+      do not recognise.
+    </p>
     <p class="note" title="Reference-codec canonicalization gap">
-      The current reference codec [[SOLID-A2A-IMPL]] computes its hash over a deterministic,
-      blank-node-normalised sorted N-Quads form that is <em>not</em> RDFC-1.0. This
+      The current reference codec [[SOLID-A2A-IMPL]] computes its internal hash over a
+      deterministic, blank-node-normalised sorted N-Quads form that is <em>not</em> RDFC-1.0, so
+      its <code>ProtocolDocument.hash</code> values are not conformant to this section. This
       specification normatively requires RDFC-1.0 (the W3C Recommendation exists precisely so
       independent implementations agree on canonical bytes); aligning the codec is a tracked
-      implementation gap, not a spec concession — see <a href="#implementation-status"></a>.
-      Because the algorithm is named inside the hash string's prefix scheme, a future
-      algorithm change is expressible (<code>sha256:</code> today) without breaking parsing.
+      implementation gap, not a spec concession — see <a href="#implementation-status"></a>. The
+      example hashes in this document were computed with an independent RDFC-1.0 implementation
+      over the codec-built graphs and <em>are</em> conformant.
     </p>
     <p>
       PDs SHOULD be published at HTTPS URLs whose representations are immutable (content-addressed
@@ -477,7 +486,7 @@ a2a:GrantIntentShape a sh:NodeShape;
     <pre class="json">
 {
   "kind": "upgrade-offer",
-  "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+  "protocolHash": "sha256:4af1e70e42283872cbc0dd3a5eeaa1bd86adda728c993447bed8930d990ab509",
   "protocolSource": "https://alice.pod.example/protocols/grant-access",
   "required": true,
   "protocolName": "Grant access"
@@ -898,7 +907,10 @@ a2a:GrantIntentShape a sh:NodeShape;
   <p>
     Alice's agent (client) asks Bob's agent (server) to grant Bob read+write access to a
     container. The exchange is security-bearing, so the offer is <code>required</code>. Payloads
-    marked ✔ were generated and validated with the reference codec [[SOLID-A2A-IMPL]].
+    marked ✔ were generated and validated with the reference codec [[SOLID-A2A-IMPL]]; the
+    protocol hash shown was computed conformantly to <a href="#pd-hashing"></a> with an
+    independent RDFC-1.0 implementation (<code>rdf-canonize</code> 5.0.0) over the codec-built
+    Protocol Document graph.
   </p>
 
   <h3>0. Discovery</h3>
@@ -922,7 +934,7 @@ A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
       { "text": "I'd like to set up access sharing. Happy to do this over your grant-access protocol." },
       { "data": {
           "kind": "upgrade-offer",
-          "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+          "protocolHash": "sha256:4af1e70e42283872cbc0dd3a5eeaa1bd86adda728c993447bed8930d990ab509",
           "protocolSource": "https://alice.pod.example/protocols/grant-access",
           "required": true,
           "protocolName": "Grant access"
@@ -932,7 +944,8 @@ A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
     ] } }
 }</pre>
   <p>✔ offer object. Bob's agent fetches the PD from <code>protocolSource</code> (HTTPS,
-    size/time-capped), recomputes the hash, and confirms it matches. ✔ hash round-trip.</p>
+    size/time-capped), recomputes the RDFC-1.0 hash, and confirms it matches. ✔ the shown hash
+    is the recomputable RDFC-1.0 hash of the PD graph in <a href="#pd-model"></a>.</p>
 
   <h3>2. Accept (Bob → Alice)</h3>
   <pre class="http">
@@ -948,7 +961,7 @@ A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
     "parts": [
       { "data": {
           "kind": "upgrade-response",
-          "protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b",
+          "protocolHash": "sha256:4af1e70e42283872cbc0dd3a5eeaa1bd86adda728c993447bed8930d990ab509",
           "accept": true
         },
         "mediaType": "application/json",
@@ -976,7 +989,7 @@ A2A-Extensions: https://w3id.org/jeswr/a2a-rdf/v1
         "mediaType": "text/turtle",
         "metadata": {
           "https://w3id.org/jeswr/a2a-rdf/v1/kind": "intent",
-          "https://w3id.org/jeswr/a2a-rdf/v1/protocolHash": "sha256:5662eb8538e34e60ebcd87b5ccda2c116527f6d8afe6df3b9bafb6e7a862a62b"
+          "https://w3id.org/jeswr/a2a-rdf/v1/protocolHash": "sha256:4af1e70e42283872cbc0dd3a5eeaa1bd86adda728c993447bed8930d990ab509"
         } }
     ] } }
 }</pre>
