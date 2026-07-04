@@ -87,7 +87,7 @@
           title: "Accountable Agent Runtime — design",
           href: "https://github.com/jeswr/accountable-agent-runtime",
           authors: ["Jesse Wright"],
-          status: "Reference-runtime design (design-only; pending publication)"
+          status: "Reference runtime (Phase-0 implemented; experimental)"
         },
         "FED-VOCAB": {
           title: "solid-federation-vocab — the fedapp:/fedreg: federation vocabularies and sector ontologies",
@@ -199,7 +199,7 @@
     (Claude Fable 5) operated by the editor, against the cited primary sources, the component
     specifications, and the running reference implementations — and is awaiting the editor's
     review. Implementation-maturity claims were verified against the named repositories and
-    services on 2026-07-03 and are qualified honestly in <a href="#maturity"></a>.
+    services on 2026-07-04 and are qualified honestly in <a href="#maturity"></a>.
   </p>
 </section>
 
@@ -610,7 +610,7 @@
     every "implemented" names its artifact; nothing below claims production readiness. All named
     implementations are open source, TypeScript unless noted, AI-agent-authored under review
     discipline, and explicitly <strong>experimental</strong>. Verified against the named
-    repositories and running services on 2026-07-03.
+    repositories and running services on 2026-07-04.
   </p>
   <table class="simple">
     <thead>
@@ -653,11 +653,10 @@
         <td>ODRL Agent-Delegation Profile</td>
         <td>L3</td>
         <td><strong>Drafted</strong>: profile specification written
-          (<code>https://w3id.org/jeswr/odrl-delegation</code>; w3id redirect pending) on a
-          branch pending merge (<code>solid-odrl</code>
-          <code>feat/delegation-profile@18df183</code>); ODRL CG contribution proposed, not
+          (<code>https://w3id.org/jeswr/odrl-delegation</code>; w3id redirect pending), landed to
+          <code>solid-odrl</code> <code>main</code>; ODRL CG contribution proposed, not
           made</td>
-        <td><strong>Implemented (experimental, same branch)</strong>:
+        <td><strong>Implemented (experimental)</strong>:
           <code>evaluateDelegated</code> fail-closed chain evaluator +
           <code>delegationProvenance</code> PROV overlay [[SOLID-ODRL-IMPL]]</td>
       </tr>
@@ -675,8 +674,10 @@
           [[AGENT-AUTHZ]]; CCG work-item proposal pending (requires co-editors from more than
           one organisation)</td>
         <td><strong>Partially implemented</strong>: credential shape + issue/verify in
-          [[SOLID-VC-IMPL]]; the composed four-phase verifier is specified but not yet
-          implemented (gap G7 of [[AAR-DESIGN]])</td>
+          [[SOLID-VC-IMPL]]; the composed four-phase verifier (gap G7 of [[AAR-DESIGN]], incl.
+          the identity-composition rule) is implemented in [[AAR-DESIGN]]'s Phase 0 — a
+          deterministic, golden-master-tested script over test doubles with real crypto; the
+          composed packages running end-to-end against a live pod remains a later phase</td>
       </tr>
       <tr>
         <td>VC 2.0 + Data Integrity + status lists</td>
@@ -714,9 +715,13 @@
       <tr>
         <td>Accountable agent runtime (the composed trace + auditor walk)</td>
         <td>L6</td>
-        <td><strong>Design-only</strong>: runtime shape, on-pod trace artifact, auditor
-          procedure, and an honest API gap list (G1–G15) written [[AAR-DESIGN]]; no code yet</td>
-        <td><strong>Not implemented</strong></td>
+        <td><strong>Drafted</strong>: runtime shape, on-pod trace artifact, auditor
+          procedure, and an honest API gap list (G1–G15) written [[AAR-DESIGN]]</td>
+        <td><strong>Implemented (experimental, Phase 0)</strong>: the composed four-phase chain
+          verifier, the trace writer/reader, and the §4 scenario run as a deterministic,
+          golden-master-tested script with real crypto over test-doubled I/O
+          [[AAR-DESIGN]]; the later phases — the same flow against the real merged packages
+          end-to-end, then a live pod — remain</td>
       </tr>
       <tr>
         <td>Federation vocabularies + registry + trust</td>
