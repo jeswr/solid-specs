@@ -97,6 +97,27 @@ Searched `a2aproject/A2A` issues + discussions (2026-07-03): no existing RDF/SHA
 proposal. Nearest: issue #1577 (adopt ADMS/DCAT semantics in the *core* data model) — the spec
 cites it as complementary; the eventual proposal should reference it rather than duplicate.
 
+## D11 — LWS alignment: reference-composition, one discovery term, no normative change
+
+Alignment with the JLWS clean-slate Linked Web Storage draft (`jeswr/lws-spec`; its
+DECISIONS.md D21 / `docs/alignment/a2a-rdf.md` is the composition design). Verdict:
+**reference, not capability** — a JLWS storage is the natural substrate for this
+extension's documents (PDs, ODRL policies, AAC chains, PROV traces are ordinary byte-native
+data resources), and nothing in either spec changes. The Relationship section gains one
+informative paragraph stating (1) representation-stable pinning under the JLWS RDF Content
+Transformation Profile's `rdf-1` graph-isomorphism contract (the protocol hash is over the
+parsed graph, `#pd-hashing`, so an rdf-1-derived rendering pins identically), (2) the
+`AgentInteractionService` extension-service term — minted HERE in the a2a-rdf namespace via
+JLWS's extension-URI mechanism, so the JLWS core registry needs no edit — pointing a
+storage at its controller's A2A Agent Card, and (3) that the fail-closed no-silent-downgrade
+rule is independent of the storage's authentication posture (JLWS's Bearer baseline does not
+weaken it: the hash is the trust anchor). Detail + vector homing in
+`docs/lws-alignment.md`; the two pure-function vectors land in
+`agentic-solid-conformance` `vectors/a2a-rdf/`, the server-surface discovery vector homes in
+`lws-spec/test-vectors/` per the D21 homing rule. **Rejected:** a JLWS core capability term
+for agent interaction (the extension-service mechanism already covers it; minting in the
+JLWS registry would couple the substrate to an agent-layer spec).
+
 ## Verification notes
 
 - AgentExtension schema (`uri`, `description`, `required`, `params`) confirmed from

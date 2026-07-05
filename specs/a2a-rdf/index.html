@@ -68,6 +68,18 @@
           authors: ["Jesse Wright"],
           status: "Unofficial Editor's Draft"
         },
+        "JLWS-CORE": {
+          title: "JLWS — Linked Web Storage (clean-slate editor's draft)",
+          href: "https://github.com/jeswr/lws-spec",
+          authors: ["Jesse Wright"],
+          status: "Personal editor's draft (unofficial; experimental)"
+        },
+        "JLWS-RDF-TRANSFORM": {
+          title: "JLWS RDF Content Transformation Profile (companion to JLWS-CORE)",
+          href: "https://github.com/jeswr/lws-spec/blob/main/rdf-transform.html",
+          authors: ["Jesse Wright"],
+          status: "Personal editor's draft (unofficial; experimental)"
+        },
         "SOLID-A2A-IMPL": {
           title: "@jeswr/solid-a2a — NL→RDF upgrade codec: hash-pinned SHACL protocol documents",
           href: "https://github.com/jeswr/solid-a2a",
@@ -183,6 +195,39 @@
       <code>@jeswr/solid-a2a</code> library [[SOLID-A2A-IMPL]] is the reference codec for the
       handshake and payload formats defined here; <code>@jeswr/solid-agent-card</code>
       [[SOLID-AGENT-CARD-IMPL]] is the reference producer of the Agent Card declaration.
+    </p>
+    <p>
+      <strong>Linked Web Storage (JLWS).</strong> A JLWS storage ([[JLWS-CORE]]) is a natural
+      substrate for this extension's documents: Protocol Documents, ODRL policies, credential
+      chains, and PROV traces are ordinary JLWS <em>data resources</em> under ordinary JLWS
+      authorization — the storage server never speaks this extension. Three properties of that
+      substrate matter here. (1) <em>Hash stability across representations:</em> the
+      <a>protocol hash</a> is computed over the RDFC-1.0 canonicalization of the parsed
+      <em>graph</em> (<a href="#pd-hashing"></a>), not over bytes — so a PD stored as Turtle
+      and served as JSON-LD under JLWS's advertised <code>ContentNegotiation</code> capability
+      ([[JLWS-RDF-TRANSFORM]] <em>Transformation semantics</em>: the derived representation is
+      graph-isomorphic to the authoritative one) pins identically in either representation.
+      (2) <em>Discovery:</em> a storage whose controller operates an A2A agent MAY advertise
+      it with the extension service entry
+      <code>https://w3id.org/jeswr/a2a-rdf/v1#AgentInteractionService</code> — this document
+      hereby defines that term: <code>serviceEndpoint</code> is the agent's A2A <em>Agent Card
+      URL</em> (the card, not the A2A endpoint; the card carries the endpoint and the
+      <code>capabilities.extensions</code> declaration per <a href="#declaration"></a>), and
+      <code>conformsTo</code> asserts that the agent declares this extension's URI — in its
+      storage description, using [[JLWS-CORE]]'s extension-service mechanism (<em>Capability
+      registry</em>: extension services use absolute URIs; unknown types are ignored).
+      (3) <em>Downgrade resistance is independent of the storage's authentication
+      posture:</em> the hash — not the host, its TLS, or its token-presentation mode — is the
+      trust anchor (<a href="#pd-hashing"></a>), so whether the PD's storage authenticates
+      readers under JLWS's Bearer baseline or a negotiated proof-of-possession profile
+      ([[JLWS-CORE]] <em>Proof-of-possession profiles</em>), a fetched PD that misses its pin
+      MUST be rejected and the exchange treated as never upgraded; and a consuming client that
+      cannot retrieve or verify a pinned PD declines the offer, where the no-silent-downgrade
+      rule (<a href="#downgrade"></a>) still forbids natural-language fallback for a
+      <code>required</code> (security-bearing) exchange. None of these adds a requirement
+      to A2A agents or to JLWS servers; the composition detail is recorded in
+      <a href="https://github.com/jeswr/a2a-rdf-extension/blob/main/docs/lws-alignment.md">
+      <code>docs/lws-alignment.md</code></a>.
     </p>
   </section>
 </section>
