@@ -153,6 +153,12 @@
           href: "https://www.w3.org/groups/wg/lws/",
           publisher: "W3C",
           status: "Chartered Working Group (charter through 2026-09-08)"
+        },
+        "JLWS": {
+          title: "JLWS — Linked Web Storage (clean-slate editor's draft; core + RDF Content Transformation Profile)",
+          href: "https://github.com/jeswr/lws-spec",
+          authors: ["Jesse Wright"],
+          status: "Personal editor's draft (unofficial; experimental)"
         }
       }
     };
@@ -301,9 +307,14 @@
 <section id="architecture" class="informative">
   <h2>The layered architecture</h2>
   <p>
-    Six layers, plus one cross-cutting plane. Each subsection names the layer's job in one
-    sentence, the specification(s) that define it normatively, and how it connects to the layers
-    beside it. <strong>Nothing in this section is normative; the pointers are.</strong>
+    Six layers over a storage substrate, plus one cross-cutting plane. Each subsection names
+    the layer's job in one sentence, the specification(s) that define it normatively, and how
+    it connects to the layers beside it. The substrate band is unnumbered because it is not a
+    component of this architecture but the base it extends (<a href="#relationship"></a>): the
+    Solid Protocol pod of AS-0 today, with Linked Web Storage — the W3C WG direction [[LWS-WG]]
+    and the JLWS clean-slate draft that composes these layers over it [[JLWS]] — as the
+    substrate-portable next base. <strong>Nothing in this section is normative; the pointers
+    are.</strong>
   </p>
   <pre aria-label="The Agentic Solid layer diagram">
 ┌───────────────────────────────────────────────────────────────────────┐
@@ -318,7 +329,7 @@
 │                      [VC-DATA-INTEGRITY] [AGENT-AUTHZ]                │
 ├───────────────────────────────────────────────────────────────────────┤
 │ L3  POLICY           ODRL 2.2 agreements · the agent-delegation       │
-│                      chain, fail-closed  [ODRL-MODEL] [ODRL-DELEGATION]│
+│                      chain, fail-closed [ODRL-MODEL] [ODRL-DELEGATION]│
 ├───────────────────────────────────────────────────────────────────────┤
 │ L2  ACCESS CONTROL   WAC / ACP enforcement · access-controlled        │
 │                      SPARQL read interface  [WAC] [ACP]               │
@@ -327,6 +338,11 @@
 │ L1  IDENTITY         WebID for people, orgs AND agents ·              │
 │                      Solid-OIDC + DPoP    [WEBID] [SOLID-OIDC]        │
 │                      [RFC9449] [SOLID-PROTOCOL]                       │
+├───────────────────────────────────────────────────────────────────────┤
+│ SUBSTRATE            byte-hosting web storage the stack sits on:      │
+│     (unnumbered)     the Solid Protocol pod today · Linked Web        │
+│                      Storage as it standardises [SOLID-PROTOCOL]      │
+│                      [LWS-WG] [JLWS]                                  │
 └───────────────────────────────────────────────────────────────────────┘
    FEDERATIONS (cross-cutting): sector vocabularies + shapes ·
    self-description · registry-asserted membership · VC-backed trust ·
@@ -610,7 +626,7 @@
     every "implemented" names its artifact; nothing below claims production readiness. All named
     implementations are open source, TypeScript unless noted, AI-agent-authored under review
     discipline, and explicitly <strong>experimental</strong>. Verified against the named
-    repositories and running services on 2026-07-04.
+    repositories and running services on 2026-07-04; the JLWS substrate row on 2026-07-06.
   </p>
   <table class="simple">
     <thead>
@@ -632,6 +648,21 @@
           identity provider + application suite (live at <code>solid-test.jeswr.org</code>;
           under active development), plus an explicitly experimental Rust server
           (<code>jeswr/solid-server-rs</code>)</td>
+      </tr>
+      <tr>
+        <td>JLWS substrate (Linked Web Storage clean-slate draft)</td>
+        <td>Substrate (beneath L1)</td>
+        <td><strong>Drafted</strong>: personal editor's draft, public [[JLWS]] — core
+          (byte-native storage, RFC 9728/8693/9068 authorization chain, strict-ODRL access
+          grants) + the RDF Content Transformation companion (RDF support as an advertised
+          opt-in); the W3C Linked Web Storage WG [[LWS-WG]] remains the standards-track
+          home</td>
+        <td><strong>In progress, flag-gated</strong>: an experimental implementation on
+          <code>jeswr/solid-server-rs</code> branch <code>feat/lws</code>
+          (discovery/containers/RDF-transform, the auth chain, linksets/pagination/RAR
+          landed on the branch; notifications and query deferred), plus a 125-case
+          spec-derived vector suite in the draft's repository; nothing merged or
+          deployed</td>
       </tr>
       <tr>
         <td>DPoP proof-of-possession</td>
@@ -781,6 +812,20 @@
     <li>
       <strong>Nothing requires pods to change shape.</strong> Credentials, policies, protocol
       documents, and traces are ordinary pod resources under ordinary access control.
+    </li>
+    <li>
+      <strong>The stack is substrate-portable.</strong> The base this architecture extends can
+      be the Solid Protocol stack of AS-0, or a Linked Web Storage storage: the JLWS editor's
+      draft [[JLWS]] composes the same layers over the LWS Working Group's protocol direction —
+      its RDF Content Transformation profile restores RDF-readable resources and sketches the
+      Solid-on-JLWS mapping (WebID → CID subject; <code>solid:oidcIssuer</code> →
+      <code>jlws:OpenIdProvider</code>; WAC/ACP → ODRL grants), its access layer is already the
+      strict-ODRL model L3 builds on, and the L2 read interface ([[SOLID-SPARQL-QUERY]]) is its
+      reserved <code>SparqlQueryService</code>. An AS-1+ deployment can therefore sit on either
+      base; the layers above L2 are unchanged pod content and verifier logic. (LWS is a
+      byte-native storage substrate that does not handle RDF natively — RDF support is an
+      advertised opt-in in the storage description — which is precisely why the substrate can
+      swap without the layers noticing: they consume documents, not storage semantics.)
     </li>
     <li>
       <strong>The standards path runs through the existing venues.</strong> The base's

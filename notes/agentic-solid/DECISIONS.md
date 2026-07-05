@@ -108,3 +108,23 @@ The umbrella mints nothing. Where the ecosystem still needs vocabulary (e.g. a f
 machine-readable conformance-profile vocabulary), that belongs in a component spec, minted when
 a second consumer exists — the same premature-standardisation discipline the federation
 vocabularies follow.
+
+## D11 — LWS as a second substrate: an unnumbered band, not a new layer
+
+Alignment with the JLWS clean-slate Linked Web Storage draft (`jeswr/lws-spec`; its
+DECISIONS.md D21 / `docs/alignment/agentic-solid-note.md` is the composition design).
+Verdict: **reference** — the Note gains an unnumbered SUBSTRATE band beneath L1 in the
+layer diagram (the Solid Protocol pod today; Linked Web Storage as it standardises), a
+substrate-portability bullet in the Relationship section (JLWS composes the same layers
+over the LWS WG direction: the RDF Content Transformation opt-in restores RDF-readable
+resources + sketches Solid-on-JLWS; strict-ODRL access grants are the L3 model; the
+reserved `SparqlQueryService` is the L2 read interface), one honest maturity row, and the
+`[[JLWS]]` biblio entry. The band is deliberately UNNUMBERED and the AS-x ladder is
+untouched: AS-0 stays exactly Solid Protocol + WAC/ACP + Solid-OIDC, and the substrate is
+presented as the base the architecture extends, not a component of it — renumbering the
+layers (an "L0") would ripple through every component spec that cites Lx names and
+falsely imply the substrate is part of this architecture's conformance story.
+**Rejected:** redefining AS-0 to admit either base (kills the ladder's precision);
+leaving LWS named only in the venue bullet (readers kept asking where storage sits in
+the diagram — the map should answer its own most-asked question). Composition record:
+`docs/lws-alignment.md`.
