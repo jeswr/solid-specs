@@ -9,7 +9,8 @@
     "jeswr/agent-authz-credential-spec",
     "jeswr/agentic-solid-note",
     "jeswr/agentic-solid-vision",
-    "jeswr/solid-odrl"
+    "jeswr/solid-odrl",
+    "jeswr/lws-spec"
   ],
   "tr": "a2aproject governance (target, on proposal sponsorship — maintainer-gated)"
 }

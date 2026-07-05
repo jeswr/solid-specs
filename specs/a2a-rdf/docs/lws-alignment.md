@@ -17,8 +17,8 @@ it. Every touchpoint with a storage is **document hosting**: Protocol Documents 
 dereferenceable HTTPS resources pinned by hash (`#pd-model`, `#pd-hashing`), and the ODRL
 policies + Agent Authorization Credential chains it binds by reference (`#authorization`)
 are ordinary pod resources under ordinary access control. LWS deliberately makes storage a
-**byte-native substrate that does not handle RDF natively** (JLWS core, *Resources*; RDF
-support is an advertised opt-in) — which suits this extension exactly, because nothing in
+**byte-native substrate that does not handle RDF natively** (JLWS core, *Resource model*;
+RDF support is an advertised opt-in) — which suits this extension exactly, because nothing in
 it requires the storage to understand the documents it hosts.
 
 ## 1. Byte-native PD hosting + the RDF-transform opt-in
@@ -50,7 +50,7 @@ it requires the storage to understand the documents it hosts.
 Defined by this spec's Relationship section (informative vocabulary minting; no JLWS core
 edit needed — the JLWS *Capability registry* already provides the extension-service
 mechanism: "Extension services use absolute URIs", unknown types ignored per the
-*Discovery model* forward-compatibility rule):
+storage-description data model's forward-compatibility rule, JLWS core `#discovery-model`):
 
 ```json
 {
