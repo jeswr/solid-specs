@@ -105,4 +105,6 @@ composition (accountable-agent-runtime territory), not a requirement of either s
 - **Server-surface cases** (the storage-description `AgentInteractionService` entry parse
   + forward-compatibility) home in `lws-spec/test-vectors/vectors/discovery/` per the
   homing rule of `lws-spec/docs/alignment/conformance-vectors.md` (server/AS surface →
-  lws-spec; pure agent-layer function → agentic-solid-conformance).
+  lws-spec; pure agent-layer function → agentic-solid-conformance). That case
+  (`sd-agent-interaction-service`) is **specified, not yet landed** — it rides the
+  config-gated storage-description entry (`lws-spec/docs/alignment/a2a-rdf.md` §3–§4).

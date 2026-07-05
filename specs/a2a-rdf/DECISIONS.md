@@ -114,7 +114,8 @@ rule is independent of the storage's authentication posture (JLWS's Bearer basel
 weaken it: the hash is the trust anchor). Detail + vector homing in
 `docs/lws-alignment.md`; the two pure-function vectors land in
 `agentic-solid-conformance` `vectors/a2a-rdf/`, the server-surface discovery vector homes in
-`lws-spec/test-vectors/` per the D21 homing rule. **Rejected:** a JLWS core capability term
+`lws-spec/test-vectors/` per the D21 homing rule (specified there; it rides the
+config-gated storage-description entry, not this change). **Rejected:** a JLWS core capability term
 for agent interaction (the extension-service mechanism already covers it; minting in the
 JLWS registry would couple the substrate to an agent-layer spec).
 
