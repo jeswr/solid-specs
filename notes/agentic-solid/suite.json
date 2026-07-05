@@ -14,7 +14,8 @@
     "jeswr/solid-vc",
     "jeswr/solid-federation-vocab",
     "jeswr/federation-registry",
-    "jeswr/federation-trust"
+    "jeswr/federation-trust",
+    "jeswr/lws-spec"
   ],
   "tr": "solidproject.org/TR (target, on Solid CG adoption — maintainer-gated; deliberately after the component specs are contributed)"
 }
