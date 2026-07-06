@@ -59,6 +59,21 @@ Headline normative decisions made in this draft (full record in
 - [`DECISIONS.md`](DECISIONS.md) — every design call, alternatives, and the
   deviations from the prior Bikeshed draft / deployed code, per the
   proceed-and-document rule.
+- [`spec.statements.ttl`](spec.statements.ttl) — the **machine-readable
+  companion**: every normative statement as a `spec:Requirement` (stable id,
+  verbatim quote, RFC 2119 level, actor binding, E/A-int/A-exist/P testability
+  tag, section anchor, honest test-gap accounting), in the
+  [`jeswr/spec-companion`](https://github.com/jeswr/spec-companion) format.
+  **Complementary — the full text above is the normative document.** The
+  companion pins the spec source commit it was extracted from
+  (`sc:specVersion`); a change to the spec's normative text and a re-extracted
+  companion must land in the same commit. Validate from a sibling
+  `spec-companion` checkout:
+
+  ```sh
+  node ../spec-companion/tools/validate.mjs spec.statements.ttl --spec-html index.html
+  ```
+
 
 ## Provenance
 
