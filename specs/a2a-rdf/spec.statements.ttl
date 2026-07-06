@@ -133,6 +133,9 @@
 <#gap-internal-state> a sc:TestGap ;
     dcterms:description "Binds the implementation's internal assumptions or mechanism choice (what a sender assumes about an un-echoed activation; what a receiver relies on for replay resistance), not an observable interface behaviour of its own — the observable teeth live in composed statements (the no-silent-downgrade rule; envelope replay handling), where testability is assessed."@en .
 
+<#gap-transcript-audit> a sc:TestGap ;
+    dcterms:description "Audit/transcript-only by nature (testability A-exist): the obligation binds a producer or sender with no mandated counterpart rejection, so no deterministic conformance vector can exist for it as specified — conformance is checked by inspecting a transcript (or a deployment/code audit) of the implementation under test, and is disclosed rather than certified, per the testability spine's A-exist discipline. Recorded explicitly so coverage consumers can distinguish this intentional non-vector class from incomplete extraction."@en .
+
 #################################################################
 # Normative statements
 #
@@ -240,7 +243,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-transcript-audit> .
 
 <#A2ARDF-ACT-3> a spec:Requirement ;
     dcterms:identifier "A2ARDF-ACT-3" ;
@@ -259,7 +263,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#ConsumingClient> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-transcript-audit> .
 
 ### Protocol Document data model (#pd-model)
 
@@ -282,6 +287,7 @@
     spec:requirementSubject <#OfferingAgent> ;
     sc:testability sc:AccountableExistence ;
     sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-transcript-audit> ;
     sc:restates <#A2ARDF-PP-4> .
 
 <#A2ARDF-PDM-3> a spec:Requirement ;
@@ -291,7 +297,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-transcript-audit> .
 
 <#A2ARDF-PDM-4> a spec:Requirement ;
     dcterms:identifier "A2ARDF-PDM-4" ;
@@ -507,7 +514,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> ;
+    sc:testGap <#gap-transcript-audit> .
 
 <#A2ARDF-PMETA-2> a spec:Requirement ;
     dcterms:identifier "A2ARDF-PMETA-2" ;
@@ -516,7 +524,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> ;
+    sc:testGap <#gap-transcript-audit> .
 
 ### Part profiles (#part-profiles)
 
@@ -557,7 +566,8 @@
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#OfferingAgent> ;
     sc:testability sc:AccountableExistence ;
-    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> .
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-transcript-audit> .
 
 <#A2ARDF-PP-5> a spec:Requirement ;
     dcterms:identifier "A2ARDF-PP-5" ;
@@ -624,9 +634,9 @@
 <#A2ARDF-AUTHZ-3> a spec:Requirement ;
     dcterms:identifier "A2ARDF-AUTHZ-3" ;
     spec:statement "when it does, the IRI MUST match (one of) the svc:policy value(s) in the presented chain — a mismatch is a refusal." ;
-    rdfs:comment "The constraint binds the intent/presentation pair and the sentence mandates the enforcement ('a mismatch is a refusal') — request-time rejectable. The referenced-policy content binding and chain verification are specified in AGENT-AUTHZ and vectored under the agent-authz-credential suite."@en ;
+    rdfs:comment "Binds BOTH roles: the consuming client produces the intent/presentation pair whose policy IRIs must match, and the receiving agent enforces the match ('a mismatch is a refusal') — request-time rejectable. The referenced-policy content binding and chain verification are specified in AGENT-AUTHZ and vectored under the agent-authz-credential suite."@en ;
     spec:requirementLevel spec:MUST ;
-    spec:requirementSubject <#OfferingAgent> ;
+    spec:requirementSubject <#ConsumingClient> , <#OfferingAgent> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#authorization> ;
     sc:testGap <#gap-cross-suite-authz> .
