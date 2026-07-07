@@ -43,14 +43,20 @@ message exchange, not a control-plane call).
 
 ## D4 — Hashing: normatively RDFC-1.0, despite the reference codec differing
 
-`@jeswr/solid-a2a` hashes a bespoke deterministic sorted-N-Quads form (iterative blank-node
-refinement), not RDFC-1.0. The spec normatively requires RDFC-1.0 ([rdf-canon], W3C
-Recommendation 2024-05-21) because a content hash only works if *independent* implementations
-produce identical canonical bytes, and standardizing a bespoke canonicalization when a W3C REC
-exists would be indefensible in A2A review. The codec gap is stated honestly in the spec's
-implementation-status table and is a tracked alignment work item on `solid-a2a`.
+At drafting time, `@jeswr/solid-a2a` hashed a bespoke deterministic sorted-N-Quads form
+(iterative blank-node refinement), not RDFC-1.0. The spec normatively requires RDFC-1.0
+([rdf-canon], W3C Recommendation 2024-05-21) because a content hash only works if *independent*
+implementations produce identical canonical bytes, and standardizing a bespoke canonicalization
+when a W3C REC exists would be indefensible in A2A review. The codec gap was stated honestly in
+the spec's implementation-status table as a tracked alignment work item on `solid-a2a`.
 **Rejected:** speccing the codec's current algorithm (locks the ecosystem to one library's
 internals); leaving canonicalization implementation-defined (defeats pinning entirely).
+
+**Update (2026-07-07):** the alignment landed — `solid-a2a` 0.2.0 hashes
+`ProtocolDocument.hash` over the RDFC-1.0 canonical N-Quads form via `rdf-canonize` (the W3C
+reference implementation), closing the gap this decision recorded. The spec's
+implementation-status table and `#pd-hashing` note are updated accordingly; this decision
+record is left as the historical rationale for requiring RDFC-1.0 in the first place.
 
 ## D5 — Two-level `required` semantics kept distinct
 
@@ -146,8 +152,8 @@ JLWS registry would couple the substrate to an agent-layer spec).
 
 1. **LF A2A submission** — maintainer-gated (outreach pack
    `agentic-solid-vision/docs/outreach/04-lf-a2a.md`); the proposal issue per their governance.
-2. **solid-a2a RDFC-1.0 alignment** (D4) + emitting the D1 `params` schema from
-   `solid-agent-card`.
+2. ~~solid-a2a RDFC-1.0 alignment (D4)~~ — **done** (`solid-a2a` 0.2.0). Remaining: emitting the
+   D1 `params` schema from `solid-agent-card`.
 3. **w3id redirects** for `jeswr/a2a-rdf` and `jeswr/a2a#` — needs:user (w3id PR).
 4. **Transport integration** — wire the codec into an A2A SDK runtime (the natural first
    joint work item if the proposal is sponsored).

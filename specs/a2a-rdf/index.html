@@ -481,15 +481,12 @@ a2a:GrantIntentShape a sh:NodeShape;
       (<a href="#versioning"></a>). Implementations MUST reject hash strings whose prefix they
       do not recognise.
     </p>
-    <p class="note" title="Reference-codec canonicalization gap">
-      The current reference codec [[SOLID-A2A-IMPL]] computes its internal hash over a
-      deterministic, blank-node-normalised sorted N-Quads form that is <em>not</em> RDFC-1.0, so
-      its <code>ProtocolDocument.hash</code> values are not conformant to this section. This
-      specification normatively requires RDFC-1.0 (the W3C Recommendation exists precisely so
-      independent implementations agree on canonical bytes); aligning the codec is a tracked
-      implementation gap, not a spec concession — see <a href="#implementation-status"></a>. The
-      example hashes in this document were computed with an independent RDFC-1.0 implementation
-      over the codec-built graphs and <em>are</em> conformant.
+    <p class="note" title="Reference-codec canonicalization conformance">
+      The reference codec [[SOLID-A2A-IMPL]] computes <code>ProtocolDocument.hash</code> over the
+      RDFC-1.0 canonical N-Quads form via <code>rdf-canonize</code>, the W3C reference
+      implementation (landed in <code>solid-a2a</code> 0.2.0) — its <code>ProtocolDocument.hash</code>
+      values are conformant to this section, and any independent RDFC-1.0 implementation agrees on
+      the same canonical bytes. See <a href="#implementation-status"></a>.
     </p>
     <p>
       PDs SHOULD be published at HTTPS URLs whose representations are immutable (content-addressed
@@ -890,9 +887,10 @@ a2a:GrantIntentShape a sh:NodeShape;
           intents against a PD</td>
         <td><strong>Implemented (experimental)</strong> — [[SOLID-A2A-IMPL]]
           (<code>buildProtocolDocument</code>/<code>verifyProtocolDocument</code>/
-          <code>validateIntent</code>), <em>except</em> the canonicalization: the codec hashes a
-          deterministic sorted-N-Quads form, not RDFC-1.0 as this spec requires — a tracked
-          alignment gap (<a href="#pd-hashing"></a>)</td>
+          <code>validateIntent</code>), including RDFC-1.0-conformant canonicalization: the codec
+          hashes the RDFC-1.0 canonical N-Quads form via <code>rdf-canonize</code> (landed in
+          <code>solid-a2a</code> 0.2.0) — the alignment gap this table previously tracked is
+          closed (<a href="#pd-hashing"></a>)</td>
       </tr>
       <tr>
         <td>Intent data model (NL→RDF translation with an injectable-LLM seam, Turtle/JSON-LD
