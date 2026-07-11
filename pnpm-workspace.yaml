@@ -1,0 +1,5 @@
+# AUTHORED-BY Claude Fable 5
+# Spec documents (specs/, notes/, conformance/) are NOT workspace packages — only the
+# small validator/companion tooling under tools/ is.
+packages:
+  - "tools/*"

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jeswr/full-solid-ecosystem/main/tracking/schema/suite.schema.json",
+  "id": "solid-specs",
+  "kind": "specification",
+  "name": "Solid specifications monorepo",
+  "repo": "https://github.com/jeswr/solid-specs",
+  "category": "infrastructure",
+  "maturity": "alpha",
+  "visibility": "public",
+  "stack": {
+    "language": "ReSpec HTML + Turtle + JSON test vectors",
+    "runtime": "Node >=24 (validator tooling only)",
+    "workspace": "pnpm workspaces (tools/* only; spec documents are plain trees)",
+    "test": "node:test (structure gate); per-tool suites under tools/*",
+    "publish": "one GitHub Pages deploy (Phase 3s); spec IRIs served via the jeswr.org persistent-ID layer"
+  },
+  "specs": [],
+  "dependsOn": [],
+  "federation": null
+}
