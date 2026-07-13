@@ -1,0 +1,932 @@
+<!-- AUTHORED-BY Claude Fable 5 (AI-assisted draft; awaiting maintainer review) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Agentic Solid: Architecture Overview</title>
+  <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
+  <script class="remove">
+    var respecConfig = {
+      specStatus: "CG-DRAFT",
+      group: "cg/solid",
+      shortName: "agentic-solid",
+      edDraftURI: "https://jeswr.github.io/agentic-solid-note/",
+      latestVersion: null,
+      github: "jeswr/agentic-solid-note",
+      editors: [
+        {
+          name: "Jesse Wright",
+          url: "https://jeswr.org/#me"
+        }
+      ],
+      copyrightStart: "2026",
+      maxTocLevel: 3,
+      noRecTrack: true,
+      lint: { "no-unused-dfns": false },
+      localBiblio: {
+        "SOLID-PROTOCOL": {
+          title: "Solid Protocol",
+          href: "https://solidproject.org/TR/protocol",
+          authors: ["Sarven Capadisli", "Tim Berners-Lee", "Ruben Verborgh", "Kjetil Kjernsmo"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WAC": {
+          title: "Web Access Control",
+          href: "https://solidproject.org/TR/wac",
+          authors: ["Sarven Capadisli"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "ACP": {
+          title: "Access Control Policy (ACP)",
+          href: "https://solidproject.org/TR/acp",
+          authors: ["Matthieu Bosquet"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "SOLID-OIDC": {
+          title: "Solid-OIDC",
+          href: "https://solidproject.org/TR/oidc",
+          authors: ["Aaron Coburn", "elf Pavlik", "Dmitri Zagidulin"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WEBID": {
+          title: "WebID 1.0",
+          href: "https://www.w3.org/2005/Incubator/webid/spec/identity/",
+          authors: ["Andrei Sambra", "Henry Story", "Tim Berners-Lee"],
+          publisher: "W3C WebID Community Group",
+          status: "Editor's Draft"
+        },
+        "SOLID-SPARQL-QUERY": {
+          title: "Access-Controlled SPARQL Query over a Solid Pod",
+          href: "https://github.com/jeswr/solid-sparql-query",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Editor's Draft (CG-DRAFT-shaped; not an adopted Solid CG work item)"
+        },
+        "ODRL-DELEGATION": {
+          title: "The ODRL Agent-Delegation Profile",
+          href: "https://w3id.org/jeswr/odrl-delegation",
+          authors: ["Jesse Wright"],
+          status: "Draft profile specification (implemented by @jeswr/solid-odrl)"
+        },
+        "AGENT-AUTHZ": {
+          title: "Agent Authorization Credentials",
+          href: "https://github.com/jeswr/agent-authz-credential-spec",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Editor's Draft (CCG-shaped; not an adopted CCG work item)"
+        },
+        "ACCOUNTABLE-AGENTS": {
+          title: "The Accountable Web of Agents",
+          href: "https://github.com/jeswr/agentic-solid-vision",
+          authors: ["Jesse Wright"],
+          status: "Vision paper (draft; pending publication)"
+        },
+        "AAR-DESIGN": {
+          title: "Accountable Agent Runtime — design",
+          href: "https://github.com/jeswr/accountable-agent-runtime",
+          authors: ["Jesse Wright"],
+          status: "Reference runtime (Phase-0 implemented; experimental)"
+        },
+        "FED-VOCAB": {
+          title: "solid-federation-vocab — the fedapp:/fedreg: federation vocabularies and sector ontologies",
+          href: "https://github.com/jeswr/solid-federation-vocab",
+          authors: ["Jesse Wright"],
+          status: "Published vocabularies (experimental; w3id.org redirects pending)"
+        },
+        "FED-TRUST-IMPL": {
+          title: "@jeswr/federation-trust — VC-signed federation membership with delegation chains",
+          href: "https://github.com/jeswr/federation-trust",
+          status: "Reference implementation (experimental)"
+        },
+        "FED-REGISTRY-IMPL": {
+          title: "@jeswr/federation-registry — registry-asserted membership + storage spec-version advertisement",
+          href: "https://github.com/jeswr/federation-registry",
+          status: "Reference implementation (experimental)"
+        },
+        "SOLID-VC-IMPL": {
+          title: "@jeswr/solid-vc — VC 2.0 Data Integrity issue/verify reference implementation",
+          href: "https://github.com/jeswr/solid-vc",
+          status: "Reference implementation (experimental)"
+        },
+        "SOLID-ODRL-IMPL": {
+          title: "@jeswr/solid-odrl — ODRL 2.2 evaluator + delegation-chain evaluator reference implementation",
+          href: "https://github.com/jeswr/solid-odrl",
+          status: "Reference implementation (experimental)"
+        },
+        "SOLID-AGENT-CARD-IMPL": {
+          title: "@jeswr/solid-agent-card — WebID-anchored agent descriptor (A2A Agent Card + RDF description)",
+          href: "https://github.com/jeswr/solid-agent-card",
+          status: "Reference implementation (experimental)"
+        },
+        "SOLID-A2A-IMPL": {
+          title: "@jeswr/solid-a2a — NL→RDF upgrade codec: hash-pinned SHACL protocol documents",
+          href: "https://github.com/jeswr/solid-a2a",
+          status: "Reference implementation (experimental)"
+        },
+        "A2A": {
+          title: "Agent2Agent (A2A) Protocol",
+          href: "https://a2a-protocol.org/",
+          publisher: "Linux Foundation (originally Google, 2025)",
+          status: "Open specification"
+        },
+        "MCP": {
+          title: "Model Context Protocol",
+          href: "https://modelcontextprotocol.io/",
+          publisher: "Anthropic",
+          status: "Open specification"
+        },
+        "ANP": {
+          title: "Agent Network Protocol",
+          href: "https://agent-network-protocol.com/",
+          status: "Open-source community specification"
+        },
+        "AGORA": {
+          title: "A Scalable Communication Protocol for Networks of Large Language Models",
+          href: "https://arxiv.org/abs/2410.11905",
+          authors: ["Samuele Marro", "Emanuele La Malfa", "Jesse Wright", "Guohao Li", "Nigel Shadbolt", "Philip Torr", "Michael Wooldridge"],
+          status: "arXiv:2410.11905, 2024"
+        },
+        "LWS-WG": {
+          title: "W3C Linked Web Storage Working Group",
+          href: "https://www.w3.org/groups/wg/lws/",
+          publisher: "W3C",
+          status: "Chartered Working Group (charter through 2026-09-08)"
+        },
+        "JLWS": {
+          title: "JLWS — Linked Web Storage (clean-slate editor's draft; core + RDF Content Transformation Profile)",
+          href: "https://github.com/jeswr/lws-spec",
+          authors: ["Jesse Wright"],
+          status: "Personal editor's draft (unofficial; experimental)"
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+
+<section id="abstract">
+  <p>
+    This document is a <strong>map, not a specification</strong>. It describes how a set of
+    existing W3C standards and a small number of component specifications compose into
+    <em>Agentic Solid</em>: an architecture in which autonomous software agents act on data their
+    principals control, and in which <strong>every agent action is mechanically traceable to a
+    delegating principal through a signed, revocable, scoped chain of standard artifacts</strong>.
+    The architecture layers identity and authentication ([[WEBID]], [[SOLID-OIDC]], [[RFC9449]]),
+    access control and authorized query ([[WAC]], [[ACP]], [[SOLID-SPARQL-QUERY]]), policy and
+    delegation ([[ODRL-MODEL]], [[ODRL-DELEGATION]]), credentials and integrity
+    ([[VC-DATA-MODEL-2.0]], [[VC-DATA-INTEGRITY]], [[AGENT-AUTHZ]]), agent communication and
+    discovery ([[A2A]], [[ANP]], [[AGORA]]), and accountability ([[PROV-O]], [[AAR-DESIGN]]) —
+    with data federations ([[FED-VOCAB]]) as the cross-cutting interoperability plane. Each layer
+    is defined normatively by its own specification; this document defines none of them. It
+    states the architecture's single organising claim, locates each component, frames staged
+    conformance profiles by reference, records an honest implementation-maturity inventory, and
+    explains the architecture's relationship to the existing Solid specifications it builds on
+    and does not replace.
+  </p>
+</section>
+
+<section id="sotd">
+  <p>
+    This document is an <strong>unofficial editor's draft</strong> shaped as a W3C Solid
+    Community Group Note. It is <strong>not</strong> an adopted Solid Community Group work item,
+    has no standing in the Solid CG or any other W3C group, and is not a W3C Standard nor on the
+    W3C standards track. Proposing it to the Solid Community Group is a deliberate later step,
+    taken only after the component specifications it maps have themselves been contributed.
+  </p>
+  <p>
+    This document is <strong>entirely informative</strong>. It contains no normative requirements
+    of its own; all conformance language lives in the component specifications it references
+    (<a href="#conformance-profiles"></a>).
+  </p>
+  <p>
+    <strong>Disclosure:</strong> this draft was AI-assisted — drafted by an AI coding agent
+    (Claude Fable 5) operated by the editor, against the cited primary sources, the component
+    specifications, and the running reference implementations — and is awaiting the editor's
+    review. Implementation-maturity claims were verified against the named repositories and
+    services on 2026-07-04 and are qualified honestly in <a href="#maturity"></a>.
+  </p>
+</section>
+
+<section id="introduction" class="informative">
+  <h2>Introduction</h2>
+  <p>
+    Autonomous software agents increasingly read, write, negotiate over, and act on data. Built
+    on today's default substrate — scraped pages, proprietary APIs, unsigned text between black
+    boxes — an agent's actions are unattributable, its authority is implicit, and responsibility
+    for its mistakes is deniable. The case for a different substrate, assembled almost entirely
+    from existing W3C Recommendations, is made at length in the companion vision paper,
+    <em>The Accountable Web of Agents</em> [[ACCOUNTABLE-AGENTS]]; this document does not restate
+    that case. It does the complementary job: for a reader arriving from a standards body, it
+    shows <em>how the pieces cohere</em> — which specification answers which question, where the
+    layer boundaries are, what a conforming implementation of each stage looks like, and what is
+    real today versus drafted versus merely proposed.
+  </p>
+  <p>Reading guide:</p>
+  <ul>
+    <li><a href="#thesis"></a> states the architecture's one organising claim, precisely, once.</li>
+    <li><a href="#architecture"></a> maps the six layers and the federation plane, each pointing
+      at its normative specification.</li>
+    <li><a href="#scenario"></a> points at (and does not repeat) the worked end-to-end scenario.</li>
+    <li><a href="#conformance-profiles"></a> frames what "Agentic-Solid conformant" means, in
+      stages, by reference to the component specifications.</li>
+    <li><a href="#maturity"></a> is the honest inventory: implemented, drafted, or proposed, per
+      component.</li>
+    <li><a href="#relationship"></a> explains why this architecture <em>extends</em> the existing
+      Solid specifications and changes none of them.</li>
+    <li><a href="#security"></a> and <a href="#privacy"></a> index the security and privacy
+      analyses that live in each component, and add the concerns that only the
+      <em>composition</em> raises.</li>
+  </ul>
+</section>
+
+<section id="thesis" class="informative">
+  <h2>The accountability thesis</h2>
+  <p>
+    Many stacks give agents identity; several give them tools; a few give them policies. The
+    property that distinguishes this architecture — its single load-bearing claim — is:
+  </p>
+  <blockquote>
+    <p>
+      <strong>Every action taken by an autonomous agent is mechanically traceable to a delegating
+      principal, through a chain of signed, revocable, scoped artifacts, each of which is a
+      standard, independently verifiable document.</strong>
+    </p>
+  </blockquote>
+  <p>
+    "Mechanically traceable" decomposes into four properties, each supplied by a distinct layer
+    and each checkable without trusting the party being audited:
+  </p>
+  <ol>
+    <li>
+      <strong>Attributable.</strong> The acting agent is a first-class identity — a WebID
+      [[WEBID]] of its own, authenticated per request by proof-of-possession ([[SOLID-OIDC]],
+      [[RFC9449]]) — and every artifact it produces carries [[PROV-O]] attribution naming the
+      agent, the activity, and, via <code>prov:actedOnBehalfOf</code>, the principal it
+      represents. Holding a credential is not authority; <em>being the authenticated agent the
+      credential names</em> is.
+    </li>
+    <li>
+      <strong>Authorized.</strong> The agent's mandate is an explicit delegation chain of ODRL
+      policies — a root Agreement from the principal, plus zero or more delegated hops —
+      evaluated <em>fail-closed</em> for scope, expiry, prohibitions, duties, and delegation
+      depth per the ODRL Agent-Delegation Profile [[ODRL-DELEGATION]]. Absence of a grant is a
+      denial, never a default.
+    </li>
+    <li>
+      <strong>Bounded and revocable.</strong> Each hop of the chain is issued as an
+      AgentAuthorizationCredential [[AGENT-AUTHZ]]: a Verifiable Credential 2.0
+      [[VC-DATA-MODEL-2.0]] signed by that hop's delegator with a Data Integrity proof
+      [[VC-DATA-INTEGRITY]], content-bound to its policy, and carrying a revocation status entry
+      ([[VC-BITSTRING-STATUS-LIST]] mapped bidirectionally to the profile's
+      <code>odrld:Revocation</code>). A principal can withdraw a mandate, and a verifier that
+      cannot reach status information resolves <em>closed</em>.
+    </li>
+    <li>
+      <strong>Verifiable offline.</strong> Because proofs are over the canonicalised graph
+      [[RDF-CANON]] rather than a transport session, any downstream holder — including an auditor
+      years later — can verify integrity, issuer binding, and the whole chain without contacting
+      the systems that produced it.
+    </li>
+  </ol>
+  <p>
+    The honest boundary, stated here once because every component restates it in its own terms:
+    the architecture provides <strong>accountability, not prevention</strong>. Cryptography
+    enforces the <em>authenticity</em> of the trail — that the mandate was signed by its issuer,
+    that the artifact is intact, that the actor is who the transport authenticated. Whether an
+    agent's <em>use</em> of validly granted access respected the agreement's purpose is proved
+    <em>afterwards</em>, from the trail, and enforced legally — a deliberate design position: the
+    alternative, purely technical usage enforcement, is DRM, which fails and centralises
+    ([[ACCOUNTABLE-AGENTS]] §4; [[AAR-DESIGN]] §5). What the architecture guarantees is that
+    "the AI did it" is never an answer: the AI did it <em>on the owner's signed, scoped,
+    revocable authority</em>, and the trail proves exactly which authority that was.
+  </p>
+</section>
+
+<section id="architecture" class="informative">
+  <h2>The layered architecture</h2>
+  <p>
+    Six layers over a storage substrate, plus one cross-cutting plane. Each subsection names
+    the layer's job in one sentence, the specification(s) that define it normatively, and how
+    it connects to the layers beside it. The substrate band is unnumbered because it is not a
+    component of this architecture but the base it extends (<a href="#relationship"></a>): the
+    Solid Protocol pod of AS-0 today, with Linked Web Storage — the W3C WG direction [[LWS-WG]]
+    and the JLWS clean-slate draft that composes these layers over it [[JLWS]] — as the
+    substrate-portable next base. <strong>Nothing in this section is normative; the pointers
+    are.</strong>
+  </p>
+  <pre aria-label="The Agentic Solid layer diagram">
+┌───────────────────────────────────────────────────────────────────────┐
+│ L6  ACCOUNTABILITY   PROV-O attribution · the on-pod trace ·          │
+│                      the auditor walk            [PROV-O] [AAR-DESIGN]│
+├───────────────────────────────────────────────────────────────────────┤
+│ L5  AGENT COMMS      discovery descriptors · NL→RDF hash-pinned       │
+│                      SHACL protocol documents  [A2A] [ANP] [AGORA]    │
+├───────────────────────────────────────────────────────────────────────┤
+│ L4  CREDENTIALS      VC 2.0 + Data Integrity · AgentAuthorization-    │
+│                      Credential per hop   [VC-DATA-MODEL-2.0]         │
+│                      [VC-DATA-INTEGRITY] [AGENT-AUTHZ]                │
+├───────────────────────────────────────────────────────────────────────┤
+│ L3  POLICY           ODRL 2.2 agreements · the agent-delegation       │
+│                      chain, fail-closed [ODRL-MODEL] [ODRL-DELEGATION]│
+├───────────────────────────────────────────────────────────────────────┤
+│ L2  ACCESS CONTROL   WAC / ACP enforcement · access-controlled        │
+│                      SPARQL read interface  [WAC] [ACP]               │
+│                      [SOLID-SPARQL-QUERY]                             │
+├───────────────────────────────────────────────────────────────────────┤
+│ L1  IDENTITY         WebID for people, orgs AND agents ·              │
+│                      Solid-OIDC + DPoP    [WEBID] [SOLID-OIDC]        │
+│                      [RFC9449] [SOLID-PROTOCOL]                       │
+├───────────────────────────────────────────────────────────────────────┤
+│ SUBSTRATE            byte-hosting web storage the stack sits on:      │
+│     (unnumbered)     the Solid Protocol pod today · Linked Web        │
+│                      Storage as it standardises [SOLID-PROTOCOL]      │
+│                      [LWS-WG] [JLWS]                                  │
+└───────────────────────────────────────────────────────────────────────┘
+   FEDERATIONS (cross-cutting): sector vocabularies + shapes ·
+   self-description · registry-asserted membership · VC-backed trust ·
+   spec-version negotiation                    [FED-VOCAB] [FED-TRUST-IMPL]
+  </pre>
+
+  <section id="l1-identity">
+    <h3>L1 — Identity and authentication</h3>
+    <p>
+      <strong>Job:</strong> one uniform identity mechanism for humans, organisations, and agents,
+      with per-request proof-of-possession authentication.
+      <strong>Normative:</strong> [[SOLID-PROTOCOL]], [[WEBID]], [[SOLID-OIDC]], [[RFC9449]].
+    </p>
+    <p>
+      Every actor holds a <a data-cite="WEBID">WebID</a> — an HTTP URI dereferencing to a profile
+      document. Crucially for everything above, <em>an agent's WebID is the same kind of thing as
+      a person's</em>: the principal's profile links to the agent's own WebID (an agent pointer;
+      see the descriptor conventions of [[SOLID-AGENT-CARD-IMPL]]), so authorization (L2/L3),
+      credentials (L4), and attribution (L6) can all name agents and principals with the same
+      identifier type. Authentication is [[SOLID-OIDC]] with DPoP-bound tokens [[RFC9449]]: the
+      storage server learns, per request, a proof-of-possession-authenticated WebID — the ground
+      fact the accountability chain's Phase-D actor check anchors to
+      ([[AGENT-AUTHZ]], Verification).
+    </p>
+  </section>
+
+  <section id="l2-access">
+    <h3>L2 — Access control and authorized query</h3>
+    <p>
+      <strong>Job:</strong> declarative, server-enforced access control over pod resources, and a
+      query interface that can never leak past it.
+      <strong>Normative:</strong> [[WAC]], [[ACP]]; [[SOLID-SPARQL-QUERY]] for the query
+      interface.
+    </p>
+    <p>
+      Authorization stays exactly what Solid already defines: [[WAC]] or [[ACP]] rules evaluated
+      by the storage server. The architecture adds one component at this layer:
+      <em>Access-Controlled SPARQL Query over a Solid Pod</em> [[SOLID-SPARQL-QUERY]], a
+      read-only SPARQL 1.1 Protocol endpoint whose queried dataset is restricted — one named
+      graph per readable RDF resource, empty default graph, restriction applied <em>before</em>
+      evaluation — to exactly the subset of the pod the authenticated agent may read, with
+      existence-non-disclosure invariants. It is a new read <em>interface</em> over the existing
+      authorization model, not a new authorization model: an agent asking questions (L5) gets
+      answers computed under the same [[WAC]]/[[ACP]] rules that would govern
+      resource-by-resource GETs.
+    </p>
+  </section>
+
+  <section id="l3-policy">
+    <h3>L3 — Policy and delegation</h3>
+    <p>
+      <strong>Job:</strong> express what an agent is mandated to do — scope, duties,
+      prohibitions, expiry, and how far it may re-delegate — as machine-readable agreements.
+      <strong>Normative:</strong> [[ODRL-MODEL]], [[ODRL-VOCAB]]; the ODRL Agent-Delegation
+      Profile [[ODRL-DELEGATION]] for chain semantics.
+    </p>
+    <p>
+      ODRL 2.2 supplies policies and, critically, <em>Agreements</em> — policies with an
+      identified assigner and assignee: machine-readable contracts. What ODRL 2.2 leaves
+      unspecified is the <em>chain</em>: who allowed this agent to allow that agent, how deep,
+      revocable how. The Agent-Delegation Profile pins those semantics fail-closed — conservative
+      subset semantics (a delegate's effective permissions can never exceed the delegator's),
+      explicit bounded delegation authority via <code>odrl:grantUse</code>, an upstream authority
+      link (<code>odrld:delegatedUnder</code>, a subproperty of
+      <code>prov:wasDerivedFrom</code> — the hook into L6), depth bounds defaulting to no
+      re-delegation, and revocation. The profile's evaluator deliberately checks <em>validity and
+      scope given an authenticated chain</em>; proving who authored each hop is L4's job — the
+      two layers are designed as halves of one verification ([[AGENT-AUTHZ]], Introduction).
+    </p>
+  </section>
+
+  <section id="l4-credentials">
+    <h3>L4 — Credentials and integrity</h3>
+    <p>
+      <strong>Job:</strong> make every artifact that carries authority — and any data that must
+      survive copying — signed, tamper-evident, issuer-bound, and revocable.
+      <strong>Normative:</strong> [[VC-DATA-MODEL-2.0]], [[VC-DATA-INTEGRITY]], [[VC-DI-EDDSA]],
+      [[VC-DI-ECDSA]], [[RDF-CANON]], [[VC-BITSTRING-STATUS-LIST]]; the Agent Authorization
+      Credentials note [[AGENT-AUTHZ]] for the mandate credential.
+    </p>
+    <p>
+      Data Integrity proofs sign the canonicalised graph, so signed data remains queryable,
+      mergeable Linked Data, verifiable offline at any downstream hop. The architecture's
+      specific contribution at this layer is the <strong>AgentAuthorizationCredential</strong>
+      [[AGENT-AUTHZ]]: one credential per delegation hop, signed by that hop's delegator,
+      content-binding the hop's ODRL policy (bare policy references are rejected), carrying a
+      status entry, and verified by a <strong>four-phase, fail-closed algorithm</strong> —
+      credential gates → cross-binding (credential ↔ policy ↔ WebIDs) → status ∪ revocation →
+      the L3 chain evaluation. The layering rule the note makes explicit governs the whole stack:
+      <em>credential verification establishes authenticity and currency of the artifacts; policy
+      evaluation establishes authorization of the request; both, in that order, fail-closed.</em>
+      The same credential machinery signs federation memberships (the plane below) and any other
+      claim the architecture needs to travel.
+    </p>
+  </section>
+
+  <section id="l5-comms">
+    <h3>L5 — Agent communication and discovery</h3>
+    <p>
+      <strong>Job:</strong> let agents find each other from a WebID and converse in typed,
+      validated RDF — using natural language only to negotiate what is not yet formalised.
+      <strong>Normative/reference:</strong> [[A2A]], [[ANP]], [[AGORA]]; reference
+      implementations [[SOLID-AGENT-CARD-IMPL]], [[SOLID-A2A-IMPL]].
+    </p>
+    <p>
+      <em>Discovery:</em> a WebID profile advertises the agent representing its owner; the
+      descriptor is dual-published — an [[A2A]] Agent Card (plain JSON, for the industry
+      toolchain) and an [[ANP]]-aligned RDF description (for the Linked Data toolchain) — so an
+      agent is findable and self-describing before any conversation starts.
+      <em>Conversation:</em> following the AGORA model [[AGORA]], agents may negotiate in natural
+      language <em>once</em>, then crystallise the routine as a <strong>hash-pinned protocol
+      document whose body is a SHACL shape</strong> [[SHACL]], content-addressed and pod-hosted;
+      thereafter exchange is SHACL-validated RDF with no LLM inference on the hot path, and a
+      no-silent-downgrade rule prevents an agent being talked back into ambiguous prose on
+      security-bearing steps. [[A2A]] remains the maximum-reach first-contact envelope; [[MCP]]
+      sits adjacent as the tool seam between an LLM host and a pod — an edge integration, not an
+      agent-to-agent layer. Intents crossing this layer are what L3 evaluates and L6 records.
+    </p>
+  </section>
+
+  <section id="l6-accountability">
+    <h3>L6 — Accountability and audit</h3>
+    <p>
+      <strong>Job:</strong> record who made what, how, acting for whom, under which mandate — and
+      make the audit a mechanical walk.
+      <strong>Normative:</strong> [[PROV-O]]; composition designed in [[AAR-DESIGN]].
+    </p>
+    <p>
+      Every agent-generated resource carries (or links to) a [[PROV-O]] record: the entity, the
+      generating activity, the software agent (by WebID), and —
+      <code>prov:actedOnBehalfOf</code> — the responsible principal, with a link to the governing
+      agreement. Because L3's authority edges are declared subproperties of
+      <code>prov:wasDerivedFrom</code>, and L4's verifier emits PROV attribution for the chains
+      it validates, the delegation structure itself is visible to generic PROV consumers. The
+      reference accountable-agent runtime [[AAR-DESIGN]] specifies the composed artifact — an
+      on-pod trace container from which an auditor answers, mechanically: <em>who authorized this
+      action, under what policy, and was it in scope?</em> The auditor needs nothing but read
+      access to the trace; that is the point.
+    </p>
+  </section>
+
+  <section id="federations">
+    <h3>Cross-cutting: data federations</h3>
+    <p>
+      <strong>Job:</strong> make independent implementations <em>actually</em> interoperable —
+      shared sector vocabularies and shapes, self-description, membership with lifecycle and
+      trust, and schema migration without a flag day.
+      <strong>Reference:</strong> [[FED-VOCAB]] (the <code>fedapp:</code>/<code>fedreg:</code>
+      vocabularies and sector ontologies), [[FED-REGISTRY-IMPL]], [[FED-TRUST-IMPL]].
+    </p>
+    <p>
+      Federations are a plane, not a layer, because they touch several layers at once: an app or
+      agent <em>self-describes</em> (in its Client Identifier Document) which sectors it operates
+      in, which SHACL shapes it consumes and produces, and which access modes it requests
+      (<code>fedapp:</code> — read at L2 consent time and L5 discovery time); a registry asserts
+      <em>membership</em> as its own lifecycle-managed record — never trusting self-assertion
+      (<code>fedreg:</code>); membership assertions are optionally backed by Verifiable
+      Credentials with delegation chains to a trust anchor (L4, via [[FED-TRUST-IMPL]]); and
+      storage advertises which specification versions it accepts, so apps, pods, and servers
+      migrate on independent clocks. The <em>sector pattern</em> is deliberately repeatable: a
+      new domain mints a sector ontology that imports the shared core, reuses established
+      vocabularies, and registers under the sector namespace — the futures sector
+      (<code>fut:</code>, the participatory-democracy domain of the <em>unite</em> platform
+      design) is the worked recent example, built with no changes to the federation machinery.
+      Deliberately, the federation vocabularies are <em>not</em> yet proposed for
+      standardisation: that waits for implementation experience from a second independent
+      consumer (<a href="#maturity"></a>).
+    </p>
+  </section>
+</section>
+
+<section id="scenario" class="informative">
+  <h2>The worked scenario (by reference)</h2>
+  <p>
+    The architecture's layers are exercised end to end by one worked scenario — a principal
+    issues her agent a mandate; the agent discovers a counterparty, negotiates a data-sharing
+    agreement within that mandate, receives scoped access, acts; a year later an auditor walks
+    the trail from an offending artifact back to the signed authority it was produced under. The
+    narrative form is [[ACCOUNTABLE-AGENTS]] §4; the same scenario walked API-call-by-API-call
+    against the current component implementations, including the honest gap list between design
+    and code, is [[AAR-DESIGN]] (SCENARIO.md). This document deliberately does not restate it.
+  </p>
+</section>
+
+<section id="conformance-profiles" class="informative">
+  <h2>Conformance profiles</h2>
+  <p>
+    This document defines no conformance requirements. <strong>Conformance is defined by the
+    component specifications</strong>; what this section defines is a shared vocabulary of
+    <em>profiles</em> — named bundles of component-specification conformance — so that
+    "Agentic-Solid conformant" is a precise, staged claim rather than a vibe. The stages are
+    cumulative: each includes all requirements of the stages below it. An implementation claims a
+    stage <em>for a role</em>; the roles are:
+  </p>
+  <ul>
+    <li><strong>Server</strong> — a Solid storage server;</li>
+    <li><strong>Principal tooling</strong> — software with which a person or organisation issues
+      and revokes mandates;</li>
+    <li><strong>Agent</strong> — the autonomous actor;</li>
+    <li><strong>Verifier</strong> — any party checking a chain before granting access or during
+      audit (servers, counterparty agents, auditors);</li>
+    <li><strong>Registry</strong> — a federation membership authority.</li>
+  </ul>
+
+  <section id="as-0">
+    <h3>AS-0 — Solid base</h3>
+    <p>
+      Exactly today's Solid, unmodified. <em>Server:</em> conforms to [[SOLID-PROTOCOL]] with
+      [[WAC]] or [[ACP]] and [[SOLID-OIDC]]. <em>Agent / principal tooling:</em> authenticates
+      with DPoP-bound Solid-OIDC [[RFC9449]]; each agent holds its own WebID [[WEBID]], linked
+      from its principal's profile. A server can additionally implement the access-controlled
+      query interface [[SOLID-SPARQL-QUERY]] — an orthogonal server capability, valuable at
+      every stage.
+    </p>
+  </section>
+
+  <section id="as-1">
+    <h3>AS-1 — Attributed and verifiable data</h3>
+    <p>
+      AS-0, plus: <em>Agent:</em> attaches [[PROV-O]] attribution (agent WebID, activity,
+      <code>prov:actedOnBehalfOf</code> the principal) to every resource it generates.
+      <em>Principal tooling / agent:</em> artifacts that must survive copying carry Data
+      Integrity proofs conforming to [[VC-DATA-INTEGRITY]] over [[RDF-CANON]] (cryptosuites
+      [[VC-DI-EDDSA]] or [[VC-DI-ECDSA]]). <em>Verifier:</em> verifies such proofs per
+      [[VC-DATA-MODEL-2.0]] / [[VC-DATA-INTEGRITY]].
+    </p>
+  </section>
+
+  <section id="as-2">
+    <h3>AS-2 — Mandated agents (the accountability core)</h3>
+    <p>
+      AS-1, plus: <em>Principal tooling:</em> issues mandates as AgentAuthorizationCredentials
+      conforming to [[AGENT-AUTHZ]] (one credential per hop, policy content-bound, status entry
+      per [[VC-BITSTRING-STATUS-LIST]]), over policies conforming to the ODRL Agent-Delegation
+      Profile [[ODRL-DELEGATION]] (which builds on [[ODRL-MODEL]] / [[ODRL-VOCAB]]); and can
+      revoke them. <em>Agent:</em> acts only within a chain it can present; declares
+      <code>odrld:delegatedUnder</code> on any hop it issues. <em>Verifier:</em> implements the
+      full four-phase verification of [[AGENT-AUTHZ]] — credential gates, cross-binding,
+      status ∪ revocation, then the fail-closed chain evaluation of [[ODRL-DELEGATION]] — in
+      that order, and additionally checks that the transport-authenticated WebID (AS-0) is the
+      chain's leaf delegate. AS-2 is the stage at which the <a href="#thesis">accountability
+      thesis</a> holds in full.
+    </p>
+  </section>
+
+  <section id="as-3">
+    <h3>AS-3 — Negotiating agents</h3>
+    <p>
+      AS-2, plus: <em>Agent:</em> publishes a discovery descriptor (an [[A2A]] Agent Card and an
+      RDF agent description, linked from the owner's WebID profile — the conventions of
+      [[SOLID-AGENT-CARD-IMPL]]); supports the NL→RDF upgrade — hash-pinned, SHACL-bodied
+      protocol documents with the no-silent-downgrade rule for security-bearing steps (the codec
+      of [[SOLID-A2A-IMPL]], following [[AGORA]]) — and validates inbound typed exchange against
+      the pinned shape [[SHACL]]. <em>Note:</em> the descriptor and protocol-document conventions
+      are currently defined by their reference implementations, not by standalone specifications
+      (<a href="#maturity"></a>); AS-3 will firm up as those conventions are contributed to the
+      [[A2A]] project and/or a CG.
+    </p>
+  </section>
+
+  <section id="as-4">
+    <h3>AS-4 — Federated</h3>
+    <p>
+      AS-3, plus: <em>Agent (and any app):</em> self-describes with <code>fedapp:</code> metadata
+      in its Client Identifier Document (sectors, shapes consumed/produced, access modes)
+      [[FED-VOCAB]]. <em>Registry:</em> asserts membership as <code>fedreg:Membership</code>
+      records with lifecycle status, treating self-assertion as non-membership; optionally backs
+      assertions with Verifiable Credentials and delegation chains to a trust anchor
+      ([[FED-TRUST-IMPL]], which composes the AS-2 machinery). <em>Server:</em> advertises
+      accepted specification versions (<code>fedreg:StorageDescription</code>) so schema
+      migration needs no flag day. <em>Verifier:</em> checks membership through the registry (or
+      its credentials), never through self-assertion.
+    </p>
+  </section>
+</section>
+
+<section id="maturity" class="informative">
+  <h2>Implementation maturity — the honest inventory</h2>
+  <p>
+    Maturity is stated plainly, per component, in the discipline of [[ACCOUNTABLE-AGENTS]] §5.5:
+    every "implemented" names its artifact; nothing below claims production readiness. All named
+    implementations are open source, TypeScript unless noted, AI-agent-authored under review
+    discipline, and explicitly <strong>experimental</strong>. Verified against the named
+    repositories and running services on 2026-07-04; the JLWS substrate row on 2026-07-06.
+  </p>
+  <table class="simple">
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Layer</th>
+        <th>Specification status</th>
+        <th>Implementation status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Solid Protocol, WAC/ACP, Solid-OIDC, WebID</td>
+        <td>L1–L2</td>
+        <td><strong>External base</strong>: W3C Solid CG Draft Reports [[SOLID-PROTOCOL]] [[WAC]]
+          [[ACP]] [[SOLID-OIDC]]; standards track continues in the W3C Linked Web Storage WG
+          [[LWS-WG]]</td>
+        <td><strong>Implemented and deployed</strong>: a from-scratch TypeScript Solid server +
+          identity provider + application suite (live at <code>solid-test.jeswr.org</code>;
+          under active development), plus an explicitly experimental Rust server
+          (<code>jeswr/solid-server-rs</code>)</td>
+      </tr>
+      <tr>
+        <td>JLWS substrate (Linked Web Storage clean-slate draft)</td>
+        <td>Substrate (beneath L1)</td>
+        <td><strong>Drafted</strong>: personal editor's draft, public [[JLWS]] — core
+          (byte-native storage, RFC 9728/8693/9068 authorization chain, strict-ODRL access
+          grants) + the RDF Content Transformation companion (RDF support as an advertised
+          opt-in); the W3C Linked Web Storage WG [[LWS-WG]] remains the standards-track
+          home</td>
+        <td><strong>In progress, flag-gated</strong>: an experimental implementation on
+          <code>jeswr/solid-server-rs</code> branch <code>feat/lws</code>
+          (discovery/containers/RDF-transform, the auth chain, linksets/pagination/RAR
+          landed on the branch; notifications and query deferred), plus a 125-case
+          spec-derived vector suite in the draft's repository; nothing merged or
+          deployed</td>
+      </tr>
+      <tr>
+        <td>DPoP proof-of-possession</td>
+        <td>L1</td>
+        <td><strong>Standard</strong>: [[RFC9449]] (IETF)</td>
+        <td><strong>Implemented</strong>: server-side verifiers (TypeScript; Rust crate
+          <code>solid-oidc-verifier</code>) and client library (<code>@jeswr/solid-dpop</code>)</td>
+      </tr>
+      <tr>
+        <td>Access-Controlled SPARQL Query</td>
+        <td>L2</td>
+        <td><strong>Drafted</strong>: unofficial Editor's Draft written, CG-DRAFT-shaped, all
+          design decisions resolved [[SOLID-SPARQL-QUERY]]; Solid CG contribution pending</td>
+        <td><strong>Tracked, not yet landed</strong>: server-side contract mirrored to the
+          experimental Rust server's query seam (<code>jeswr/sparq#992</code>); no live endpoint
+          yet</td>
+      </tr>
+      <tr>
+        <td>ODRL Agent-Delegation Profile</td>
+        <td>L3</td>
+        <td><strong>Drafted</strong>: profile specification written
+          (<code>https://w3id.org/jeswr/odrl-delegation</code>; w3id redirect pending), landed to
+          <code>solid-odrl</code> <code>main</code>; ODRL CG contribution proposed, not
+          made</td>
+        <td><strong>Implemented (experimental)</strong>:
+          <code>evaluateDelegated</code> fail-closed chain evaluator +
+          <code>delegationProvenance</code> PROV overlay [[SOLID-ODRL-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>ODRL 2.2 policy expression + evaluation</td>
+        <td>L3</td>
+        <td><strong>Standard</strong>: W3C Recommendations [[ODRL-MODEL]] [[ODRL-VOCAB]]</td>
+        <td><strong>Implemented (experimental)</strong>: client-side express/parse/evaluate
+          [[SOLID-ODRL-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>Agent Authorization Credentials</td>
+        <td>L4</td>
+        <td><strong>Drafted</strong>: unofficial CCG-shaped Editor's Draft written
+          [[AGENT-AUTHZ]]; CCG work-item proposal pending (requires co-editors from more than
+          one organisation)</td>
+        <td><strong>Partially implemented</strong>: credential shape + issue/verify in
+          [[SOLID-VC-IMPL]]; the composed four-phase verifier (gap G7 of [[AAR-DESIGN]], incl.
+          the identity-composition rule) is implemented in [[AAR-DESIGN]]'s Phase 0 — a
+          deterministic, golden-master-tested script over test doubles with real crypto; the
+          composed packages running end-to-end against a live pod remains a later phase</td>
+      </tr>
+      <tr>
+        <td>VC 2.0 + Data Integrity + status lists</td>
+        <td>L4</td>
+        <td><strong>Standard</strong>: W3C Recommendations, 2025 [[VC-DATA-MODEL-2.0]]
+          [[VC-DATA-INTEGRITY]] [[VC-DI-EDDSA]] [[VC-DI-ECDSA]] [[VC-BITSTRING-STATUS-LIST]]
+          [[RDF-CANON]]</td>
+        <td><strong>Implemented (experimental)</strong>: issue/verify with pluggable proof-suite
+          seam [[SOLID-VC-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>Agent discovery descriptor (Agent Card + RDF description + WebID pointer)</td>
+        <td>L5</td>
+        <td><strong>Proposed</strong>: conventions defined by the reference implementation's
+          documentation only; no standalone specification. The [[A2A]] Agent Card itself follows
+          the A2A specification</td>
+        <td><strong>Implemented (experimental)</strong>: describe/discover/verify
+          [[SOLID-AGENT-CARD-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>NL→RDF hash-pinned SHACL protocol documents</td>
+        <td>L5</td>
+        <td><strong>Proposed</strong>: the A2A-extension proposal (per [[AGORA]]) is a named
+          roadmap item, not yet opened with the [[A2A]] project</td>
+        <td><strong>Implemented codec (experimental)</strong>: protocol-document build/verify +
+          upgrade-handshake codec, deliberately transport-free [[SOLID-A2A-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>PROV attribution</td>
+        <td>L6</td>
+        <td><strong>Standard</strong>: [[PROV-O]] (W3C Recommendation)</td>
+        <td><strong>Implemented in parts</strong>: chain provenance overlay in
+          [[SOLID-ODRL-IMPL]]; attribution carried by the suite's data models</td>
+      </tr>
+      <tr>
+        <td>Accountable agent runtime (the composed trace + auditor walk)</td>
+        <td>L6</td>
+        <td><strong>Drafted</strong>: runtime shape, on-pod trace artifact, auditor
+          procedure, and an honest API gap list (G1–G15) written [[AAR-DESIGN]]</td>
+        <td><strong>Implemented (experimental, Phase 0)</strong>: the composed four-phase chain
+          verifier, the trace writer/reader, and the §4 scenario run as a deterministic,
+          golden-master-tested script with real crypto over test-doubled I/O
+          [[AAR-DESIGN]]; the later phases — the same flow against the real merged packages
+          end-to-end, then a live pod — remain</td>
+      </tr>
+      <tr>
+        <td>Federation vocabularies + registry + trust</td>
+        <td>plane</td>
+        <td><strong>Published, standardisation deliberately deferred</strong>: vocabularies live
+          in-repo [[FED-VOCAB]] (w3id redirects pending); a CG Note waits for a second
+          independent consumer</td>
+        <td><strong>Implemented (experimental)</strong>: self-description, registry-asserted
+          membership + spec-version advertisement, VC-signed membership
+          [[FED-REGISTRY-IMPL]] [[FED-TRUST-IMPL]]</td>
+      </tr>
+      <tr>
+        <td>Server-side ODRL enforcement beside WAC</td>
+        <td>L2/L3</td>
+        <td><strong>Proposed</strong>: named and deliberately staged ([[ACCOUNTABLE-AGENTS]]
+          §5.5); today ODRL evaluation is client-side and servers enforce WAC/ACP only</td>
+        <td><strong>Not implemented</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Also honestly absent, beyond individual components: live multi-party federations with
+    independent operators (the software exists; the institutions do not yet), and zero-knowledge
+    selective disclosure through the proof-suite seam (active adjacent research). None of the
+    component specifications is an adopted work item of any W3C group yet; the contribution
+    sequence is set out in the adoption roadmap of [[ACCOUNTABLE-AGENTS]].
+  </p>
+</section>
+
+<section id="relationship" class="informative">
+  <h2>Relationship to the existing Solid specifications</h2>
+  <p>
+    <strong>This architecture extends Solid; it replaces nothing.</strong> Concretely:
+  </p>
+  <ul>
+    <li>
+      <strong>The base is unmodified.</strong> AS-0 (<a href="#as-0"></a>) is exactly
+      [[SOLID-PROTOCOL]] + [[WAC]]/[[ACP]] + [[SOLID-OIDC]] as published by the Solid Community
+      Group. No component here changes a requirement of any of them; an existing conforming
+      Solid server is already an AS-0 server.
+    </li>
+    <li>
+      <strong>WAC/ACP remain the authorization model.</strong> [[SOLID-SPARQL-QUERY]] adds a read
+      interface <em>under</em> the existing model, with non-disclosure invariants ensuring it can
+      never answer beyond what resource-level access control allows. The ODRL layer (L3) sits
+      <em>above</em> access control as the mandate and agreement layer: today it is evaluated
+      client-side by verifiers, and the pod server continues to enforce only WAC/ACP. Server-side
+      ODRL enforcement beside WAC is explicitly a proposed, separately-reviewed future step
+      (<a href="#maturity"></a>) — precisely because it would touch the base's authorization
+      path.
+    </li>
+    <li>
+      <strong>Identity stays WebID + Solid-OIDC.</strong> Agents get no new identity mechanism;
+      they get the existing one, plus profile-level linkage to their principals. DPoP [[RFC9449]]
+      is already the Solid-OIDC token binding.
+    </li>
+    <li>
+      <strong>Nothing requires pods to change shape.</strong> Credentials, policies, protocol
+      documents, and traces are ordinary pod resources under ordinary access control.
+    </li>
+    <li>
+      <strong>The stack is substrate-portable.</strong> The base this architecture extends can
+      be the Solid Protocol stack of AS-0, or a Linked Web Storage storage: the JLWS editor's
+      draft [[JLWS]] composes the same layers over the LWS Working Group's protocol direction —
+      its RDF Content Transformation profile restores RDF-readable resources and sketches the
+      Solid-on-JLWS mapping (WebID → CID subject; <code>solid:oidcIssuer</code> →
+      <code>jlws:OpenIdProvider</code>; WAC/ACP → ODRL grants), its access layer is already the
+      strict-ODRL model L3 builds on, and the L2 read interface ([[SOLID-SPARQL-QUERY]]) is its
+      reserved <code>SparqlQueryService</code>. An AS-1+ deployment can therefore sit on either
+      base; the layers above L2 are unchanged pod content and verifier logic. (LWS is a
+      byte-native storage substrate that does not handle RDF natively — RDF support is an
+      advertised opt-in in the storage description — which is precisely why the substrate can
+      swap without the layers noticing: they consume documents, not storage semantics.)
+    </li>
+    <li>
+      <strong>The standards path runs through the existing venues.</strong> The base's
+      standards-track home is the W3C Linked Web Storage Working Group [[LWS-WG]]; the component
+      specifications target the venues that own their layers — the Solid CG
+      ([[SOLID-SPARQL-QUERY]], and eventually this document), the ODRL CG
+      ([[ODRL-DELEGATION]]), the W3C Credentials CG ([[AGENT-AUTHZ]]), and the Linux Foundation
+      A2A project (the protocol-document extension). This document is the map a reader in any of
+      those venues can use to see where a component sits before reading it.
+    </li>
+  </ul>
+</section>
+
+<section id="security" class="informative">
+  <h2>Security considerations</h2>
+  <p>
+    Each component specification carries its own security analysis, which this document does not
+    duplicate: [[AGENT-AUTHZ]] (mid-chain key compromise, status availability, stale replay
+    versus the evaluator's clock, issuer–key binding, layer conflation); [[ODRL-DELEGATION]]
+    (acyclicity, depth budgets, the profile's deny-biased restriction of the
+    <code>use</code>-implies-<code>grantUse</code> hierarchy, revocation trust rules);
+    [[SOLID-SPARQL-QUERY]] (existence non-disclosure, pre-evaluation dataset restriction);
+    [[VC-DATA-INTEGRITY]] and [[RFC9449]] for the cryptographic substrate; and [[AAR-DESIGN]] §5
+    for the composed runtime's enforced-versus-accountable boundary.
+  </p>
+  <p>The concerns that arise only from the <em>composition</em> deserve statement here:</p>
+  <ul>
+    <li>
+      <strong>Layer conflation is the composition's characteristic failure.</strong> A verified
+      credential is not an authorization; a permitted policy chain with unverified signatures is
+      not authority; a valid chain presented by a party other than its leaf delegate is not that
+      party's authority. The four-phase order of [[AGENT-AUTHZ]], ending in the fail-closed
+      evaluation of [[ODRL-DELEGATION]] and anchored to the transport-authenticated WebID
+      (L1), exists precisely so no layer's "yes" is mistaken for the stack's.
+    </li>
+    <li>
+      <strong>Trust anchoring precedes everything.</strong> The chain evaluator decides validity
+      <em>given</em> an authenticated chain; a verifier must establish that the root grant is
+      genuinely the resource owner's (e.g. fetched from a location the owner controls) before any
+      later phase means anything.
+    </li>
+    <li>
+      <strong>Unavailability resolves closed, everywhere.</strong> Unreachable status lists,
+      unresolvable keys, unverifiable dates, missing grants: at every layer the composed answer
+      to "cannot determine" is <em>deny</em>. A composition is only as fail-closed as its most
+      fail-open member.
+    </li>
+    <li>
+      <strong>The natural-language edge is an injection surface.</strong> The NL channel exists
+      to negotiate protocol documents, not to carry authority; the no-silent-downgrade rule (L5)
+      and the rule that mandates are only ever the signed L3/L4 artifacts — never prose — keep
+      prompt-injection outside the authority path.
+    </li>
+    <li>
+      <strong>Discovery touches attacker-controlled origins.</strong> Agent cards, protocol
+      documents, revocation lists, and profile documents are fetched from URLs found in
+      third-party data; implementations need standard server-side request-forgery defences on
+      those fetches (as the reference implementations apply).
+    </li>
+  </ul>
+</section>
+
+<section id="privacy" class="informative">
+  <h2>Privacy considerations</h2>
+  <p>
+    Again by reference first: [[AGENT-AUTHZ]] and [[VC-DATA-MODEL-2.0]] on credential
+    correlation; [[SOLID-SPARQL-QUERY]] on query-interface non-disclosure; [[WAC]]/[[ACP]] on
+    access-control metadata exposure. Composition-level concerns:
+  </p>
+  <ul>
+    <li>
+      <strong>The accountability trail is itself personal data.</strong> PROV records, delegation
+      chains, and agreements reveal who delegated what to whom, when, and for what purpose. They
+      are ordinary pod resources, and the component specifications require them to sit under
+      access control like any other resource; "auditable by the parties with standing" is an
+      access-control policy decision, not a property of publishing the trail to the world.
+    </li>
+    <li>
+      <strong>Mandates are correlatable.</strong> An AgentAuthorizationCredential binds a
+      principal's WebID to an agent's across every context where it is presented. Presenting the
+      minimal chain (and, in future, selective disclosure through the pluggable proof-suite seam)
+      limits the exposure; the architecture inherits, and awaits, the VC ecosystem's
+      selective-disclosure maturation.
+    </li>
+    <li>
+      <strong>Discovery is advertisement.</strong> Publishing an agent descriptor from a WebID
+      profile announces that the identity operates an agent, and what it can do. This is by
+      design — discoverability is the feature — but the descriptor's placement under the owner's
+      control (their profile, their pod) is what keeps opting out possible.
+    </li>
+  </ul>
+</section>
+
+<section id="acknowledgements" class="informative">
+  <h2>Acknowledgements</h2>
+  <p>
+    This document maps work developed in and around the W3C Solid Community Group's ecosystem,
+    and builds on the AGORA protocol work [[AGORA]] co-authored by the editor. It was drafted
+    with AI assistance (Claude Fable 5) as disclosed in the Status of This Document.
+  </p>
+</section>
+
+</body>
+</html>

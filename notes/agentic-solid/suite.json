@@ -1,0 +1,21 @@
+{
+  "name": "agentic-solid-note",
+  "kind": "specification",
+  "status": "design",
+  "description": "Agentic Solid: Architecture Overview — the umbrella W3C-Solid-CG-shaped Note (unofficial ED, wholly informative): maps the six-layer accountable-agent architecture (identity/DPoP → WAC+AC-SPARQL → ODRL delegation → VC credentials → agent comms → PROV accountability, + the federation plane), states the accountability thesis once, defines staged conformance profiles AS-0…AS-4 by reference, and carries the honest per-component maturity inventory.",
+  "relatedRepos": [
+    "jeswr/agentic-solid-vision",
+    "jeswr/solid-sparql-query",
+    "jeswr/solid-odrl",
+    "jeswr/agent-authz-credential-spec",
+    "jeswr/accountable-agent-runtime",
+    "jeswr/solid-agent-card",
+    "jeswr/solid-a2a",
+    "jeswr/solid-vc",
+    "jeswr/solid-federation-vocab",
+    "jeswr/federation-registry",
+    "jeswr/federation-trust",
+    "jeswr/lws-spec"
+  ],
+  "tr": "solidproject.org/TR (target, on Solid CG adoption — maintainer-gated; deliberately after the component specs are contributed)"
+}
