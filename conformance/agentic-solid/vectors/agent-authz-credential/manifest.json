@@ -1,0 +1,330 @@
+{
+  "caseCount": 29,
+  "cases": [
+    {
+      "id": "agent-authz-credential/happy",
+      "path": "cases/happy/case.json"
+    },
+    {
+      "id": "agent-authz-credential/actor-is-leaf-assignee",
+      "path": "cases/actor-is-leaf-assignee/case.json"
+    },
+    {
+      "id": "agent-authz-credential/forged-hop",
+      "path": "cases/forged-hop/case.json"
+    },
+    {
+      "id": "agent-authz-credential/expired",
+      "path": "cases/expired/case.json"
+    },
+    {
+      "id": "agent-authz-credential/not-yet-valid",
+      "path": "cases/not-yet-valid/case.json"
+    },
+    {
+      "id": "agent-authz-credential/chain-malformed",
+      "path": "cases/chain-malformed/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-mismatch",
+      "path": "cases/binding-mismatch/case.json"
+    },
+    {
+      "id": "agent-authz-credential/revoked",
+      "path": "cases/revoked/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-unreachable",
+      "path": "cases/status-unreachable/case.json"
+    },
+    {
+      "id": "agent-authz-credential/out-of-scope",
+      "path": "cases/out-of-scope/case.json"
+    },
+    {
+      "id": "agent-authz-credential/expired-middle-hop",
+      "path": "cases/expired-middle-hop/case.json"
+    },
+    {
+      "id": "agent-authz-credential/prohibition-laundering",
+      "path": "cases/prohibition-laundering/case.json"
+    },
+    {
+      "id": "agent-authz-credential/over-length",
+      "path": "cases/over-length/case.json"
+    },
+    {
+      "id": "agent-authz-credential/identity-composition-missing",
+      "path": "cases/identity-composition-missing/case.json"
+    },
+    {
+      "id": "agent-authz-credential/identity-composition-wrong-root",
+      "path": "cases/identity-composition-wrong-root/case.json"
+    },
+    {
+      "id": "agent-authz-credential/identity-composition-wrong-leaf",
+      "path": "cases/identity-composition-wrong-leaf/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-bit-clear-accept",
+      "path": "cases/status-bit-clear-accept/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-bit-set-revoked",
+      "path": "cases/status-bit-set-revoked/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-suspension-bit-set",
+      "path": "cases/status-suspension-bit-set/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-list-unreachable",
+      "path": "cases/status-list-unreachable/case.json"
+    },
+    {
+      "id": "agent-authz-credential/status-list-wrong-issuer",
+      "path": "cases/status-list-wrong-issuer/case.json"
+    },
+    {
+      "id": "agent-authz-credential/presentation-challenge-ok",
+      "path": "cases/presentation-challenge-ok/case.json"
+    },
+    {
+      "id": "agent-authz-credential/presentation-challenge-mismatch",
+      "path": "cases/presentation-challenge-mismatch/case.json"
+    },
+    {
+      "id": "agent-authz-credential/presentation-domain-mismatch",
+      "path": "cases/presentation-domain-mismatch/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-embedded-accept",
+      "path": "cases/binding-embedded-accept/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-bare-iri-reject",
+      "path": "cases/binding-bare-iri-reject/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-digest-match-accept",
+      "path": "cases/binding-digest-match-accept/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-digest-mismatch-reject",
+      "path": "cases/binding-digest-mismatch-reject/case.json"
+    },
+    {
+      "id": "agent-authz-credential/binding-unreachable-reject",
+      "path": "cases/binding-unreachable-reject/case.json"
+    }
+  ],
+  "clauseIndex": {
+    "#credential-shape (credentialStatus)": [
+      "agent-authz-credential/status-bit-clear-accept"
+    ],
+    "#issuance": [
+      "agent-authz-credential/forged-hop"
+    ],
+    "#layering": [
+      "agent-authz-credential/happy",
+      "agent-authz-credential/out-of-scope"
+    ],
+    "#policy-binding (bare IRI rejected)": [
+      "agent-authz-credential/binding-bare-iri-reject"
+    ],
+    "#policy-binding (digest mismatch)": [
+      "agent-authz-credential/binding-digest-mismatch-reject"
+    ],
+    "#policy-binding (embedded)": [
+      "agent-authz-credential/binding-embedded-accept"
+    ],
+    "#policy-binding (relatedResource digest)": [
+      "agent-authz-credential/binding-digest-match-accept"
+    ],
+    "#policy-binding (retrieval failure)": [
+      "agent-authz-credential/binding-unreachable-reject"
+    ],
+    "#presentations": [
+      "agent-authz-credential/presentation-challenge-ok",
+      "agent-authz-credential/presentation-challenge-mismatch",
+      "agent-authz-credential/presentation-domain-mismatch"
+    ],
+    "#revocation-publication (rule 3)": [
+      "agent-authz-credential/status-bit-set-revoked"
+    ],
+    "#revocation-publication (rule 3: suspension ≠ revocation)": [
+      "agent-authz-credential/status-suspension-bit-set"
+    ],
+    "#revocation-verification (issuer binding)": [
+      "agent-authz-credential/status-list-wrong-issuer"
+    ],
+    "#revocation-verification (rule 1)": [
+      "agent-authz-credential/status-bit-clear-accept",
+      "agent-authz-credential/status-bit-set-revoked"
+    ],
+    "#revocation-verification (rule 2: statement → policy)": [
+      "agent-authz-credential/revoked"
+    ],
+    "#sec-issuer-binding": [
+      "agent-authz-credential/binding-mismatch"
+    ],
+    "#sec-replay": [
+      "agent-authz-credential/identity-composition-wrong-root"
+    ],
+    "#sec-replay (policy-layer cut-off)": [
+      "agent-authz-credential/expired-middle-hop"
+    ],
+    "#sec-replay (stale artifact)": [
+      "agent-authz-credential/expired"
+    ],
+    "#sec-replay (stolen presentation)": [
+      "agent-authz-credential/presentation-challenge-ok",
+      "agent-authz-credential/presentation-challenge-mismatch",
+      "agent-authz-credential/presentation-domain-mismatch"
+    ],
+    "#sec-status-availability": [
+      "agent-authz-credential/status-unreachable",
+      "agent-authz-credential/status-list-unreachable",
+      "agent-authz-credential/status-list-wrong-issuer"
+    ],
+    "#verification (Phase A: signature)": [
+      "agent-authz-credential/forged-hop"
+    ],
+    "#verification (Phase A: validity window)": [
+      "agent-authz-credential/expired",
+      "agent-authz-credential/not-yet-valid"
+    ],
+    "#verification (Phase B: cross-binding)": [
+      "agent-authz-credential/binding-mismatch"
+    ],
+    "#verification (Phase C)": [
+      "agent-authz-credential/revoked",
+      "agent-authz-credential/status-unreachable",
+      "agent-authz-credential/status-list-unreachable"
+    ],
+    "#verification (Phase D)": [
+      "agent-authz-credential/out-of-scope",
+      "agent-authz-credential/expired-middle-hop",
+      "agent-authz-credential/prohibition-laundering",
+      "agent-authz-credential/over-length"
+    ],
+    "#verification (Phase D, leaf-assignee rule)": [
+      "agent-authz-credential/actor-is-leaf-assignee"
+    ],
+    "#verification (Phase D: authenticated-agent rule)": [
+      "agent-authz-credential/identity-composition-missing",
+      "agent-authz-credential/identity-composition-wrong-root",
+      "agent-authz-credential/identity-composition-wrong-leaf"
+    ],
+    "#verification (all)": [
+      "agent-authz-credential/happy"
+    ],
+    "#verification (step 1)": [
+      "agent-authz-credential/binding-embedded-accept",
+      "agent-authz-credential/binding-bare-iri-reject",
+      "agent-authz-credential/binding-digest-match-accept",
+      "agent-authz-credential/binding-digest-mismatch-reject",
+      "agent-authz-credential/binding-unreachable-reject"
+    ],
+    "#verification (step 2: assemble the chain)": [
+      "agent-authz-credential/chain-malformed"
+    ]
+  },
+  "description": "verify-agent-authority vectors for Agent Authorization Credentials: the four-phase decision matrix (assembly, Phase A signature/validity, Phase B cross-binding, Phase C status∪revocation fail-closed, Phase D delegated-policy evaluation) plus the identity-composition rule. Signed eddsa-rdfc-2022 credentials; public keys in keyring/.",
+  "schemaVersion": 1,
+  "spec": "https://github.com/jeswr/agent-authz-credential-spec",
+  "statementCompanion": {
+    "companion": "https://jeswr.github.io/agent-authz-credential-spec/",
+    "note": "statement ids derived from the companion's spec:testCase links; the case-level `statements` field is additive to `clauses` during the transition (jeswr/spec-companion DESIGN §7).",
+    "repo": "jeswr/agent-authz-credential-spec",
+    "source": "jeswr/agent-authz-credential-spec/spec.statements.ttl",
+    "specVersion": "4896be7692fd5cd94e95e998bf281d867c0e9f72"
+  },
+  "statementIndex": {
+    "AAC-BIND-1": [
+      "agent-authz-credential/binding-bare-iri-reject",
+      "agent-authz-credential/binding-digest-match-accept",
+      "agent-authz-credential/binding-embedded-accept"
+    ],
+    "AAC-BIND-2": [
+      "agent-authz-credential/binding-embedded-accept"
+    ],
+    "AAC-BIND-4": [
+      "agent-authz-credential/binding-digest-match-accept",
+      "agent-authz-credential/binding-digest-mismatch-reject",
+      "agent-authz-credential/binding-unreachable-reject"
+    ],
+    "AAC-BIND-7": [
+      "agent-authz-credential/binding-bare-iri-reject"
+    ],
+    "AAC-HOP-1": [
+      "agent-authz-credential/chain-malformed"
+    ],
+    "AAC-HOP-3": [
+      "agent-authz-credential/happy"
+    ],
+    "AAC-ISS-1": [
+      "agent-authz-credential/forged-hop"
+    ],
+    "AAC-ISS-11": [
+      "agent-authz-credential/status-list-wrong-issuer"
+    ],
+    "AAC-ISS-6": [
+      "agent-authz-credential/happy"
+    ],
+    "AAC-LAYER-1": [
+      "agent-authz-credential/forged-hop",
+      "agent-authz-credential/out-of-scope"
+    ],
+    "AAC-PRES-2": [
+      "agent-authz-credential/presentation-challenge-mismatch",
+      "agent-authz-credential/presentation-challenge-ok",
+      "agent-authz-credential/presentation-domain-mismatch"
+    ],
+    "AAC-RVER-1": [
+      "agent-authz-credential/status-bit-clear-accept",
+      "agent-authz-credential/status-bit-set-revoked",
+      "agent-authz-credential/status-suspension-bit-set"
+    ],
+    "AAC-RVER-2": [
+      "agent-authz-credential/revoked"
+    ],
+    "AAC-VAL-4": [
+      "agent-authz-credential/expired"
+    ],
+    "AAC-VER-1": [
+      "agent-authz-credential/binding-mismatch",
+      "agent-authz-credential/chain-malformed",
+      "agent-authz-credential/expired",
+      "agent-authz-credential/expired-middle-hop",
+      "agent-authz-credential/forged-hop",
+      "agent-authz-credential/happy",
+      "agent-authz-credential/not-yet-valid",
+      "agent-authz-credential/out-of-scope",
+      "agent-authz-credential/over-length",
+      "agent-authz-credential/prohibition-laundering",
+      "agent-authz-credential/revoked",
+      "agent-authz-credential/status-list-unreachable",
+      "agent-authz-credential/status-unreachable"
+    ],
+    "AAC-VER-2": [
+      "agent-authz-credential/chain-malformed"
+    ],
+    "AAC-VER-4": [
+      "agent-authz-credential/revoked"
+    ],
+    "AAC-VER-5": [
+      "agent-authz-credential/actor-is-leaf-assignee",
+      "agent-authz-credential/identity-composition-missing",
+      "agent-authz-credential/identity-composition-wrong-leaf"
+    ],
+    "AAC-VER-6": [
+      "agent-authz-credential/actor-is-leaf-assignee",
+      "agent-authz-credential/identity-composition-missing"
+    ],
+    "AAC-VER-7": [
+      "agent-authz-credential/forged-hop"
+    ]
+  },
+  "suite": "agent-authz-credential"
+}

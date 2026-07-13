@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/cid/v1"
+  ],
+  "assertionMethod": [
+    "https://status-issuer.example/keys#k1"
+  ],
+  "id": "https://status-issuer.example/org#id",
+  "verificationMethod": [
+    {
+      "controller": "https://status-issuer.example/org#id",
+      "id": "https://status-issuer.example/keys#k1",
+      "publicKeyJwk": {
+        "alg": "Ed25519",
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "ZeSaHqUjIU05PhU9mArgQT7S8Lsbt4F3VwX1m3LpfpM"
+      },
+      "publicKeyMultibase": "z6MkmK1Q91DusJahu5apdLJARQu8xPGaKJgyKa5KPsVbfhbp",
+      "type": "Multikey"
+    }
+  ]
+}

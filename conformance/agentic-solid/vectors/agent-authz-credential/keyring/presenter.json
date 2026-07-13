@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/cid/v1"
+  ],
+  "assertionMethod": [
+    "https://presenter.example/keys#k1"
+  ],
+  "id": "https://presenter.example/agents/p#it",
+  "verificationMethod": [
+    {
+      "controller": "https://presenter.example/agents/p#it",
+      "id": "https://presenter.example/keys#k1",
+      "publicKeyJwk": {
+        "alg": "Ed25519",
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "VSnx2SYk-uQFxTjnY3SlYy7IZJxRYM_F8RpVarJH7S8"
+      },
+      "publicKeyMultibase": "z6MkkBho7hcym3rHAS6Dkn5xKzfgPDPfxfj8YrHNnF2a6aEa",
+      "type": "Multikey"
+    }
+  ]
+}

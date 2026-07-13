@@ -1,0 +1,23 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/cid/v1"
+  ],
+  "assertionMethod": [
+    "https://institute.example/keys#k1"
+  ],
+  "id": "https://institute.example/org#id",
+  "verificationMethod": [
+    {
+      "controller": "https://institute.example/org#id",
+      "id": "https://institute.example/keys#k1",
+      "publicKeyJwk": {
+        "alg": "Ed25519",
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "F1a9sf28S8fgDH9ABpeFZfvq1dl8L7DrbWzd8Sme-os"
+      },
+      "publicKeyMultibase": "z6Mkg2N8t8Zeyfp7KVnbUH9rBxSoYans5r6fEPLDkvXqZepr",
+      "type": "Multikey"
+    }
+  ]
+}
