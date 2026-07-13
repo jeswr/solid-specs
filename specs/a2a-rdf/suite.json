@@ -1,0 +1,16 @@
+{
+  "name": "a2a-rdf-extension",
+  "kind": "specification",
+  "status": "design",
+  "description": "RDF Protocol Documents — an A2A extension (unofficial draft, per A2A spec §4.6): hash-pinned SHACL-bodied protocol documents negotiated once in natural language, then SHACL-validated RDF exchange in ordinary A2A Parts, with a fail-closed no-silent-downgrade rule and composition with ODRL delegation + Agent Authorization Credentials. Extension URI https://w3id.org/jeswr/a2a-rdf/v1. Candidate proposal to the LF A2A project; submission maintainer-gated.",
+  "relatedRepos": [
+    "jeswr/solid-a2a",
+    "jeswr/solid-agent-card",
+    "jeswr/agent-authz-credential-spec",
+    "jeswr/agentic-solid-note",
+    "jeswr/agentic-solid-vision",
+    "jeswr/solid-odrl",
+    "jeswr/lws-spec"
+  ],
+  "tr": "a2aproject governance (target, on proposal sponsorship — maintainer-gated)"
+}

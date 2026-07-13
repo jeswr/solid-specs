@@ -1,0 +1,829 @@
+# AUTHORED-BY Claude Fable 5
+#
+# Machine-readable normative-statement companion for "RDF Protocol Documents — an A2A
+# Extension" (https://jeswr.github.io/a2a-rdf-extension/). COMPLEMENTARY: the full-text
+# spec is the normative document and is unchanged; this graph enumerates its normative
+# statements so tooling (conformance suites, the interop map, coverage gates) can
+# consume them.
+#
+# Format: jeswr/spec-companion (the Solid Protocol's http://www.w3.org/ns/spec#
+# requirement model as a sidecar graph + the certification testability spine
+# E / A-int / A-exist / P + honest per-statement test-gap accounting). Statement texts
+# are VERBATIM quotes of the pinned spec source, validator-enforced
+# (tools/validate.mjs --spec-html index.html: tags stripped, entities decoded,
+# [[refs]] unbracketed, whitespace collapsed).
+#
+# Extraction provenance: seeded from the spec-normative-analysis a2a-rdf inventory
+# (64 statements, extracted 2026-07-06 against the same pinned commit), every quote
+# re-verified verbatim against index.html. Testability adjudication questions that
+# inventory left open are carried on the statements' rdfs:comment.
+#
+# Test cases are the a2a-rdf vectors of jeswr/agentic-solid-conformance (16 cases,
+# manifest ids asc "a2a-rdf/<case>"), linked at the statement each case's clause pins
+# — restatements link the primary statement via sc:restates instead of double-linking
+# the same vectors.
+
+@base <https://jeswr.github.io/a2a-rdf-extension/spec.statements.ttl> .
+@prefix sc:      <https://w3id.org/jeswr/spec-companion#> .
+@prefix spec:    <http://www.w3.org/ns/spec#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix vec:     <https://github.com/jeswr/agentic-solid-conformance/tree/main/vectors/a2a-rdf/cases/> .
+
+#################################################################
+# The companion document
+#################################################################
+
+<> a sc:CompanionDocument ;
+    dcterms:title "a2a-rdf normative-statement companion"@en ;
+    sc:companionOf <https://jeswr.github.io/a2a-rdf-extension/> ;
+    sc:specVersion "d3a2773ae15e3dcce332081eec894e1cd83df6f9" ;
+    dcterms:created "2026-07-06"^^xsd:date ;
+    prov:wasAttributedTo <https://jeswr.org/#me> ;
+    dcterms:description "Extracted with AI assistance (Claude Fable 5, Anthropic) from the pinned spec source, seeded by the spec-normative-analysis inventory with every quote re-verified verbatim; awaiting review by the human editor, like the spec itself."@en ;
+    sc:extractionNote "Several normative sentences contain empty ReSpec cross-reference anchors that render as '()' / '( )' in the source text (#activation, #handshake-skip, #offer, #part-profiles, #authorization, #security); the verbatim quotes preserve the resulting text exactly. Errata candidate: give those anchors link text." ;
+    sc:extractionNote "The #required-semantics table's card-required row summary ('this exchange must run under the pinned PD or be aborted') uses lowercase 'must' — RFC 8174 reserves normative force for the UPPERCASE forms; the enforced form is A2ARDF-DG-1. Errata candidate: mark the row informative or uppercase the keyword." ;
+    sc:extractionNote "#authorization binding point 3 ('Absence of a verifiable grant is a denial.') states fail-closed intent with no BCP 14 keyword. Errata candidate: give it a MUST." ;
+    sc:extractionNote "The three numbered conditions of the no-silent-downgrade rule (#downgrade) carry no RFC keywords of their own — they are the structure of the single A2ARDF-DG-1 obligation; condition 2's abort semantics ('aborted with an error, not retried in prose') is keyworded only via #security (A2ARDF-SEC-6). Errata candidate: keyword the abort in #downgrade itself." ;
+    sc:extractionNote "The content-addressing steps 1–3 (#pd-hashing) are definitional prose with no BCP 14 keyword; conformance to the construction is certified through the recomputation obligation (A2ARDF-HASH-1), exactly as the golden-hash conformance vectors pin it." ;
+    sc:extractionNote "'Validation is against the local, hash-verified copy of the PD only — never against shapes fetched at message time.' (#part-profiles) carries no RFC keyword; its normative content is carried by A2ARDF-PDM-4 and A2ARDF-SEC-2." ;
+    sc:extractionNote "The #part-metadata table expresses requiredness as a parenthetical REQUIRED in its 'On' column — normalized here to MUST (RFC 8174 synonym). Neither key carries a mandated receiver-side refusal for a MISSING key (A2ARDF-PP-7 covers only a present-but-unknown protocolHash). Errata candidate: mandate refusal of undispatchable extension parts (adjudication notes on A2ARDF-PMETA-1/2 and A2ARDF-ACT-2)." ;
+    sc:extractionNote "Whether an offering agent MUST accept a handshake-skipped conforming intent (#handshake-skip presents the card declaration as 'the standing offer') is implied but never keyworded. Errata candidate." ;
+    sc:extractionNote "Receiver-side validation of intent-response parts is not mandated anywhere (the mandatory pre-action validation covers intent parts only), so a2a:responseShape conformance (A2ARDF-PDM-2 / A2ARDF-PP-4) is producer-bound and only transcript-auditable. Errata candidate: mandate receiver-side response validation, promoting both statements to E." ;
+    sc:extractionNote "16 of the 64 statements carry open testability adjudications inherited from the extraction inventory (chiefly: E-as-decision-seam vs A-exist-as-live-transcript for sender-bound rules with no counterpart rejection, and the security-bearing SHOULDs in #security); each is recorded on the statement's rdfs:comment rather than silently resolved." .
+
+#################################################################
+# The specification
+#################################################################
+
+<https://jeswr.github.io/a2a-rdf-extension/> a spec:Specification ;
+    dcterms:title "RDF Protocol Documents — an A2A Extension"@en ;
+    spec:conformance <https://jeswr.github.io/a2a-rdf-extension/#conformance> ;
+    spec:consideration <https://jeswr.github.io/a2a-rdf-extension/#security> ,
+                       <https://jeswr.github.io/a2a-rdf-extension/#privacy> ;
+    spec:requirement
+        <#A2ARDF-TERM-1> , <#A2ARDF-URI-1> , <#A2ARDF-VER-1> , <#A2ARDF-DECL-1> ,
+        <#A2ARDF-DECL-2> , <#A2ARDF-DECL-3> , <#A2ARDF-DECL-4> , <#A2ARDF-ACT-1> ,
+        <#A2ARDF-ACT-2> , <#A2ARDF-ACT-3> , <#A2ARDF-ACT-4> , <#A2ARDF-PDM-1> ,
+        <#A2ARDF-PDM-2> , <#A2ARDF-PDM-3> , <#A2ARDF-PDM-4> , <#A2ARDF-HASH-1> ,
+        <#A2ARDF-HASH-2> , <#A2ARDF-HASH-3> , <#A2ARDF-HASH-4> , <#A2ARDF-HASH-5> ,
+        <#A2ARDF-OFFER-1> , <#A2ARDF-OFFER-2> , <#A2ARDF-OFFER-3> , <#A2ARDF-OFFER-4> ,
+        <#A2ARDF-RESP-1> , <#A2ARDF-RESP-2> , <#A2ARDF-RESP-3> , <#A2ARDF-RESP-4> ,
+        <#A2ARDF-RESP-5> , <#A2ARDF-DG-1> , <#A2ARDF-REQSEM-1> , <#A2ARDF-SKIP-1> ,
+        <#A2ARDF-SKIP-2> , <#A2ARDF-PMETA-1> , <#A2ARDF-PMETA-2> , <#A2ARDF-PP-1> ,
+        <#A2ARDF-PP-2> , <#A2ARDF-PP-3> , <#A2ARDF-PP-4> , <#A2ARDF-PP-5> ,
+        <#A2ARDF-PP-6> , <#A2ARDF-PP-7> , <#A2ARDF-PP-8> , <#A2ARDF-AUTHZ-1> ,
+        <#A2ARDF-AUTHZ-2> , <#A2ARDF-AUTHZ-3> , <#A2ARDF-ERR-1> , <#A2ARDF-ERR-2> ,
+        <#A2ARDF-ERR-3> , <#A2ARDF-SEC-1> , <#A2ARDF-SEC-2> , <#A2ARDF-SEC-3> ,
+        <#A2ARDF-SEC-4> , <#A2ARDF-SEC-5> , <#A2ARDF-SEC-6> , <#A2ARDF-SEC-7> ,
+        <#A2ARDF-SEC-8> , <#A2ARDF-SEC-9> , <#A2ARDF-SEC-10> , <#A2ARDF-SEC-11> ,
+        <#A2ARDF-SEC-12> , <#A2ARDF-SEC-13> , <#A2ARDF-SEC-14> , <#A2ARDF-SEC-15> .
+
+<https://jeswr.github.io/a2a-rdf-extension/#security> a spec:SecurityConsiderations .
+
+#################################################################
+# Conformance classes
+#################################################################
+
+<#OfferingAgent> a sc:ConformanceClass ;
+    rdfs:label "offering agent"@en ;
+    rdfs:comment "An A2A agent (server role) that declares this extension in its Agent Card and accepts protocol-document exchanges. Role-generic obligations (sender/receiver/fetcher/implementation) bind BOTH classes — the spec notes a single implementation frequently plays both roles."@en ;
+    sc:definedBy <https://jeswr.github.io/a2a-rdf-extension/#conformance> .
+
+<#ConsumingClient> a sc:ConformanceClass ;
+    rdfs:label "consuming client"@en ;
+    rdfs:comment "An A2A client that activates this extension and sends protocol-document exchanges."@en ;
+    sc:definedBy <https://jeswr.github.io/a2a-rdf-extension/#conformance> .
+
+<#SpecificationRevision> a sc:ConformanceClass ;
+    rdfs:label "this specification (future revisions / the editors)"@en ;
+    rdfs:comment "Not one of the spec's two declared implementation classes: three statements bind the specification's own future revisions (URI and hash-prefix minting on breaking change), not any running implementation. Declared as a class so their actor binding stays closed and honest rather than mis-assigned to an implementation role."@en ;
+    sc:definedBy <https://jeswr.github.io/a2a-rdf-extension/#versioning> .
+
+#################################################################
+# Test gaps (honest no-vector justifications)
+#################################################################
+
+<#gap-restated> a sc:TestGap ;
+    dcterms:description "No dedicated vector pins this restatement: the statement repeats (or consolidates) an obligation whose conformance vectors are linked at the primary statement it sc:restates — the agentic-solid-conformance case clauses pin the primary section, and double-linking the same cases here would overstate coverage. A conformant implementation is exercised through the primary statement."@en .
+
+<#gap-vector-suite> a sc:TestGap ;
+    dcterms:description "No conformance vector exercises this obligation yet — a named a2a-rdf vector-suite gap: missing cases include an unrecognised-hash-prefix rejection, RDF-form handshake decoding (ambiguous handshake graphs), an ambiguous intent graph (zero/multiple a2a:Intent subjects), an unknown claimed protocolHash refusal, a malformed-RDF-serialization refusal, an oversized-payload refusal, and a hermetic no-dereference (canary-IRI) execution check. All are addable as pure-evaluation cases in jeswr/agentic-solid-conformance's a2a-rdf suite."@en .
+
+<#gap-fetcher-harness> a sc:TestGap ;
+    dcterms:description "The a2a-rdf conformance vectors are pure evaluations over committed fixtures; fetcher obligations (refuse plain http://, cap response size and time) need an instrumented origin or a sandboxed network harness, which the suite does not define yet."@en .
+
+<#gap-live-agent> a sc:TestGap ;
+    dcterms:description "Capability and activation obligations of a LIVE agent (accept a media type, reject non-activating requests against a required card, activate-and-comply as a client) are not exercisable by the suite's pure-evaluation vectors; they need a live-endpoint conformance harness driving a real A2A agent, which does not exist yet."@en .
+
+<#gap-cross-suite-authz> a sc:TestGap ;
+    dcterms:description "The intent-side policy-IRI matching rule is not vectored in the a2a-rdf suite; the credential-chain side (svc:policy content binding, chain verification, presentation challenge/domain binding) is specified in AGENT-AUTHZ and vectored under agentic-solid-conformance's agent-authz-credential suite. An a2a-rdf-side pure-evaluation case for the odrl:hasPolicy-to-svc:policy match is addable."@en .
+
+<#gap-spec-revision> a sc:TestGap ;
+    dcterms:description "Binds future revisions of this specification itself (URI / hash-prefix minting on a breaking change), not any running implementation; there is nothing stable to certify against until such a revision exists."@en .
+
+<#gap-should-level> a sc:TestGap ;
+    dcterms:description "SHOULD / SHOULD NOT-level guidance whose deviation is expressly permitted (RFC 2119 section 3): several members are wire- or transcript-observable, but none can fail a deterministic conformance vector — at most a documented-deviation check in a certification review. The security-bearing members of this class (SSRF target refusal, cross-origin redirects) carry per-statement adjudication notes suggesting a MUST upgrade."@en .
+
+<#gap-permission> a sc:TestGap ;
+    dcterms:description "A permission (MAY): there is no obligation a conformant implementation could violate, so there is no reject-path or artifact to certify; recorded for inventory completeness."@en .
+
+<#gap-internal-state> a sc:TestGap ;
+    dcterms:description "Binds the implementation's internal assumptions or mechanism choice (what a sender assumes about an un-echoed activation; what a receiver relies on for replay resistance), not an observable interface behaviour of its own — the observable teeth live in composed statements (the no-silent-downgrade rule; envelope replay handling), where testability is assessed."@en .
+
+<#gap-transcript-audit> a sc:TestGap ;
+    dcterms:description "Audit/transcript-only by nature (testability A-exist): the obligation binds a producer or sender with no mandated counterpart rejection, so no deterministic conformance vector can exist for it as specified — conformance is checked by inspecting a transcript (or a deployment/code audit) of the implementation under test, and is disclosed rather than certified, per the testability spine's A-exist discipline. Recorded explicitly so coverage consumers can distinguish this intentional non-vector class from incomplete extraction."@en .
+
+#################################################################
+# Normative statements
+#
+# Per statement: stable id, verbatim quote (validator-checked against the pinned
+# source), canonical RFC 2119 level, actor binding, testability tag, anchor, and
+# test-case link or honest gap. rdfs:comment carries the operative sub-clause where
+# the quote is a multi-clause sentence, same-sentence split notes, and the open
+# adjudication questions inherited from the extraction inventory.
+#################################################################
+
+### Terminology (#terminology)
+
+<#A2ARDF-TERM-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-TERM-1" ;
+    spec:statement "An RDF graph, typed a2a:Intent, expressing a requested action; under an active protocol it MUST conform to the pinned Protocol Document's request shape." ;
+    rdfs:comment "Terminology-definition restatement of the intent-conformance obligation; binds the producer of the intent graph (the consuming-client role). The validate-intent vectors are linked at the primary statement A2ARDF-PP-3."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#terminology> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-PP-3> .
+
+### Extension URI (#extension-uri) and Versioning (#versioning)
+
+<#A2ARDF-URI-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-URI-1" ;
+    spec:statement "Per §4.6.3 of A2A, the version is carried in the URI; a breaking change to this specification MUST mint a new URI (…/v2)." ;
+    rdfs:comment "Binds future revisions of this specification (URI minting on breaking change), not any running implementation. Restated at A2ARDF-VER-1."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#SpecificationRevision> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#extension-uri> ;
+    sc:testGap <#gap-spec-revision> .
+
+<#A2ARDF-VER-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-VER-1" ;
+    spec:statement "The extension version is the /v1 segment of the extension URI; breaking changes MUST mint /v2 (§4.6.3 of A2A)." ;
+    rdfs:comment "Binds future revisions of the specification, not a running implementation."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#SpecificationRevision> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#versioning> ;
+    sc:testGap <#gap-spec-revision> ;
+    sc:restates <#A2ARDF-URI-1> .
+
+### Agent Card declaration (#declaration)
+
+<#A2ARDF-DECL-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-DECL-1" ;
+    spec:statement "An offering agent MUST support text/turtle turtle and SHOULD support application/ld+json json-ld11" ;
+    rdfs:comment "Operative sub-clause: MUST support text/turtle. Same sentence as A2ARDF-DECL-2. The sentence tail '(the interop baseline; …)' — a cross-reference parenthetical around an empty ReSpec anchor — is elided from the quote."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#declaration> ;
+    sc:testGap <#gap-live-agent> .
+
+<#A2ARDF-DECL-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-DECL-2" ;
+    spec:statement "An offering agent MUST support text/turtle turtle and SHOULD support application/ld+json json-ld11" ;
+    rdfs:comment "Operative sub-clause: SHOULD support application/ld+json. Same sentence as A2ARDF-DECL-1. SHOULD-level capability: mechanically probeable but deviation is permitted — at most a documented-deviation check."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#declaration> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-DECL-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-DECL-3" ;
+    spec:statement """an offering agent SHOULD declare "required": false: the extension's baseline behaviour degrades gracefully to ordinary natural-language A2A for extension-unaware clients.""" ;
+    rdfs:comment "Guidance with an explicitly contemplated deviation class (RDF-only agents); a required:true card is not per se a violation."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#declaration> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-DECL-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-DECL-4" ;
+    spec:statement "Card-level required: true is reserved for agents that only accept structured RDF exchanges (e.g. an audited enterprise endpoint); such an agent MUST reject requests that do not activate the extension, as §4.6 of A2A provides." ;
+    rdfs:comment "Request-time rejection by the card-required (server-role) agent; the client-side counterpart is A2ARDF-REQSEM-1."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#declaration> ;
+    sc:testGap <#gap-live-agent> .
+
+### Activation (#activation)
+
+<#A2ARDF-ACT-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ACT-1" ;
+    spec:statement "Activation follows §3.2.6 / §4.6 of A2A unchanged: a consuming client requests activation by listing the extension URI in the A2A-Extensions service parameter (an HTTP header in HTTP-based bindings; gRPC metadata in gRPC bindings), and an agent that activates it SHOULD echo the URI in the response's A2A-Extensions." ;
+    rdfs:comment "Operative sub-clause: SHOULD echo the URI in the response's A2A-Extensions. Restates the activation mechanics of A2A §3.2.6/§4.6. The sender-side MUSTs (A2ARDF-ACT-4, A2ARDF-DG-1) give the un-echoed case its fail-closed teeth."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-ACT-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ACT-2" ;
+    spec:statement "Every Message or Artifact that carries an extension payload part () MUST list the extension URI in its extensions array (the core per-message tagging field, §4.1.4 of A2A)." ;
+    rdfs:comment "Sender-bound wire obligation (either role sends extension payload parts) with no mandated counterpart rejection of an untagged message; checkable against a transcript of the implementation under test. Adjudication open: whether receivers should be REQUIRED to reject untagged extension parts, which would make this black-box enforceable. The '()' in the quote is an empty ReSpec cross-reference anchor in the source."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-transcript-audit> .
+
+<#A2ARDF-ACT-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ACT-3" ;
+    spec:statement """An agent that has not activated the extension for a request MUST NOT be assumed to have interpreted extension parts; senders MUST treat un-echoed activation as "peer is speaking baseline A2A" — which, for a required offer, triggers the no-silent-downgrade rule""" ;
+    rdfs:comment "Operative sub-clause: MUST NOT be assumed to have interpreted extension parts. Same sentence as A2ARDF-ACT-4. An obligation on the requesting sender's assumptions (internal belief state); its observable teeth are the no-silent-downgrade rule (A2ARDF-DG-1). Activation is requested by the consuming client, so the un-echoed case binds that role."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-internal-state> .
+
+<#A2ARDF-ACT-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ACT-4" ;
+    spec:statement """An agent that has not activated the extension for a request MUST NOT be assumed to have interpreted extension parts; senders MUST treat un-echoed activation as "peer is speaking baseline A2A" — which, for a required offer, triggers the no-silent-downgrade rule""" ;
+    rdfs:comment "Operative sub-clause: senders MUST treat un-echoed activation as baseline A2A. Same sentence as A2ARDF-ACT-3; composes into A2ARDF-DG-1. Observable only in composition with the downgrade rule; no counterpart rejection exists. Adjudication open: could fold into the E-testable downgrade decision seam."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#activation> ;
+    sc:testGap <#gap-transcript-audit> .
+
+### Protocol Document data model (#pd-model)
+
+<#A2ARDF-PDM-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PDM-1" ;
+    spec:statement "IRI(s) of the sh:NodeShape(s) every request intent under this protocol MUST conform to." ;
+    rdfs:comment "Property-table (a2a:requestShape) restatement of the intent-conformance obligation; binds the intent producer. The validate-intent vectors are linked at the primary statement A2ARDF-PP-3."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-PP-3> .
+
+<#A2ARDF-PDM-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PDM-2" ;
+    spec:statement "IRI(s) of the sh:NodeShape(s) a structured response MUST conform to, when the protocol defines one." ;
+    rdfs:comment "Producer-bound (the responding agent emits the graph); no receiver-side rejection of a non-conforming response is mandated, so conformance is auditable only from a transcript against the hash-pinned PD — and the transcript itself is unsigned, so evidence integrity is not end-to-end. Adjudication open: mandating receiver-side response validation would promote this to E. Same obligation as A2ARDF-PP-4."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-transcript-audit> ;
+    sc:restates <#A2ARDF-PP-4> .
+
+<#A2ARDF-PDM-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PDM-3" ;
+    spec:statement "The PD graph MUST be self-contained: a validator MUST NOT dereference IRIs mentioned in the shapes (no owl:imports-style loading) — everything the SHACL engine needs is inside the hashed graph." ;
+    rdfs:comment "Operative sub-clause: the PD graph MUST be self-contained. Same sentence as A2ARDF-PDM-4. Document-shape property checkable by inspecting the hash-anchored PD graph, but no refusal of a non-self-contained PD is mandated anywhere — a conforming validator simply never fetches. Adjudication open: should accepting such a PD be a mandated refusal? Binds whichever party authors/publishes the PD."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-transcript-audit> .
+
+<#A2ARDF-PDM-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PDM-4" ;
+    spec:statement "The PD graph MUST be self-contained: a validator MUST NOT dereference IRIs mentioned in the shapes (no owl:imports-style loading) — everything the SHACL engine needs is inside the hashed graph." ;
+    rdfs:comment "Operative sub-clause: a validator MUST NOT dereference IRIs. Same sentence as A2ARDF-PDM-3; reinforced by A2ARDF-SEC-2. Negative network-behaviour property, mechanically testable by running the validator hermetically against a PD containing canary IRIs. Adjudication open: this is a sandbox-execution reading of E, not a reject-path."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-model> ;
+    sc:testGap <#gap-vector-suite> .
+
+### Content addressing (#pd-hashing)
+
+<#A2ARDF-HASH-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-HASH-1" ;
+    spec:statement "A party that dereferences a PD from a protocolSource (or a card-declared source) MUST recompute the hash over the fetched graph and MUST reject the document — treating the exchange as never upgraded — if it does not equal the pinned hash." ;
+    rdfs:comment "Operative sub-clause: MUST recompute the hash over the fetched graph. Same sentence as A2ARDF-HASH-2. The content-addressing steps 1–3 themselves are definitional (no BCP 14 keyword); conformance to the construction is certified through this recomputation obligation — the golden-hash vector pins the exact RDFC-1.0 + SHA-256 construction, and the representation-stability case proves recomputation is over the graph, not the bytes."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-hashing> ;
+    spec:testCase vec:pd-hash-grant-access , vec:pd-hash-stable-across-representations , vec:pd-pin-match .
+
+<#A2ARDF-HASH-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-HASH-2" ;
+    spec:statement "A party that dereferences a PD from a protocolSource (or a card-declared source) MUST recompute the hash over the fetched graph and MUST reject the document — treating the exchange as never upgraded — if it does not equal the pinned hash." ;
+    rdfs:comment "Operative sub-clause: MUST reject the document, treating the exchange as never upgraded. Same sentence as A2ARDF-HASH-1. Restated at A2ARDF-OFFER-1 and A2ARDF-SEC-11 (and informatively in the JLWS relationship discussion)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-hashing> ;
+    spec:testCase vec:pd-pin-mismatch , vec:pd-hash-rejects-graph-change .
+
+<#A2ARDF-HASH-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-HASH-3" ;
+    spec:statement "A change to either the canonicalization or the digest algorithm is a breaking change to this specification: it MUST use a new, distinct prefix and is only introducible under a new extension URI" ;
+    rdfs:comment "Binds future revisions of the specification (hash-prefix/URI minting), not a running implementation. The implementation-facing half is A2ARDF-HASH-4."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#SpecificationRevision> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-hashing> ;
+    sc:testGap <#gap-spec-revision> .
+
+<#A2ARDF-HASH-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-HASH-4" ;
+    spec:statement "Implementations MUST reject hash strings whose prefix they do not recognise." ;
+    rdfs:comment "Input rejection, testable as a pure evaluation: present a 'sha3:…'-style hash string and observe refusal."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-hashing> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-HASH-5> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-HASH-5" ;
+    spec:statement "PDs SHOULD be published at HTTPS URLs whose representations are immutable (content-addressed paths or versioned documents); a PD is typically hosted in the offering party's own storage (in the Solid deployment profile, a pod) so protocol definitions inherit the host's access control and availability story." ;
+    rdfs:comment "Publication/deployment guidance; immutability of a URL's future representations is not testable at any single point in time, and deviation is permitted."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#pd-hashing> ;
+    sc:testGap <#gap-should-level> .
+
+### Upgrade offer (#offer)
+
+<#A2ARDF-OFFER-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-OFFER-1" ;
+    spec:statement "HTTPS URL from which the PD can be fetched (and MUST be hash-verified;" ;
+    rdfs:comment "Table-row (protocolSource) restatement of the hash-verification obligation; the verify-pd-pin vectors are linked at A2ARDF-HASH-1/2. The quote ends at the source's cross-reference to the Content addressing section."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#offer> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-HASH-1> , <#A2ARDF-HASH-2> .
+
+<#A2ARDF-OFFER-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-OFFER-2" ;
+    spec:statement "true marks this a security-bearing exchange that MUST NOT be silently downgraded to natural language" ;
+    rdfs:comment "Table-row (required flag) restatement of the no-silent-downgrade rule; the downgrade vectors are linked at A2ARDF-DG-1. Adjudication open: E-as-decision-seam vs A-exist-as-live-transcript — no counterpart rejects a wrongful NL downgrade in live operation."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#offer> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-DG-1> .
+
+<#A2ARDF-OFFER-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-OFFER-3" ;
+    spec:statement "Receivers MUST reject an offer whose required is present but not a JSON boolean — a malformed flag MUST NOT be coerced to false." ;
+    rdfs:comment "Operative sub-clause: MUST reject a non-boolean required. Same sentence as A2ARDF-OFFER-4. Binds whichever role receives the offer. decode-offer-ok is the accept-side boundary case for the offer decode contract."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#offer> ;
+    spec:testCase vec:decode-offer-malformed-required , vec:decode-offer-ok .
+
+<#A2ARDF-OFFER-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-OFFER-4" ;
+    spec:statement "Receivers MUST reject an offer whose required is present but not a JSON boolean — a malformed flag MUST NOT be coerced to false." ;
+    rdfs:comment "Operative sub-clause: a malformed flag MUST NOT be coerced to false. Same sentence as A2ARDF-OFFER-3; reinforced by A2ARDF-SEC-5. Observable through the mandated rejection: an implementation that coerced would accept the malformed offer, which the vector detects."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#offer> ;
+    spec:testCase vec:decode-offer-malformed-required .
+
+### Upgrade response (#response)
+
+<#A2ARDF-RESP-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-RESP-1" ;
+    spec:statement "MUST equal the offer's protocolHash — a response about a different hash answers nothing" ;
+    rdfs:comment "Shape constraint on the upgrade-response artifact (its protocolHash member); binds the responding party (either role). Enforced fail-closed by the offerer's downgrade rule (condition 1 of A2ARDF-DG-1): a mismatched response authorises nothing."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#response> ;
+    spec:testCase vec:downgrade-unrelated-response .
+
+<#A2ARDF-RESP-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-RESP-2" ;
+    spec:statement "Receivers MUST reject a response whose accept is missing or not a JSON boolean — it MUST NOT default to false, which could otherwise authorise NL fallback." ;
+    rdfs:comment "Operative sub-clause: MUST reject a missing/non-boolean accept. Same sentence as A2ARDF-RESP-3. decode-response-ok is the accept-side boundary case."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#response> ;
+    spec:testCase vec:decode-response-missing-accept , vec:decode-response-nonboolean-accept , vec:decode-response-ok .
+
+<#A2ARDF-RESP-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-RESP-3" ;
+    spec:statement "Receivers MUST reject a response whose accept is missing or not a JSON boolean — it MUST NOT default to false, which could otherwise authorise NL fallback." ;
+    rdfs:comment "Operative sub-clause: it MUST NOT default to false. Same sentence as A2ARDF-RESP-2; reinforced by A2ARDF-SEC-5. Defaulting a missing accept to false would (dangerously) authorise NL fallback — the missing-accept vector detects exactly this."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#response> ;
+    spec:testCase vec:decode-response-missing-accept .
+
+<#A2ARDF-RESP-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-RESP-4" ;
+    spec:statement "A handshake graph MUST contain exactly one such typed subject; receivers MUST reject ambiguous graphs (zero, multiple, or mixed handshake subjects) rather than splice triples across subjects." ;
+    rdfs:comment "Operative sub-clause: exactly one typed subject. Same sentence as A2ARDF-RESP-5, whose mandated rejection makes a violating graph request-time-rejectable. Binds the producer of the RDF-form handshake payload (either role)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#response> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-RESP-5> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-RESP-5" ;
+    spec:statement "A handshake graph MUST contain exactly one such typed subject; receivers MUST reject ambiguous graphs (zero, multiple, or mixed handshake subjects) rather than splice triples across subjects." ;
+    rdfs:comment "Operative sub-clause: receivers MUST reject ambiguous graphs (anti-splicing). Same sentence as A2ARDF-RESP-4; restated at A2ARDF-SEC-4."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#response> ;
+    sc:testGap <#gap-vector-suite> .
+
+### The no-silent-downgrade rule (#downgrade)
+
+<#A2ARDF-DG-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-DG-1" ;
+    spec:statement "Given an offer O and a purported response R, natural-language fallback for the exchange is permitted only when all of the following hold — otherwise the sender MUST NOT proceed in natural language:" ;
+    rdfs:comment "The three numbered conditions are the structure of this one obligation (their list-item prose carries no RFC keywords of its own). Vector map: downgrade-unrelated-response = condition 1 (unrelated/unparseable/absent response fails closed); downgrade-refused-required = condition 2 (required offer declined → abort, never prose); downgrade-accepted = condition 3 (accepted → proceed in validated RDF); downgrade-allowed-optional = all three hold → NL permitted. Condition 2's abort semantics is keyworded at A2ARDF-SEC-6. Adjudication open: the obligation binds the sender in live operation, where no counterpart rejects a wrongful NL downgrade — E here is the decision-seam reading (the reference codec's may-downgrade-to-nl procedure the vectors exercise)."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#downgrade> ;
+    spec:testCase vec:downgrade-unrelated-response , vec:downgrade-refused-required , vec:downgrade-accepted , vec:downgrade-allowed-optional .
+
+### Two required flags, two scopes (#required-semantics)
+
+<#A2ARDF-REQSEM-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-REQSEM-1" ;
+    spec:statement "§4.6 of A2A: clients MUST activate and comply with the extension to talk to this agent at all." ;
+    rdfs:comment "Restates core A2A §4.6; the enforcement side is A2ARDF-DECL-4 (the card-required agent MUST reject non-activating requests), satisfying the counterpart-rejection condition for E. The table's second row uses lowercase 'must' as a non-keyword summary of A2ARDF-DG-1 (see the extraction notes)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#required-semantics> ;
+    sc:testGap <#gap-live-agent> .
+
+### Skipping the handshake for card-declared protocols (#handshake-skip)
+
+<#A2ARDF-SKIP-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SKIP-1" ;
+    spec:statement "When an Agent Card pre-declares a PD in params.protocolDocuments () and the client already implements a PD with the same protocol hash, the client MAY send a conforming intent directly — tagging the part with that hash () — without a prior offer/response round." ;
+    rdfs:comment "A permission, not a violable obligation. Adjudication open: whether the offering agent MUST accept a handshake-skipped conforming intent is implied by 'the Agent Card declaration is the standing offer' but never keyworded (see the extraction notes). The '()' in the quote are empty ReSpec cross-reference anchors in the source."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#handshake-skip> ;
+    sc:testGap <#gap-permission> .
+
+<#A2ARDF-SKIP-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SKIP-2" ;
+    spec:statement "The agent MUST still validate the intent against the shape before acting." ;
+    rdfs:comment "The skip-path restatement of the mandatory pre-action validation; the validate-intent vectors are linked at the primary statement A2ARDF-PP-5."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#handshake-skip> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-PP-5> .
+
+### Part metadata keys (#part-metadata)
+
+<#A2ARDF-PMETA-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PMETA-1" ;
+    spec:statement "every extension part (REQUIRED — receivers dispatch on it without sniffing payloads)" ;
+    rdfs:comment "Level normalized from the table's parenthetical REQUIRED ('On' column). Obligation: every extension part MUST carry the https://w3id.org/jeswr/a2a-rdf/v1/kind metadata key with one of the five defined values. Sender-bound wire obligation; no rejection of a key-less part is mandated on the receiver — checkable against a transcript. Adjudication open: whether receivers must refuse undispatchable (key-less) extension parts."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> ;
+    sc:testGap <#gap-transcript-audit> .
+
+<#A2ARDF-PMETA-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PMETA-2" ;
+    spec:statement "intent and intent-response parts (REQUIRED)" ;
+    rdfs:comment "Level normalized from REQUIRED. Obligation: intent and intent-response parts MUST carry the https://w3id.org/jeswr/a2a-rdf/v1/protocolHash metadata key. A2ARDF-PP-7 mandates refusal only for an UNKNOWN claimed hash, leaving the missing-key case unspecified. Adjudication open: the missing-hash-claim case should be settled (likely a refusal, since validation cannot select a PD)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-metadata> ;
+    sc:testGap <#gap-transcript-audit> .
+
+### Part profiles (#part-profiles)
+
+<#A2ARDF-PP-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-1" ;
+    spec:statement "(The RDF form MAY instead be sent as a text part with an RDF media type; the JSON form is the interop baseline.)" ;
+    rdfs:comment "Format permission for the handshake payloads; the RDF handshake form's own shape constraint is A2ARDF-RESP-4/5."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-permission> .
+
+<#A2ARDF-PP-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-2" ;
+    spec:statement "MUST contain exactly one subject typed a2a:Intent and MUST conform to the pinned PD's a2a:requestShape(s)." ;
+    rdfs:comment "Operative sub-clause: exactly one a2a:Intent subject. Same sentence as A2ARDF-PP-3. Counterpart rejection is A2ARDF-PP-8. Binds the intent producer."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-PP-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-3" ;
+    spec:statement "MUST contain exactly one subject typed a2a:Intent and MUST conform to the pinned PD's a2a:requestShape(s)." ;
+    rdfs:comment "Operative sub-clause: MUST conform to the pinned PD's requestShape(s). Same sentence as A2ARDF-PP-2. Also stated at A2ARDF-TERM-1 and A2ARDF-PDM-1. Binds the intent producer; enforcement is mandated on the receiving agent (A2ARDF-PP-5/6), making violation request-time-rejectable."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    spec:testCase vec:intent-valid , vec:intent-missing-mode .
+
+<#A2ARDF-PP-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-4" ;
+    spec:statement "The structured response graph; MUST conform to the PD's a2a:responseShape(s) when the PD defines any." ;
+    rdfs:comment "Producer-bound: the mandatory pre-action SHACL validation (A2ARDF-PP-5) covers intent parts only, so no receiver-side rejection of a non-conforming response is mandated. Auditable from a transcript against the hash-pinned PD, but the transcript is unsigned. Restated at A2ARDF-PDM-2. Adjudication open: mandating receiver-side response validation would promote this to E."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-transcript-audit> .
+
+<#A2ARDF-PP-5> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-5" ;
+    spec:statement "A receiving agent MUST SHACL-validate every intent part against the pinned PD's request shape(s) before acting on it, and MUST refuse (with the error of ) an intent that does not conform, whose claimed protocolHash is unknown to the conversation, or whose graph is ambiguous (zero or multiple a2a:Intent subjects)." ;
+    rdfs:comment "Operative sub-clause: MUST SHACL-validate before acting. Same sentence as A2ARDF-PP-6/7/8. The '(with the error of )' in the quote encloses an empty ReSpec cross-reference anchor to the Error signalling section."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    spec:testCase vec:intent-valid , vec:intent-missing-mode .
+
+<#A2ARDF-PP-6> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-6" ;
+    spec:statement "A receiving agent MUST SHACL-validate every intent part against the pinned PD's request shape(s) before acting on it, and MUST refuse (with the error of ) an intent that does not conform, whose claimed protocolHash is unknown to the conversation, or whose graph is ambiguous (zero or multiple a2a:Intent subjects)." ;
+    rdfs:comment "Operative sub-clause: MUST refuse a non-conforming intent (error code validation-failed). Same sentence as A2ARDF-PP-5/7/8; the intent-missing-mode vector exercises exactly this branch."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    spec:testCase vec:intent-missing-mode .
+
+<#A2ARDF-PP-7> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-7" ;
+    spec:statement "A receiving agent MUST SHACL-validate every intent part against the pinned PD's request shape(s) before acting on it, and MUST refuse (with the error of ) an intent that does not conform, whose claimed protocolHash is unknown to the conversation, or whose graph is ambiguous (zero or multiple a2a:Intent subjects)." ;
+    rdfs:comment "Operative sub-clause: MUST refuse an intent whose claimed protocolHash is unknown to the conversation (error code unknown-protocol). Same sentence as A2ARDF-PP-5/6/8."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-PP-8> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-PP-8" ;
+    spec:statement "A receiving agent MUST SHACL-validate every intent part against the pinned PD's request shape(s) before acting on it, and MUST refuse (with the error of ) an intent that does not conform, whose claimed protocolHash is unknown to the conversation, or whose graph is ambiguous (zero or multiple a2a:Intent subjects)." ;
+    rdfs:comment "Operative sub-clause: MUST refuse an ambiguous intent graph (anti-splicing, mirroring the handshake-graph rule). Same sentence as A2ARDF-PP-5/6/7. The following sentence ('Validation is against the local, hash-verified copy of the PD only — never against shapes fetched at message time.') carries no RFC keyword; its normative content is A2ARDF-PDM-4 and A2ARDF-SEC-2."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#part-profiles> ;
+    sc:testGap <#gap-vector-suite> .
+
+### Composing with authorization (#authorization)
+
+<#A2ARDF-AUTHZ-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-AUTHZ-1" ;
+    spec:statement "A message whose intent part expresses a security-bearing exchange SHOULD carry an authorization part () presenting the acting agent's credential chain in the same Message, so the receiver validates shape and mandate together." ;
+    rdfs:comment "SHOULD-level: presence of the authorization part is transcript-observable, but deviation is permitted (the chain could be conveyed out of band), and the receiver's fail-closed denial for an absent grant is stated without a keyword (see the extraction notes). The '()' in the quote is an empty ReSpec cross-reference anchor in the source."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#authorization> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-AUTHZ-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-AUTHZ-2" ;
+    spec:statement "The intent graph MAY reference the exercised policy directly" ;
+    rdfs:comment "A permission; its conditional MUST is the separate matching rule A2ARDF-AUTHZ-3. The source's inline example ('e.g. <intent> odrl:hasPolicy <policy-iri>') is elided from the quote."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#authorization> ;
+    sc:testGap <#gap-permission> .
+
+<#A2ARDF-AUTHZ-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-AUTHZ-3" ;
+    spec:statement "when it does, the IRI MUST match (one of) the svc:policy value(s) in the presented chain — a mismatch is a refusal." ;
+    rdfs:comment "Binds BOTH roles: the consuming client produces the intent/presentation pair whose policy IRIs must match, and the receiving agent enforces the match ('a mismatch is a refusal') — request-time rejectable. The referenced-policy content binding and chain verification are specified in AGENT-AUTHZ and vectored under the agent-authz-credential suite."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#ConsumingClient> , <#OfferingAgent> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#authorization> ;
+    sc:testGap <#gap-cross-suite-authz> .
+
+### Error signalling (#errors)
+
+<#A2ARDF-ERR-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ERR-1" ;
+    spec:statement "a refusing agent SHOULD fail the request using the binding's standard error path (e.g. a JSON-RPC error or a failed task state) and SHOULD attach, on the error's message or metadata, the key https://w3id.org/jeswr/a2a-rdf/v1/error with one of:" ;
+    rdfs:comment "Operative sub-clause: SHOULD fail via the binding's standard error path. Same sentence as A2ARDF-ERR-2. Extensions cannot add enum values or alter core A2A structures, so only soft signalling is possible."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#errors> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-ERR-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ERR-2" ;
+    spec:statement "a refusing agent SHOULD fail the request using the binding's standard error path (e.g. a JSON-RPC error or a failed task state) and SHOULD attach, on the error's message or metadata, the key https://w3id.org/jeswr/a2a-rdf/v1/error with one of:" ;
+    rdfs:comment "Operative sub-clause: SHOULD attach the …/v1/error metadata key (codes: protocol-required, validation-failed, unknown-protocol, hash-mismatch, authorization-failed). Same sentence as A2ARDF-ERR-1."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#errors> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-ERR-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-ERR-3" ;
+    spec:statement "(the SHACL validation report MAY be attached as a text/turtle part)" ;
+    rdfs:comment "A permission (from the validation-failed row of the error-code table); also narrated in the informative worked example."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#errors> ;
+    sc:testGap <#gap-permission> .
+
+### Security considerations (#security)
+
+<#A2ARDF-SEC-1> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-1" ;
+    spec:statement "Parsers MUST be hardened: enforce size limits before parsing; never dereference IRIs found in payloads (no owl:imports, no context fetching for JSON-LD beyond a locally-pinned context); treat malformed graphs as refusals, never best-effort repairs." ;
+    rdfs:comment "Operative sub-clause: enforce size limits before parsing. Same sentence as A2ARDF-SEC-2/3. Over-limit input must be refused before parsing — testable with an oversized payload. Overlaps the SHOULD-level bound in A2ARDF-SEC-14."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-SEC-2> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-2" ;
+    spec:statement "Parsers MUST be hardened: enforce size limits before parsing; never dereference IRIs found in payloads (no owl:imports, no context fetching for JSON-LD beyond a locally-pinned context); treat malformed graphs as refusals, never best-effort repairs." ;
+    rdfs:comment "Operative sub-clause: never dereference IRIs found in payloads. Same sentence as A2ARDF-SEC-1/3; reinforces A2ARDF-PDM-4 and the non-keyworded 'never against shapes fetched at message time' in Part profiles. Mechanically testable by hermetic execution against canary-IRI payloads. Adjudication open: sandbox-execution reading of E, not a reject-path — same call as A2ARDF-PDM-4."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-SEC-3> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-3" ;
+    spec:statement "Parsers MUST be hardened: enforce size limits before parsing; never dereference IRIs found in payloads (no owl:imports, no context fetching for JSON-LD beyond a locally-pinned context); treat malformed graphs as refusals, never best-effort repairs." ;
+    rdfs:comment "Operative sub-clause: treat malformed graphs as refusals, never best-effort repairs. Same sentence as A2ARDF-SEC-1/2. The JSON-side analogue is exercised by the decode-handshake vectors linked at A2ARDF-OFFER-3/4 and A2ARDF-RESP-2/3; no malformed-RDF-serialization vector exists."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-vector-suite> .
+
+<#A2ARDF-SEC-4> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-4" ;
+    spec:statement "Handshake graphs with zero/multiple/mixed typed subjects MUST be rejected () — splicing predicates across subjects is a spoofing vector." ;
+    rdfs:comment "Security-considerations restatement of the handshake anti-splicing rule (A2ARDF-RESP-5). The '()' in the quote is an empty ReSpec cross-reference anchor in the source."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-RESP-5> .
+
+<#A2ARDF-SEC-5> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-5" ;
+    spec:statement "A missing or non-boolean value MUST cause rejection of the message, never a default: coercing a malformed required to false or a malformed accept to false re-opens the downgrade the rule exists to close." ;
+    rdfs:comment "Consolidated restatement of the fail-closed handshake-flag decode rules; the decode-handshake vectors are linked at A2ARDF-OFFER-3/4 and A2ARDF-RESP-2/3."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-OFFER-3> , <#A2ARDF-OFFER-4> , <#A2ARDF-RESP-2> , <#A2ARDF-RESP-3> .
+
+<#A2ARDF-SEC-6> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-6" ;
+    spec:statement """Implementers MUST NOT add "helpful" NL retries around a refused security-bearing exchange.""" ;
+    rdfs:comment "The implementer-facing statement of downgrade condition 2's abort semantics ('aborted with an error, not retried in prose' — that list-item prose carries no RFC keyword of its own). Adjudication open: E-as-decision-seam vs A-exist-as-live-transcript — same call as A2ARDF-DG-1."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    spec:testCase vec:downgrade-refused-required .
+
+<#A2ARDF-SEC-7> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-7" ;
+    spec:statement "Fetchers MUST require HTTPS, SHOULD refuse private, loopback, and link-local address targets (including post-DNS-resolution, in server-side deployments), MUST cap response size and time, and SHOULD NOT follow cross-origin redirects." ;
+    rdfs:comment "Operative sub-clause: MUST require HTTPS. Same sentence as A2ARDF-SEC-8/9/10. An http:// protocolSource must be refused — a pure evaluation of the fetcher seam."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-fetcher-harness> .
+
+<#A2ARDF-SEC-8> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-8" ;
+    spec:statement "Fetchers MUST require HTTPS, SHOULD refuse private, loopback, and link-local address targets (including post-DNS-resolution, in server-side deployments), MUST cap response size and time, and SHOULD NOT follow cross-origin redirects." ;
+    rdfs:comment "Operative sub-clause: SHOULD refuse private, loopback, and link-local address targets (including post-DNS-resolution). Same sentence as A2ARDF-SEC-7/9/10. Adjudication open (security-bearing SHOULD): whether certification treats this as a sandbox-testable E, or the spec upgrades it to MUST for server-side deployments."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-SEC-9> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-9" ;
+    spec:statement "Fetchers MUST require HTTPS, SHOULD refuse private, loopback, and link-local address targets (including post-DNS-resolution, in server-side deployments), MUST cap response size and time, and SHOULD NOT follow cross-origin redirects." ;
+    rdfs:comment "Operative sub-clause: MUST cap response size and time. Same sentence as A2ARDF-SEC-7/8/10. Oversized or slow-loris PD responses must be cut off — testable against an instrumented origin."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-fetcher-harness> .
+
+<#A2ARDF-SEC-10> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-10" ;
+    spec:statement "Fetchers MUST require HTTPS, SHOULD refuse private, loopback, and link-local address targets (including post-DNS-resolution, in server-side deployments), MUST cap response size and time, and SHOULD NOT follow cross-origin redirects." ;
+    rdfs:comment "Operative sub-clause: SHOULD NOT follow cross-origin redirects. Same sentence as A2ARDF-SEC-7/8/9. Adjudication open: the same security-bearing-SHOULD question as A2ARDF-SEC-8 (the suite's redirect-refusal pattern suggests certifying it)."@en ;
+    spec:requirementLevel spec:SHOULDNOT ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-SEC-11> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-11" ;
+    spec:statement "Hash verification () MUST happen before any use of the fetched graph; the hash — not the URL, not TLS — is what makes the PD trustworthy." ;
+    rdfs:comment "Verify-before-use strengthening of the hash-pin obligation; the observable face is the mandated reject path of A2ARDF-HASH-2 (a tampered PD can produce no effect before rejection). The '()' in the quote is an empty ReSpec cross-reference anchor in the source."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-restated> ;
+    sc:restates <#A2ARDF-HASH-1> , <#A2ARDF-HASH-2> .
+
+<#A2ARDF-SEC-12> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-12" ;
+    spec:statement "Shape validity is not freshness: receivers of security-bearing intents MUST rely on the A2A envelope (unique messageId, taskId/contextId scoping) and, where credentials are presented, on the challenge/domain binding of the Verifiable Presentation (AGENT-AUTHZ presentations) for replay resistance — and SHOULD treat a repeated messageId within a context as a duplicate, not a new instruction." ;
+    rdfs:comment "Operative sub-clause: MUST rely on the A2A envelope and the VP challenge/domain binding for replay resistance. Same sentence as A2ARDF-SEC-13. 'MUST rely on' mandates a mechanism choice, not an observable reject path of its own; the VP challenge/domain binding is vectored under the agent-authz-credential suite. Adjudication open: whether replay rejection of a duplicated security-bearing intent is certifiable (needs the SHOULD upgraded or an envelope-level test defined)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-internal-state> .
+
+<#A2ARDF-SEC-13> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-13" ;
+    spec:statement "Shape validity is not freshness: receivers of security-bearing intents MUST rely on the A2A envelope (unique messageId, taskId/contextId scoping) and, where credentials are presented, on the challenge/domain binding of the Verifiable Presentation (AGENT-AUTHZ presentations) for replay resistance — and SHOULD treat a repeated messageId within a context as a duplicate, not a new instruction." ;
+    rdfs:comment "Operative sub-clause: SHOULD treat a repeated messageId within a context as a duplicate. Same sentence as A2ARDF-SEC-12. Behaviourally probeable (replay the same messageId, observe idempotence) but deviation permitted."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-SEC-14> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-14" ;
+    spec:statement "Receivers SHOULD bound graph size and validation time and refuse over-limit inputs; PDs a party agrees to speak SHOULD be reviewed for pathological shapes before acceptance — accepting a PD is accepting a validation workload." ;
+    rdfs:comment "Operative sub-clause: SHOULD bound graph size and validation time and refuse over-limit inputs. Same sentence as A2ARDF-SEC-15. The MUST-level size limit before parsing is A2ARDF-SEC-1."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-should-level> .
+
+<#A2ARDF-SEC-15> a spec:Requirement ;
+    dcterms:identifier "A2ARDF-SEC-15" ;
+    spec:statement "Receivers SHOULD bound graph size and validation time and refuse over-limit inputs; PDs a party agrees to speak SHOULD be reviewed for pathological shapes before acceptance — accepting a PD is accepting a validation workload." ;
+    rdfs:comment "Operative sub-clause: PDs SHOULD be reviewed for pathological shapes before acceptance. Same sentence as A2ARDF-SEC-14. Pure out-of-interface guidance (a review process); nothing observable to certify."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OfferingAgent> , <#ConsumingClient> ;
+    sc:testability sc:Premature ;
+    sc:anchor <https://jeswr.github.io/a2a-rdf-extension/#security> ;
+    sc:testGap <#gap-should-level> .
