@@ -1,0 +1,852 @@
+# AUTHORED-BY Claude Fable 5
+#
+# Machine-readable normative-statement companion for "Redirect-Free WebAuthn
+# Re-Authentication for Solid-OIDC" (https://jeswr.github.io/solid-webauthn-reauth-spec/).
+# COMPLEMENTARY: the full-text spec is the normative document and is unchanged; this
+# graph enumerates its normative statements so tooling (conformance suites, the interop
+# map, coverage gates) can consume them.
+#
+# Model: the Solid Protocol's own requirement markup (http://www.w3.org/ns/spec#) as a
+# sidecar graph, + the certification testability spine (E / A-int / A-exist / P), +
+# honest per-statement test-gap accounting — the jeswr/spec-companion format
+# (shapes/spec-companion.shape.ttl + tools/validate.mjs in that repo). Statement texts
+# are VERBATIM quotes of the spec source (validator-enforced against the pinned
+# index.html — tags stripped, entities decoded, [[refs]] unbracketed, whitespace
+# collapsed).
+#
+# Validate (from a sibling jeswr/spec-companion checkout):
+#   node ../spec-companion/tools/validate.mjs spec.statements.ttl --spec-html index.html
+#
+# FORMAL-MODEL SEAM (first sc:formalModel candidate in the spec family): this spec is a
+# protocol/state-machine security core — the challenge lifecycle (issue -> outstanding ->
+# atomically-consumed exactly once), the consume-BEFORE-verify ordering, the
+# DPoP-failure-does-not-consume exception, credential revocation, and the clustered
+# atomicity requirement together form a small state machine whose safety properties
+# (no challenge redeemed twice; no assertion replayable after any outcome; no
+# consumption on a DPoP-rejected request) are exactly what a TLA+/Alloy model pins
+# cheaply and black-box vectors cannot (race interleavings). The candidate statements
+# are marked "sc:formalModel seam candidate" in their rdfs:comment below:
+# SWRA-VER-1, SWRA-VER-2, SWRA-VER-4, SWRA-CHAL-1, SWRA-CHAL-2, SWRA-CHAL-3,
+# SWRA-CHAL-5, SWRA-CHAL-6, SWRA-CRED-4. No model exists yet, so no sc:formalModel
+# link is asserted (the property takes an IRI to a machine-checked model).
+#
+# Canonical published home: beside the spec, as
+# https://jeswr.github.io/solid-webauthn-reauth-spec/spec.statements.ttl (the @base).
+
+@base <https://jeswr.github.io/solid-webauthn-reauth-spec/spec.statements.ttl> .
+@prefix sc:      <https://w3id.org/jeswr/spec-companion#> .
+@prefix spec:    <http://www.w3.org/ns/spec#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# The companion document
+#################################################################
+
+<> a sc:CompanionDocument ;
+    dcterms:title "Redirect-Free WebAuthn Re-Authentication for Solid-OIDC — normative-statement companion"@en ;
+    sc:companionOf <https://jeswr.github.io/solid-webauthn-reauth-spec/> ;
+    sc:specVersion "1c9dde919b96e8058ddb59529dd3059d5d310310" ;
+    dcterms:created "2026-07-06"^^xsd:date ;
+    prov:wasAttributedTo <https://jeswr.org/#me> ;
+    dcterms:description "Extracted with AI assistance (Claude Fable 5, Anthropic) from the pinned spec source; awaiting review by the human editor, like the spec itself."@en ;
+    sc:extractionNote "The five registration-options bullets (#registration-options) — including the req-marked req-uv-reg (userVerification = \"required\") and req-resident-key (residentKey = \"required\") — carry no BCP 14 keyword; they are normative only via the lead-in 'MUST return … carrying:'. Captured as SWRA-REG-1. Errata candidate: give req-uv-reg and req-resident-key their own MUSTs." ;
+    sc:extractionNote "The five registration-verification steps (#registration-verify) are normative only via the lead-in 'the OpenID Provider MUST, in order:' and carry no per-step BCP 14 keyword. Captured as SWRA-REG-4. Errata candidate." ;
+    sc:extractionNote "Verification steps 1–6 (#verification) — including the req-marked req-no-embed (embedding rejection), req-challenge-consume (atomic single-use consumption), and req-signcount (strictly-increasing counter) — carry no per-step BCP 14 keyword except req-uv's embedded MUST; they are normative only via the lead-in 'MUST verify the relayed assertion in the following order'. Captured as SWRA-VER-1 and SWRA-VER-5. Errata candidate: give req-no-embed, req-challenge-consume, and req-signcount their own keywords." ;
+    sc:extractionNote "The token-exchange request-parameter enumeration (#token-exchange, 'Re-authentication is an OAuth 2.0 Token Exchange … with:') carries no BCP 14 keyword; conformance to the request shape hangs on the profile definition and the OP-side rejections (SWRA-BUNDLE-1..6, SWRA-TX-1). Errata candidate." ;
+    sc:extractionNote "'Credentials MUST never appear in fetched URLs or logs.' (#security-ssrf) uses 'MUST never' — a non-BCP14 negation form (RFC 8174 reserves MUST NOT). Captured as SWRA-SEC-SSRF-2 at the literal keyword level MUST. Errata candidate: rephrase as MUST NOT." ;
+    sc:extractionNote "Five sentences mix two requirement levels and are split here: req-client-downgrade (MUST + MUST NOT → SWRA-CLIENT-1/-2), the key-hygiene sentence of req-single-keypair (SHOULD + MUST NOT → SWRA-CLIENT-4/-5), the credential-listing sentence (MUST + MUST NOT → SWRA-CRED-2/-3), the lifetime/revocation sentence (SHOULD + MAY → SWRA-CRED-5/-6), and the precise-reason sentence of req-coarse-error (MUST NOT + MAY → SWRA-ERR-2/-3)." ;
+    sc:extractionNote "Future-profile / change-controller MAYs are NOT extracted — they bind no conformance class of this version: accepting crossOrigin == true against a topOrigin allow-list (#security-embedding), IANA registration of an urn:ietf token type (#registrations), and future bundle-version assignment (#reg-bundle-version). The note-8693-tension MUST (#errors) is likewise not extracted: it is a quotation of RFC 8693 §2.2.2's directive, not a requirement of this specification." .
+
+#################################################################
+# The specification
+#################################################################
+
+<https://jeswr.github.io/solid-webauthn-reauth-spec/> a spec:Specification ;
+    dcterms:title "Redirect-Free WebAuthn Re-Authentication for Solid-OIDC"@en ;
+    spec:conformance <https://jeswr.github.io/solid-webauthn-reauth-spec/#conformance> ;
+    spec:consideration <https://jeswr.github.io/solid-webauthn-reauth-spec/#security> ,
+                       <https://jeswr.github.io/solid-webauthn-reauth-spec/#privacy> ;
+    spec:requirement
+        <#SWRA-TERM-1> ,
+        <#SWRA-ORIGIN-1> , <#SWRA-ORIGIN-2> , <#SWRA-ORIGIN-3> , <#SWRA-ORIGIN-4> ,
+        <#SWRA-ORIGIN-5> , <#SWRA-ORIGIN-6> , <#SWRA-ORIGIN-7> , <#SWRA-ORIGIN-8> ,
+        <#SWRA-REG-1> , <#SWRA-REG-2> , <#SWRA-REG-3> , <#SWRA-REG-4> , <#SWRA-REG-5> ,
+        <#SWRA-AO-1> , <#SWRA-AO-2> , <#SWRA-AO-3> , <#SWRA-AO-4> , <#SWRA-AO-5> ,
+        <#SWRA-AO-6> , <#SWRA-AO-7> , <#SWRA-AO-8> , <#SWRA-AO-9> , <#SWRA-AO-10> ,
+        <#SWRA-CORS-1> , <#SWRA-CORS-2> , <#SWRA-CORS-3> , <#SWRA-CORS-4> , <#SWRA-CORS-5> ,
+        <#SWRA-BUNDLE-1> , <#SWRA-BUNDLE-2> , <#SWRA-BUNDLE-3> , <#SWRA-BUNDLE-4> ,
+        <#SWRA-BUNDLE-5> , <#SWRA-BUNDLE-6> ,
+        <#SWRA-TX-1> , <#SWRA-TX-2> , <#SWRA-TX-3> ,
+        <#SWRA-CLIENT-1> , <#SWRA-CLIENT-2> , <#SWRA-CLIENT-3> , <#SWRA-CLIENT-4> ,
+        <#SWRA-CLIENT-5> , <#SWRA-CLIENT-6> , <#SWRA-CLIENT-7> , <#SWRA-CLIENT-8> ,
+        <#SWRA-VER-1> , <#SWRA-VER-2> , <#SWRA-VER-3> , <#SWRA-VER-4> , <#SWRA-VER-5> ,
+        <#SWRA-VER-6> , <#SWRA-VER-7> ,
+        <#SWRA-CHAL-1> , <#SWRA-CHAL-2> , <#SWRA-CHAL-3> , <#SWRA-CHAL-4> ,
+        <#SWRA-CHAL-5> , <#SWRA-CHAL-6> ,
+        <#SWRA-CRED-1> , <#SWRA-CRED-2> , <#SWRA-CRED-3> , <#SWRA-CRED-4> ,
+        <#SWRA-CRED-5> , <#SWRA-CRED-6> ,
+        <#SWRA-RS-1> ,
+        <#SWRA-ERR-1> , <#SWRA-ERR-2> , <#SWRA-ERR-3> , <#SWRA-ERR-4> , <#SWRA-ERR-5> ,
+        <#SWRA-SEC-SSRF-1> , <#SWRA-SEC-SSRF-2> , <#SWRA-SEC-REPLAY-1> .
+
+<https://jeswr.github.io/solid-webauthn-reauth-spec/#security> a spec:SecurityConsiderations .
+
+#################################################################
+# Conformance classes
+#################################################################
+
+<#Application> a sc:ConformanceClass ;
+    rdfs:label "Application (the WebAuthn Relying Party)"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-webauthn-reauth-spec/#conformance-classes> .
+
+<#OpenIDProvider> a sc:ConformanceClass ;
+    rdfs:label "OpenID Provider (the verifier, key store, and grant)"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-webauthn-reauth-spec/#conformance-classes> .
+
+<#ResourceServer> a sc:ConformanceClass ;
+    rdfs:label "Resource Server (explicitly unmodified — a non-target)"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-webauthn-reauth-spec/#conformance-classes> .
+
+#################################################################
+# Test gaps (honest no-vector justifications)
+#################################################################
+
+<#gap-no-vectors-yet> a sc:TestGap ;
+    dcterms:description "No language-neutral conformance vectors exist yet for this profile. The reference implementations are test-covered — the client/wire-format library (@jeswr/solid-webauthn-reauth: the fail-closed canonical-base64url bundle codec, downgrade refusal, key continuity, nonce retry) and the OP component (@jeswr/css-webauthn: registration, atomic single-use challenge consumption including concurrent-replay tests, assertion verification, coarse errors) — but those are implementation unit/integration tests, not extractable golden (input, operation, expected-verdict) vectors an independent implementation can reproduce. A webauthn-reauth vector suite, seeded from those test fixtures, is the planned follow-up in jeswr/agentic-solid-conformance (the suite's shared conformance test-vector home)."@en .
+
+#################################################################
+# Normative statements
+#
+# Per statement: stable id, verbatim quote (validator-checked against the pinned
+# source), canonical RFC 2119 level, actor binding, testability tag, anchor, and
+# test-case link or honest gap. rdfs:comment carries context where a quote is a
+# sentence fragment, and marks the sc:formalModel seam candidates.
+#################################################################
+
+### Terminology (#terminology)
+
+<#SWRA-TERM-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-TERM-1" ;
+    spec:statement "An origin is not a client_id, and the two MUST NOT be compared as strings" ;
+    rdfs:comment "Stated in the origin definition; the operative form is SWRA-ORIGIN-8 (#req-origin-check)."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#terminology> ;
+    sc:testGap <#gap-no-vectors-yet> ;
+    sc:restates <#SWRA-ORIGIN-8> .
+
+### The per-client RP ID and origin model (#origin-model)
+
+<#SWRA-ORIGIN-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-1" ;
+    spec:statement "The OpenID Provider MUST derive the expected WebAuthn RP ID per request from the authenticated client_id: the lowercased host of the Client ID Document URI, with no port." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-rpid-per-client> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-2" ;
+    spec:statement "It MUST do so consistently at registration" ;
+    rdfs:comment "Continuation of SWRA-ORIGIN-1's paragraph: the same derivation applies at registration, at assertion-options, and at verification (the source sentence's three cross-reference parentheticals are ReSpec-filled and empty in the source, so the quote stops before them)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-rpid-per-client> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-3" ;
+    spec:statement "It MUST NOT substitute a single deployment-wide RP ID when a host is derivable from the client_id (always the case for a valid http(s) URI)." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-rpid-per-client> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-4" ;
+    spec:statement "A deployment-wide RP ID MAY be configured as a fallback used only when no host is derivable." ;
+    rdfs:comment "The fallback path is only reachable for a client_id with no derivable host, which a valid Solid-OIDC https Client ID Document URI never presents; whether it is configured is a deployment audit, not a black-box vector."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-rpid-per-client> .
+
+<#SWRA-ORIGIN-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-5" ;
+    spec:statement "The OpenID Provider MUST compute the allowed-origin set for a client_id as exactly the single normalised origin of the client_id URI." ;
+    rdfs:comment "The paragraph goes on to define the normalisation: lowercase scheme and host, elide the scheme's default port, discard path/query/fragment."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-origin-set> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-6" ;
+    spec:statement "Origins declared inside the Client ID Document are out of scope for this version and MUST NOT be added to the allowed-origin set" ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-origin-set> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-7> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-7" ;
+    spec:statement "The OpenID Provider MUST verify, at registration and at every assertion, that clientDataJSON.origin (after the same normalisation) is a member of the allowed-origin set for the authenticated client_id." ;
+    rdfs:comment "The spec calls this check the phishing-resistance gate."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-origin-check> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ORIGIN-8> a spec:Requirement ;
+    dcterms:identifier "SWRA-ORIGIN-8" ;
+    spec:statement "It MUST NOT compare clientDataJSON.origin to the client_id as a string." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-origin-check> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### Registration (#registration-options, #registration-verify)
+
+<#SWRA-REG-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-REG-1" ;
+    spec:statement "On an authenticated request naming the target client_id (and, when the account has several, the WebID), the OpenID Provider MUST return WebAuthn PublicKeyCredentialCreationOptions (the JSON serialization of WEBAUTHN-3) carrying" ;
+    rdfs:comment "The MUST binds the five bullets that follow it: (1) a fresh, single-use challenge recorded as outstanding and bound to the authenticated ⟨WebID, client_id⟩; (2) rp.id = the per-client RP ID; (3) authenticatorSelection.userVerification = \"required\" (req-uv-reg); (4) authenticatorSelection.residentKey = \"required\" (req-resident-key); (5) excludeCredentials listing the already-registered credentials. The bullets carry no per-item keyword (see the extraction notes)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#registration-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-REG-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-REG-2" ;
+    spec:statement "The user handle (user.id) MUST be an opaque per-account value that is not derivable from the WebID" ;
+    rdfs:comment "Non-derivability in general is not black-box observable from samples; audit/inspection property. The named-function special case is SWRA-REG-3."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-user-handle> .
+
+<#SWRA-REG-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-REG-3" ;
+    spec:statement "in particular it MUST NOT be SHA-256(WebID) or any other deterministic function of the WebID, which would be an offline-confirmable cross-application correlator" ;
+    rdfs:comment "Split from the same sentence as SWRA-REG-2. The SHA-256(WebID) case is spot-checkable (compute and compare), but 'any other deterministic function' is audit-only — hence A-exist."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-user-handle> .
+
+<#SWRA-REG-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-REG-4" ;
+    spec:statement "On the registration request carrying the attestation (the WebAuthn RegistrationResponseJSON plus the declared clientId), the OpenID Provider MUST, in order" ;
+    rdfs:comment "The MUST binds the five ordered steps that follow it: (1) reject unless the declared clientId equals the authenticated client_id; (2) reject unless crossOrigin is false or absent and no topOrigin is present (req-no-embed); (3) atomically consume the registration challenge, checking its ⟨WebID, client_id⟩ binding; (4) verify the attestation per WebAuthn L3 §7.1 with the expected challenge, allowed-origin set, per-client RP ID, and UV required; (5) store the credential record keyed by ⟨WebID, client_id, credentialId⟩. The steps carry no per-step keyword (see the extraction notes)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#registration-verify> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-REG-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-REG-5" ;
+    spec:statement "Multiple credentials MAY be registered per ⟨WebID, client_id⟩ (one per device)." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#registration-verify> .
+
+### The assertion-options endpoint (#assertion-options)
+
+<#SWRA-AO-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-1" ;
+    spec:statement "The OpenID Provider MUST expose an assertion-options endpoint that returns WebAuthn PublicKeyCredentialRequestOptions (JSON serialization) for the redirect-free re-authentication ceremony." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-2" ;
+    spec:statement "the path is not normative and MAY be deployment-configured" ;
+    rdfs:comment "'The path' = the assertion-options endpoint location; the conventional default is POST <issuer>/.oidc/webauthn/assertion-options."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> .
+
+<#SWRA-AO-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-3" ;
+    spec:statement "MUST accept POST (issuing a single-use challenge is a state-changing, non-cacheable operation)." ;
+    rdfs:comment "Subject of the fragment: the assertion-options endpoint ('This endpoint:' lead-in)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-4" ;
+    spec:statement "It MUST reject other methods with HTTP 405 (Allow: POST)." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-5" ;
+    spec:statement "An OP MAY additionally expose the challenge as a safe GET read where its challenge issuance is genuinely side-effect-free." ;
+    rdfs:comment "The condition ('genuinely side-effect-free issuance') is implementation-internal; audit-checked."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> .
+
+<#SWRA-AO-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-6" ;
+    spec:statement "the request body is empty and the returned allowCredentials MUST be empty." ;
+    rdfs:comment "The discoverable-credential ceremony: the authenticator selects a resident passkey and the verifier resolves ⟨WebID, client_id⟩ from the presented credentialId at the token exchange."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-7> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-7" ;
+    spec:statement "MUST return a fresh, single-use challenge, recorded as outstanding" ;
+    rdfs:comment "The quote stops before an empty ReSpec cross-reference to #challenge-lifecycle in the source. sc:formalModel seam candidate: challenge issue → outstanding is the entry transition of the challenge state machine."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-challenge-singleuse> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-8> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-8" ;
+    spec:statement "Two calls MUST return distinct challenges." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-challenge-singleuse> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-9> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-9" ;
+    spec:statement """MUST set userVerification = "required".""" ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-uv-options> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-AO-10> a spec:Requirement ;
+    dcterms:identifier "SWRA-AO-10" ;
+    spec:statement "SHOULD set rpId to the host of the request's Origin header" ;
+    rdfs:comment "Advisory value only (credential selection in the user agent); the verifier re-derives and enforces the per-client RP ID at the token exchange (SWRA-ORIGIN-1)."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-options> .
+
+### CORS discipline (#req-cors)
+
+<#SWRA-CORS-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-CORS-1" ;
+    spec:statement "where the target client_id is known from the authenticated request, cross-origin responses MUST carry CORS headers restricted to that client's allowed-origin set" ;
+    rdfs:comment "Condition: the registration endpoints (the sentence opens 'On the registration endpoints', with an empty ReSpec cross-reference elided from the quote)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-cors> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CORS-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-CORS-2" ;
+    spec:statement "an OpenID Provider MUST NOT use Access-Control-Allow-Origin: * there." ;
+    rdfs:comment "'There' = the registration endpoints."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-cors> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CORS-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-CORS-3" ;
+    spec:statement "an OP SHOULD restrict Access-Control-Allow-Origin to a configured allowlist or to the union of the allowed-origin sets of clients holding at least one registered credential" ;
+    rdfs:comment "On the assertion-options endpoint (no client identified there). Whether the deployed policy is an allowlist/union rather than reflection is a configuration audit — reflection itself is separately permitted by SWRA-CORS-4, so the SHOULD is not black-box falsifiable."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-cors> .
+
+<#SWRA-CORS-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-CORS-4" ;
+    spec:statement "and MAY otherwise reflect the request's Origin." ;
+    rdfs:comment "On the assertion-options endpoint."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-cors> .
+
+<#SWRA-CORS-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-CORS-5" ;
+    spec:statement "Responses from the assertion-options endpoint MUST NOT require or include credentials (cookies or HTTP authentication; Access-Control-Allow-Credentials MUST NOT be true where the allowed origin is reflected)." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-cors> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### The assertion bundle (#assertion-bundle, #bundle-validation, #canonicality)
+
+<#SWRA-BUNDLE-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-1" ;
+    spec:statement "The subject_token value MUST be the unpadded base64url encoding (RFC4648 §5) of the UTF-8 JSON serialization of the assertion bundle, a versioned envelope with exactly these members" ;
+    rdfs:comment "The members: version (a JSON number; this version defines 1) and credential (the WebAuthn AuthenticationResponseJSON from PublicKeyCredential.toJSON())."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-bundle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-BUNDLE-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-2" ;
+    spec:statement "An OpenID Provider MUST reject a bundle whose version it does not support" ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#assertion-bundle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-BUNDLE-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-3" ;
+    spec:statement "An OP MUST treat a subject_token that is not valid base64url, not valid UTF-8, not valid JSON, not a JSON object, of an unsupported version, or missing or ill-typed in any required credential field as a malformed bundle and reject it with invalid_request" ;
+    rdfs:comment "The sentence continues: 'without proceeding to any later verification step' (an empty ReSpec cross-reference to #errors is elided from the quote)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-fail-closed> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-BUNDLE-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-4" ;
+    spec:statement "Specifically, before cryptographic verification the OP MUST check that" ;
+    rdfs:comment "The MUST binds the four structural bullets that follow it: (1) credential.id and credential.rawId are present, non-empty canonical base64url strings; (2) credential.type is exactly \"public-key\"; (3) credential.response is an object whose clientDataJSON, authenticatorData, and signature members are present, non-empty canonical base64url strings; (4) credential.response.userHandle, when present and non-null, is a non-empty canonical base64url string."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-fail-closed> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-BUNDLE-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-5" ;
+    spec:statement "Every base64url field above MUST be canonical base64url: unpadded RFC4648 §5 base64url whose decoding re-encodes to the identical string." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-canonical-b64u> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-BUNDLE-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-BUNDLE-6" ;
+    spec:statement "An OpenID Provider MUST reject (as a malformed bundle) any field that is" ;
+    rdfs:comment "The MUST binds the three non-canonicality classes enumerated after it: (1) padded, or containing any character outside the unpadded base64url alphabet; (2) of an impossible length (length mod 4 == 1); (3) non-canonical in its final character (the unused low-order bits of the final character 'are unused and MUST be zero' — that embedded keyword is part of the class-3 definition, bound by this statement). A single decode → re-encode round-trip detects all three classes."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-canonical-b64u> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### The token exchange profile (#token-exchange, #issued-token)
+
+<#SWRA-TX-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-TX-1" ;
+    spec:statement "The grant MUST require a valid DPoP proof: an OpenID Provider MUST reject an exchange request with no DPoP proof or an invalid one" ;
+    rdfs:comment "Wire errors: invalid_dpop_proof / use_dpop_nonce (RFC 9449 §12.2). The paragraph continues: this profile issues only sender-constrained tokens; there is no Bearer variant."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-dpop-required> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-TX-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-TX-2" ;
+    spec:statement "On success the OpenID Provider MUST mint an ordinary Solid-OIDC access token bound to the exchange request's DPoP public key (a cnf claim whose jkt member is the JWK SHA-256 thumbprint of that key, RFC9449 §6.1)" ;
+    rdfs:comment "The sentence continues: whose webid claim is the WebID resolved in #verification, and return a token-endpoint response with token_type = \"DPoP\" (RFC 9449 §5) and issued_token_type = urn:ietf:params:oauth:token-type:access_token (RFC 8693 §2.2.1). Those response members carry no per-item keyword — bound by this MUST."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-idp-verified> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-TX-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-TX-3" ;
+    spec:statement """Where the deployment issues JWT access tokens (as the reference deployments do), the token SHOULD follow the JWT access-token profile RFC9068 (typ: "at+jwt").""" ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#issued-token> .
+
+### Client requirements (#client-requirements)
+
+<#SWRA-CLIENT-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-1" ;
+    spec:statement "An Application MUST reject a token-exchange response whose token_type is not DPoP (compared case-insensitively, RFC6749 §5.1)" ;
+    rdfs:comment "Downgrade refusal: a Bearer token accepted here would subsequently be sent under an Authorization: DPoP scheme, silently dropping the sender-constraint."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-downgrade> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CLIENT-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-2" ;
+    spec:statement "and MUST NOT use the returned token." ;
+    rdfs:comment "Continuation of SWRA-CLIENT-1's sentence (two levels in one sentence; see the extraction notes): on a non-DPoP token_type the token is both rejected and never used."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-downgrade> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CLIENT-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-3" ;
+    spec:statement "The Application MUST present resource requests with DPoP proofs signed by the same key pair whose proof accompanied the token-exchange request — the key the issued token is bound to (cnf.jkt)." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-single-keypair> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CLIENT-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-4" ;
+    spec:statement "A fresh, non-extractable key pair SHOULD be generated per session" ;
+    rdfs:comment "Client-internal key-hygiene property (non-extractability, per-session freshness); audit/inspection only."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-single-keypair> .
+
+<#SWRA-CLIENT-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-5" ;
+    spec:statement "the key MUST NOT be persisted in extractable form." ;
+    rdfs:comment "Split from the same sentence as SWRA-CLIENT-4 (see the extraction notes). Negative internal property; audit/code-review only."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-single-keypair> .
+
+<#SWRA-CLIENT-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-6" ;
+    spec:statement "An Application SHOULD handle a use_dpop_nonce challenge from the token endpoint by retrying the exchange once with the server-supplied nonce, per RFC9449 §8." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-nonce> .
+
+<#SWRA-CLIENT-7> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-7" ;
+    spec:statement "Each retry MUST reuse the same key pair" ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-nonce> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CLIENT-8> a spec:Requirement ;
+    dcterms:identifier "SWRA-CLIENT-8" ;
+    spec:statement "the assertion bundle itself MUST NOT be re-sent after a successful consumption of its challenge" ;
+    rdfs:comment "A retry after a use_dpop_nonce error is safe because the OP does not consume the challenge on a DPoP-rejected request (SWRA-VER-2/SWRA-VER-3)."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Application> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-nonce> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### OpenID Provider verification (#verification, #req-uv)
+
+<#SWRA-VER-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-1" ;
+    spec:statement "The OpenID Provider MUST verify the relayed assertion in the following order." ;
+    rdfs:comment "The MUST binds the six ordered steps that follow it: (1) decode, enforcing the fail-closed structural and canonicality rules; (2) reject embedded contexts — crossOrigin false/absent and no topOrigin (req-no-embed); (3) atomically consume the challenge named in clientDataJSON.challenge (req-challenge-consume); (4) resolve the stored credential and WebID by ⟨authenticated client_id, credentialId⟩, rejecting an unknown record or a different-client binding; (5) cryptographic verification per WebAuthn L3 §7.2 — expected challenge, origin ∈ allowed-origin set, rpIdHash == SHA-256(per-client RP ID), UV present (req-uv = SWRA-VER-5), valid signature, strictly-increasing non-zero signCount (req-signcount); (6) advance state — persist the new signCount. The steps carry no per-step keyword except req-uv (see the extraction notes). sc:formalModel seam candidate: this ordered pipeline is the transition function of the protocol state machine."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#verification> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-VER-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-2" ;
+    spec:statement "a request failing DPoP MUST NOT consume the challenge" ;
+    rdfs:comment "DPoP-proof validation (RFC 9449 §4.3), including any nonce demand, precedes the verification sequence; this exception is what makes the client's use_dpop_nonce retry (SWRA-CLIENT-6) safe. Black-box testable: send a valid bundle with a bad DPoP proof, then re-send it with a good proof — the challenge must still be consumable. sc:formalModel seam candidate: the no-consume-on-DPoP-failure guard is a key transition constraint of the challenge state machine."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#verification> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-VER-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-3" ;
+    spec:statement "the OP MUST NOT consume the challenge on a request rejected for a missing or stale DPoP nonce" ;
+    rdfs:comment "Restated in the client-requirements section's parenthetical; the primary form is SWRA-VER-2."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-client-nonce> ;
+    sc:testGap <#gap-no-vectors-yet> ;
+    sc:restates <#SWRA-VER-2> .
+
+<#SWRA-VER-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-4" ;
+    spec:statement "The challenge MUST then be consumed before any cryptographic check, so that a presented assertion is never replayable even when a later step fails" ;
+    rdfs:comment "Black-box testable: submit an assertion that fails a later step (e.g. bad signature), then a valid assertion on the same challenge — the second must be rejected. sc:formalModel seam candidate: consume-before-verify is the ordering invariant that makes 'no assertion replayable under any outcome' a checkable safety property."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#verification> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-VER-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-5" ;
+    spec:statement "User Verification present — the OP MUST reject an assertion whose UV flag is unset" ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-uv> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-VER-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-6" ;
+    spec:statement "The OP MUST trust no part of the bundle that is not covered by the WebAuthn signature" ;
+    rdfs:comment "Internal trust discipline: what the verifier relies on is not directly observable black-box (its observable consequences are the other verification checks); audit/code-review property."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#verification> .
+
+<#SWRA-VER-7> a spec:Requirement ;
+    dcterms:identifier "SWRA-VER-7" ;
+    spec:statement "Where the authenticator reports a non-zero counter that did not advance, the OP SHOULD record a clone-suspicion anomaly." ;
+    rdfs:comment "Verification step 6 (advance state). The sentence that follows scopes it: a signCount of 0 throughout is the normal synced-passkey case and is not an anomaly. Anomaly recording is internal; audit only."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#verification> .
+
+### The challenge lifecycle (#challenge-lifecycle, #req-challenge-bound)
+
+<#SWRA-CHAL-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-1" ;
+    spec:statement "A challenge issued by an OpenID Provider MUST be short-lived and single-use." ;
+    rdfs:comment "The single-use half is deterministically testable (redeem twice); 'short-lived' has no normative TTL, so expiry can only be spot-checked against a deployment's configured lifetime. sc:formalModel seam candidate: the challenge lifecycle (issued → outstanding → consumed/expired) is the core state machine."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#challenge-lifecycle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CHAL-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-2" ;
+    spec:statement "The OP MUST maintain a consumed-challenge record so that the first consumption of a challenge succeeds and every subsequent attempt fails." ;
+    rdfs:comment "sc:formalModel seam candidate: first-consume-wins is the uniqueness property a model checker pins over all interleavings."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#challenge-lifecycle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CHAL-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-3" ;
+    spec:statement "Consumption MUST be an atomic check-and-consume at the OP deployment boundary" ;
+    rdfs:comment "Concurrency atomicity is exercisable only by nondeterministic race probing; deterministic vectors cannot pin it. sc:formalModel seam candidate — the strongest of the set: atomic check-and-consume under concurrent requests is exactly what TLA+/Alloy verifies and black-box tests cannot (the analogue of dpop-sk's DPOPSK-AR-9)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#challenge-lifecycle> .
+
+<#SWRA-CHAL-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-4" ;
+    spec:statement "a single-node OP MAY use an in-memory store" ;
+    rdfs:comment "Deployment-internal storage choice; audit only."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#challenge-lifecycle> .
+
+<#SWRA-CHAL-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-5" ;
+    spec:statement "a clustered or multi-process OP MUST use a store shared across instances so replays cannot race between instances." ;
+    rdfs:comment "Deployment-topology property: where the consumed-challenge store lives is not observable black-box; audit only. sc:formalModel seam candidate: the multi-instance race is a model-checkable liveness/safety scenario."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#challenge-lifecycle> .
+
+<#SWRA-CHAL-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-CHAL-6" ;
+    spec:statement "the OP MUST bind the challenge to that context at issue and verify the binding on consume, so a challenge minted for one account/application cannot be redeemed for another." ;
+    rdfs:comment "Condition: the issuing endpoint authenticates the ⟨WebID, client_id⟩ context (the registration ceremony). The assertion-options challenge is necessarily issued unbound. sc:formalModel seam candidate: challenge-context binding is a labelled-transition constraint of the challenge state machine."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-challenge-bound> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### Credential lifecycle and revocation (#credential-lifecycle)
+
+<#SWRA-CRED-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-1" ;
+    spec:statement "An OpenID Provider MUST allow the account owner to list and delete registered credential records over an authenticated account route" ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CRED-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-2" ;
+    spec:statement "The listing MUST return non-secret metadata only" ;
+    rdfs:comment "What counts as 'non-secret' is an audit judgement; the deterministic half of this sentence is the COSE-key prohibition, SWRA-CRED-3."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> .
+
+<#SWRA-CRED-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-3" ;
+    spec:statement "and MUST NOT return the stored COSE public key." ;
+    rdfs:comment "Split from the same sentence as SWRA-CRED-2 (see the extraction notes)."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CRED-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-4" ;
+    spec:statement "Deleting a credential MUST cause subsequent assertions for that credentialId to fail." ;
+    rdfs:comment "sc:formalModel seam candidate: revocation is the delete transition of the credential state machine (registered → deleted, with no path back to acceptance)."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-CRED-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-5" ;
+    spec:statement "An OP SHOULD keep this flow's access-token lifetime short" ;
+    rdfs:comment "The token's exp is observable, but 'short' has no normative threshold; policy audit."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> .
+
+<#SWRA-CRED-6> a spec:Requirement ;
+    dcterms:identifier "SWRA-CRED-6" ;
+    spec:statement "and MAY additionally support OAuth token revocation RFC7009 for immediacy." ;
+    rdfs:comment "Split from the same sentence as SWRA-CRED-5 (see the extraction notes)."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#credential-lifecycle> .
+
+### Resource Server trust (#rs-trust)
+
+<#SWRA-RS-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-RS-1" ;
+    spec:statement "A Resource Server MUST NOT need any WebAuthn awareness." ;
+    rdfs:comment "The zero-change conformance guarantee: it constrains the profile's design (a WebAuthn-unaware Resource Server is conforming), and it is checkable end-to-end by running the full flow against a stock Solid-OIDC Resource Server."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#ResourceServer> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#rs-trust> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+### Error responses (#errors, #req-coarse-error)
+
+<#SWRA-ERR-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-ERR-1" ;
+    spec:statement "every assertion-validation failure — unknown credential, origin not allowed, bad signature, signCount regression, UV absent, embedded context, per-client RP-ID mismatch, client-binding mismatch, and challenge unknown/expired/replayed — MUST be returned as a single coarse wire error: invalid_grant with one generic description." ;
+    rdfs:comment "The anti-enumeration control. The spec's note-8693-tension records the deliberate divergence from RFC 8693 §2.2.2 for these failures."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-coarse-error> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ERR-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-ERR-2" ;
+    spec:statement "The precise reason MUST NOT be exposed on the wire" ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-coarse-error> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SWRA-ERR-3> a spec:Requirement ;
+    dcterms:identifier "SWRA-ERR-3" ;
+    spec:statement "it MAY be recorded in an audit log" ;
+    rdfs:comment "'It' = the precise validation-failure reason. Split from the same sentence as SWRA-ERR-2 (see the extraction notes). Logging is internal; audit only."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#req-coarse-error> .
+
+<#SWRA-ERR-4> a spec:Requirement ;
+    dcterms:identifier "SWRA-ERR-4" ;
+    spec:statement "The registration, assertion-options, and token endpoints SHOULD be rate-limited; an over-limit request SHOULD be answered with HTTP 429." ;
+    rdfs:comment "Rate limiting is observable under load but the threshold is deployment policy; audit-checked (the analogue of dpop-sk's DPOPSK-EST-7)."@en ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#errors> .
+
+<#SWRA-ERR-5> a spec:Requirement ;
+    dcterms:identifier "SWRA-ERR-5" ;
+    spec:statement "Audit logs MAY record the precise reason, with identifiers hash-truncated" ;
+    rdfs:comment "Stated in the enumeration security consideration; the primary form is SWRA-ERR-3 — this restatement adds the hash-truncation detail (echoed by the privacy considerations' log-minimisation item). Logging is internal; audit only."@en ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#security-enumeration> ;
+    sc:restates <#SWRA-ERR-3> .
+
+### Security considerations (#security-ssrf, #security-replay)
+
+<#SWRA-SEC-SSRF-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-SEC-SSRF-1" ;
+    spec:statement "An OP that fetches Client ID Documents MUST do so with a hardened fetcher: HTTPS only; no private, loopback, or link-local destinations, validated at connect time (after DNS resolution) to close DNS-rebinding; a response body-size cap; no automatic redirect following; and a timeout." ;
+    rdfs:comment "The redirect-refusal, HTTPS-only, and private-destination halves are probe-able black-box (point a client_id at a redirecting or private-resolving host); connect-time post-DNS validation and the body-size cap/timeout are implementation-internal — hence A-exist overall."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#security-ssrf> .
+
+<#SWRA-SEC-SSRF-2> a spec:Requirement ;
+    dcterms:identifier "SWRA-SEC-SSRF-2" ;
+    spec:statement "Credentials MUST never appear in fetched URLs or logs." ;
+    rdfs:comment "'MUST never' is a non-BCP14 negation form (RFC 8174 reserves MUST NOT; see the extraction notes). Per the companion format's literal-keyword discipline (validator G3 fails a spec:MUSTNOT level here because the verbatim quote contains no 'MUST NOT'/'SHALL NOT' token), the level is recorded as the literal keyword MUST while the requirement's INTENT is prohibitive — an errata candidate for the spec editor. Consumer note: a tool grouping or enforcing prohibitions by spec:MUSTNOT MUST also include this MUST-level statement; do not filter it out by level alone. Negative internal property (logs); audit only."@en ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#security-ssrf> .
+
+<#SWRA-SEC-REPLAY-1> a spec:Requirement ;
+    dcterms:identifier "SWRA-SEC-REPLAY-1" ;
+    spec:statement "a conforming client MUST NOT be assumed to provide any replay or freshness control." ;
+    rdfs:comment "Binds the OP (and any deployment reasoning about the system): replay and freshness controls are deliberately and exclusively OP-side. A design assumption, not a black-box observable; audit only."@en ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#OpenIDProvider> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-webauthn-reauth-spec/#security-replay> .

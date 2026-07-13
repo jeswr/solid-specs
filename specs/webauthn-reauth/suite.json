@@ -1,0 +1,9 @@
+{
+  "name": "solid-webauthn-reauth-spec",
+  "kind": "specification",
+  "status": "design",
+  "description": "Redirect-Free WebAuthn Re-Authentication for Solid-OIDC — unofficial Solid CG-track editor's draft (WebAuthn L3 + RFC 8693 token exchange + RFC 9449 DPoP profile).",
+  "conformsTo": ["jeswr/solid-webauthn", "jeswr/solid-webauthn-reauth"],
+  "relatedRepos": ["jeswr/solid-webauthn", "jeswr/solid-webauthn-reauth", "jeswr/solid-sparql-query"],
+  "tr": "solidproject.org/TR/ (target, on CG adoption)"
+}
