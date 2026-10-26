@@ -109,6 +109,27 @@ describe("media type length boundary (RFC 6838 caps names at 127 characters)", (
   });
 });
 
+describe("JSON-LD context order (SSD-REP-3)", () => {
+  const CID = "https://www.w3.org/ns/cid/v1";
+  const LWS = "https://www.w3.org/ns/lws/v1";
+  const SSD_CONTEXT = "https://jeswr.org/ns/solid-sd/context/v1";
+  const docs = [
+    ...listFiles(join(SPEC, "examples"), ".jsonld").map((f) => [basename(f), readFileSync(f, "utf8")]),
+    ...htmlExamples(html)
+      .map((b, i) => [`spec example ${i + 1}`, b.trim()])
+      .filter(([, t]) => t.startsWith("{")),
+  ];
+  it("there are JSON-LD documents to check", () => assert.ok(docs.length >= 2));
+  for (const [name, text] of docs) {
+    it(name, () => {
+      const ctx = JSON.parse(text)["@context"];
+      assert.ok(Array.isArray(ctx), "@context is an array");
+      assert.deepEqual(ctx.slice(0, 2), [CID, LWS], "the CID context comes first, then the LWS context");
+      if (ctx.includes(SSD_CONTEXT)) assert.ok(ctx.indexOf(SSD_CONTEXT) >= 2, "the solid-sd context follows them");
+    });
+  }
+});
+
 describe("JSON-LD examples mean the same graph as their Turtle twins", () => {
   for (const file of listFiles(join(SPEC, "examples"), ".jsonld")) {
     it(basename(file), async () => {
@@ -181,6 +202,14 @@ describe("statement companion", () => {
   const value = (s, p) => statements.find((q) => q.subject.value === s && q.predicate.value === p)?.object.value;
 
   it("lists requirements", () => assert.ok(requirements.length > 50));
+
+  it("has exactly one companion document, typed so the shape targets it", () => {
+    const docs = statements.filter(
+      (q) => q.predicate.value === RDF_TYPE && q.object.value === "https://w3id.org/jeswr/spec-companion#CompanionDocument",
+    );
+    assert.equal(docs.length, 1);
+    assert.equal(docs[0].subject.value, "https://jeswr.github.io/solid-specs/specs/service-description/spec.statements.ttl");
+  });
 
   it("conforms to the spec-companion shape (provenance, pinned version, actors, testability, coverage)", async () => {
     const report = await validate(companionShape, statements);
