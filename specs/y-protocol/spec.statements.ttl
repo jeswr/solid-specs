@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:c0591b8b49bb187469cf3536b3f702f5d70a22babf5a46cef1e40156a38c264d" ;
+    sc:specVersion "sha256:1de4f0a2b16ecaf3196148ba3902af579cb1eb8c32f311bb1ade3740d6dbd8a0" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -49,6 +49,7 @@
         <#YP-LOAD-8> ,
         <#YP-LOAD-1> ,
         <#YP-LOAD-9> ,
+        <#YP-LOAD-10> ,
         <#YP-LOAD-4> ,
         <#YP-LOAD-5> ,
         <#YP-LOAD-2> ,
@@ -62,6 +63,7 @@
         <#YP-CMP-4> ,
         <#YP-CMP-5> ,
         <#YP-SRV-1> ,
+        <#YP-SRV-2> ,
         <#YP-CMP-8> ,
         <#YP-CMP-6> ,
         <#YP-CMP-7> ,
@@ -108,6 +110,8 @@
         <#YP-PERSIST-5> ,
         <#YP-PERSIST-6> ,
         <#YP-INGEST-1> ,
+        <#YP-INGEST-4> ,
+        <#YP-INGEST-5> ,
         <#YP-INGEST-2> ,
         <#YP-INGEST-3> ,
         <#YP-AW-1> ,
@@ -301,7 +305,7 @@
 
 <#YP-LOAD-8> a spec:Requirement ;
     dcterms:identifier "YP-LOAD-8" ;
-    spec:statement "A reader MUST NOT use a listing that is not a complete listing to decide that a room is loaded; when the entity tag or membership version changed during a paginated listing, it MUST list again." ;
+    spec:statement "A reader MUST NOT use a listing that is not a complete listing to decide that a room is loaded; when the membership tag changed during a paginated listing, or the storage gave none, it MUST list again." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
     sc:testability sc:Enforceable ;
@@ -333,6 +337,15 @@
     spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-loaded> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-LOAD-10> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-10" ;
+    spec:statement "For a resource that it read before that complete listing began, a reader MUST confirm that the resource still has the strong entity tag it read, for example with a conditional request, and MUST read it again when it does not." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-revalidate> ;
     sc:testGap <#gap-protocol> .
 
 <#YP-LOAD-4> a spec:Requirement ;
@@ -474,16 +487,25 @@
 
 <#YP-SRV-1> a spec:Requirement ;
     dcterms:identifier "YP-SRV-1" ;
-    spec:statement "A storage server MUST send a strong entity tag with every successful read of a log resource, and with every listing of a room container that it paginates." ;
+    spec:statement "A storage server MUST send a strong entity tag with every successful read of a log resource." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#StorageServer> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#srv-etag> ;
     sc:testGap <#gap-protocol> .
 
+<#YP-SRV-2> a spec:Requirement ;
+    dcterms:identifier "YP-SRV-2" ;
+    spec:statement "A storage server that paginates the listing of a container MUST give the container a membership tag that changes whenever a member is added to or removed from it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#StorageServer> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#srv-membership-tag> ;
+    sc:testGap <#gap-protocol> .
+
 <#YP-CMP-8> a spec:Requirement ;
     dcterms:identifier "YP-CMP-8" ;
-    spec:statement "A compactor MUST NOT compact a resource that it can tell has access control of its own, rather than access control inherited from the room container." ;
+    spec:statement "A compactor MUST NOT compact a resource unless it has confirmed, after reading the resource, that the resource has no access control of its own and inherits the room container's." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Compactor> ;
     sc:testability sc:Enforceable ;
@@ -861,7 +883,7 @@
 
 <#YP-PERSIST-4> a spec:Requirement ;
     dcterms:identifier "YP-PERSIST-4" ;
-    spec:statement "A relay MUST NOT send a sync step 2 answering a sync step 1 received on a connection until every update resource holding content it accepted from that connection before that sync step 1 has been created." ;
+    spec:statement "A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room state at the moment it processed that sync step 1 is held by a log resource that the storage has confirmed, whichever connection the content came from." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -888,16 +910,34 @@
 
 <#YP-INGEST-1> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-1" ;
-    spec:statement "While a room has open connections, a relay MUST apply to its room state every log resource created in the room container by any other writer, and deliver the content it adds to the connections, subject to ." ;
+    spec:statement "While a room has open connections, a relay MUST apply to its room state the content of every log resource that another writer creates in the room container or moves into it, either from that resource or from a log resource that holds its content, and deliver the content it adds to the connections, subject to ." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest> ;
     sc:testGap <#gap-protocol> .
 
+<#YP-INGEST-4> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-4" ;
+    spec:statement "When a resource the relay learned of is gone when read, or the relay cannot tell whether it missed a change to the room container, the relay MUST catch up from a complete listing as describes." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-gap> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-INGEST-5> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-5" ;
+    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room before it next delivers content to a connection." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-removal> ;
+    sc:testGap <#gap-protocol> .
+
 <#YP-INGEST-2> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-2" ;
-    spec:statement "A relay SHOULD deliver the content of such a log resource within five seconds of its creation." ;
+    spec:statement "A relay SHOULD deliver the content of a log resource that another writer creates in the room within five seconds of its creation." ;
     spec:requirementLevel spec:SHOULD ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
