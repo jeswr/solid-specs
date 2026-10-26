@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:1de4f0a2b16ecaf3196148ba3902af579cb1eb8c32f311bb1ade3740d6dbd8a0" ;
+    sc:specVersion "sha256:0122d89d324c5e6fe6afbecd1be3d4eb676d07e41fc3c9e6948dfdac97918972" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -47,6 +47,7 @@
         <#YP-WRITE-2> ,
         <#YP-WRITE-3> ,
         <#YP-LOAD-8> ,
+        <#YP-LOAD-11> ,
         <#YP-LOAD-1> ,
         <#YP-LOAD-9> ,
         <#YP-LOAD-10> ,
@@ -107,6 +108,8 @@
         <#YP-PERSIST-2> ,
         <#YP-PERSIST-3> ,
         <#YP-PERSIST-4> ,
+        <#YP-PERSIST-7> ,
+        <#YP-PERSIST-8> ,
         <#YP-PERSIST-5> ,
         <#YP-PERSIST-6> ,
         <#YP-INGEST-1> ,
@@ -312,6 +315,15 @@
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-complete-listing> ;
     sc:testGap <#gap-protocol> .
 
+<#YP-LOAD-11> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-11" ;
+    spec:statement "A reader MUST send every request for a listing page or a membership tag with Cache-Control: no-cache RFC9111, so that no cache answers it without the storage validating the answer." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-no-cache> ;
+    sc:testGap <#gap-protocol> .
+
 <#YP-LOAD-1> a spec:Requirement ;
     dcterms:identifier "YP-LOAD-1" ;
     spec:statement "A reader MUST apply every valid update resource, every valid snapshot resource and, when it supports them, every legacy update resource that it reads in the room, and MUST NOT leave one out because of its time, its name, or the presence of a snapshot resource with a later time." ;
@@ -450,7 +462,7 @@
 
 <#YP-CMP-2> a spec:Requirement ;
     dcterms:identifier "YP-CMP-2" ;
-    spec:statement "A compactor MUST NOT delete a resource in R until the storage has answered the creation of that snapshot resource with a 2xx status." ;
+    spec:statement "A compactor MUST NOT delete a resource in R until the creation of that snapshot resource is confirmed." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Compactor> ;
     sc:testability sc:Enforceable ;
@@ -496,7 +508,7 @@
 
 <#YP-SRV-2> a spec:Requirement ;
     dcterms:identifier "YP-SRV-2" ;
-    spec:statement "A storage server that paginates the listing of a container MUST give the container a membership tag that changes whenever a member is added to or removed from it." ;
+    spec:statement "A storage server that paginates the listing of a container MUST give the container a membership tag that, after any member is added to or removed from it, differs from every membership tag the container had before, even when the set of members returns to an earlier state." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#StorageServer> ;
     sc:testability sc:Enforceable ;
@@ -874,7 +886,7 @@
 
 <#YP-PERSIST-3> a spec:Requirement ;
     dcterms:identifier "YP-PERSIST-3" ;
-    spec:statement "A relay MUST NOT send content accepted from one connection to any other connection before the storage has answered the creation of an update resource holding it with a 2xx status." ;
+    spec:statement "A relay MUST NOT send content accepted from one connection to any other connection before the creation of an update resource holding it is confirmed." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -883,16 +895,34 @@
 
 <#YP-PERSIST-4> a spec:Requirement ;
     dcterms:identifier "YP-PERSIST-4" ;
-    spec:statement "A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room state at the moment it processed that sync step 1 is held by a log resource that the storage has confirmed, whichever connection the content came from." ;
+    spec:statement "A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room state at the moment it processed that sync step 1, and all content it accepted from that connection before that sync step 1, is held by a log resource whose creation is confirmed, whichever connection the content came from." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-ack> ;
     sc:testGap <#gap-protocol> .
 
+<#YP-PERSIST-7> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-7" ;
+    spec:statement "A relay MUST keep the content it accepted that no log resource with confirmed creation holds yet until one does, MUST keep it across any rebuild of its room state, and MUST apply it to the rebuilt room state." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-pending> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-8> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-8" ;
+    spec:statement "A relay MUST answer the sync step 1 messages it receives on a connection in the order it received them, with one sync step 2 each." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-order> ;
+    sc:testGap <#gap-protocol> .
+
 <#YP-PERSIST-5> a spec:Requirement ;
     dcterms:identifier "YP-PERSIST-5" ;
-    spec:statement "A relay MUST NOT create update resources for content that it read from the room's log resources. Snapshot resources it creates as a compactor are not affected." ;
+    spec:statement "A relay MUST NOT create update resources for content that it added to its room state by reading the room's log resources; it persists only what accepted messages add (), even when a resource it once read held the same content. Snapshot resources it creates as a compactor are not affected." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -910,7 +940,7 @@
 
 <#YP-INGEST-1> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-1" ;
-    spec:statement "While a room has open connections, a relay MUST apply to its room state the content of every log resource that another writer creates in the room container or moves into it, either from that resource or from a log resource that holds its content, and deliver the content it adds to the connections, subject to ." ;
+    spec:statement "While a room has open connections, a relay MUST apply to its room state the content of every log resource that another writer creates in the room container or moves into it, either from that resource or from a log resource that holds its content, and deliver the content it adds to the connections, subject to . Content that left the room before the relay read it, and that no log resource holds, is exempt." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -928,7 +958,7 @@
 
 <#YP-INGEST-5> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-5" ;
-    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room before it next delivers content to a connection." ;
+    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room, and applying the content kept under , before it next delivers content to a connection." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -982,7 +1012,7 @@
 
 <#YP-DUR-1> a spec:Requirement ;
     dcterms:identifier "YP-DUR-1" ;
-    spec:statement "A client MUST treat a change it sent to a relay as stored only after it has received a sync step 2 answering a sync step 1 that it sent after the change, on the same connection, with no permission-denied message between sending the change and receiving that sync step 2." ;
+    spec:statement "A client MUST treat a change it sent to a relay as stored only after it has received a sync step 2 answering a sync step 1 that it sent, on the same connection, after every message carrying the change, with no permission-denied message between sending the change and receiving that sync step 2. A client matches each sync step 2 it receives to the earliest sync step 1 it sent on that connection that has no answer yet." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
