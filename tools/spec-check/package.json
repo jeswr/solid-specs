@@ -11,6 +11,7 @@
   "dependencies": {
     "jsonld": "9.0.0",
     "n3": "1.26.0",
-    "rdf-validate-shacl": "0.6.5"
+    "rdf-validate-shacl": "0.6.5",
+    "yjs": "13.6.31"
   }
 }
