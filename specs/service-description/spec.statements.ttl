@@ -576,7 +576,7 @@
 
 <#SSD-SVC-TRASH-4> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-4" ;
-    spec:statement "When a client sends a POST request to the trash container with an application/json body whose restore member is the IRI of a trashed resource in that trash, and the client may delete the trashed resource and may create a resource at the restore location, the storage server MUST move it out of the trash and respond with a Location header naming the restored resource." ;
+    spec:statement "When a client sends a POST request to the trash container with an application/json body whose restore member is the IRI of a trashed resource in that trash, and the client may delete the trashed resource and, for a container, every resource beneath it, and may create a resource at each location the restore fills, the storage server MUST move it out of the trash and respond with a Location header naming the restored resource." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Server> ;
     sc:testability sc:Enforceable ;
@@ -585,7 +585,7 @@
 
 <#SSD-SVC-TRASH-9> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-9" ;
-    spec:statement "A storage server MUST refuse a restore that the client is not permitted to make, responding 403 Forbidden when the client may read the trashed resource and 404 Not Found otherwise." ;
+    spec:statement "A storage server MUST refuse a restore that the client is not permitted to make, moving nothing and responding 403 Forbidden when the client may read the trashed resource and 404 Not Found otherwise." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Server> ;
     sc:testability sc:Enforceable ;

@@ -672,13 +672,14 @@
     <p id="svc-trash-restore">
       When a client sends a <code>POST</code> request to the trash container with an
       <code>application/json</code> body whose <code>restore</code> member is the IRI of a trashed
-      resource in that trash, and the client may delete the trashed resource and may create a
-      resource at the restore location, the storage server MUST move it out of the trash and
+      resource in that trash, and the client may delete the trashed resource and, for a container,
+      every resource beneath it, and may create a resource at each location the restore fills,
+      the storage server MUST move it out of the trash and
       respond with a <code>Location</code> header naming the restored resource.
     </p>
     <p id="svc-trash-restore-refuse">
-      A storage server MUST refuse a restore that the client is not permitted to make, responding
-      <code>403 Forbidden</code> when the client may read the trashed resource and
+      A storage server MUST refuse a restore that the client is not permitted to make, moving
+      nothing and responding <code>403 Forbidden</code> when the client may read the trashed resource and
       <code>404 Not Found</code> otherwise.
     </p>
     <p id="svc-trash-restore-solid">
@@ -1109,6 +1110,9 @@
     { "type": "SparqlQueryService",
       "serviceEndpoint": "https://pod.example/sparql",
       "conformsTo": ["https://jeswr.github.io/solid-specs/specs/access-controlled-query/"] },
+    { "type": "CrdtSyncService",
+      "serviceEndpoint": "https://pod.example/.sync/tickets",
+      "conformsTo": ["https://jeswr.org/ns/solid-sd#y-protocol-v1"] },
     { "type": "RecursiveDeleteService", "serviceEndpoint": "https://pod.example/.delete" }
   ],
   "capability": [

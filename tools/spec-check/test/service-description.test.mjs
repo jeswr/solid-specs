@@ -158,6 +158,17 @@ describe("examples in the spec text", () => {
   });
 });
 
+describe("the spec's Turtle and JSON-LD examples describe the same storage", () => {
+  it("they canonicalize to the same graph", async () => {
+    const blocks = htmlExamples(html).map((b) => b.trim());
+    const turtle = blocks.find((b) => !b.startsWith("{"));
+    const json = blocks.find((b) => b.startsWith("{"));
+    const fromTurtle = await canonical(toNQuads(parseTurtle(turtle, "https://pod.example/")));
+    const fromJson = await canonical(await jsonldToNQuads(JSON.parse(json)));
+    assert.equal(fromJson, fromTurtle);
+  });
+});
+
 describe("vocabulary coverage", () => {
   const used = new Set();
   const collect = (iri) => iri.startsWith(SSD) && used.add(iri);
