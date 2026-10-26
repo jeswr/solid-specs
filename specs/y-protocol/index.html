@@ -397,6 +397,11 @@
       A reader MUST NOT treat the room as loaded until it holds a <a>complete listing</a> every log
       resource of which it has read and applied, or found invalid.
     </p>
+    <p id="load-stable">
+      A reader MUST NOT treat the room as loaded unless the membership tag it obtained before that
+      complete listing is unchanged when requested after its last read and revalidation of the
+      resources the listing names; when it changed, the reader MUST list the room again.
+    </p>
     <p id="load-revalidate">
       For a resource that it read before that complete listing began, a reader MUST confirm that
       the resource still has the strong entity tag it read, for example with a conditional
@@ -492,10 +497,9 @@
       before, so that a conditional request prepared in one room never matches it in another.
     </p>
     <p id="srv-membership-tag">
-      A storage server that paginates the listing of a container MUST give the container a
-      <a>membership tag</a> that, after any member is added to or removed from it, differs from
-      every membership tag the container had before, even when the set of members returns to an
-      earlier state.
+      A storage server MUST give every container a <a>membership tag</a> that, after any member is
+      added to or removed from it, differs from every membership tag a container at that IRI had
+      before, even when the set of members returns to an earlier state.
     </p>
     <p id="srv-stable-pages">
       While a container's membership tag is unchanged, a storage server that paginates its listing
@@ -771,7 +775,16 @@
     </p>
     <p id="auth-room-gone">
       When the room container is deleted, a relay MUST close every connection to the room with
-      status code 4404, discard its room state, and stop accepting tickets issued for the room.
+      status code 4404, discard its room state and the content it keeps under
+      <a href="#persist-pending"></a>, and stop accepting tickets issued for the room.
+    </p>
+    <p id="persist-same-room">
+      A relay MUST NOT create a log resource holding content accepted before a deletion of the room
+      container that was committed before that creation, whether or not a container has since been
+      created at the same IRI, and MUST create log resources only with requests that cannot create
+      the room container or any container above it. As with access changes
+      (<a href="#relay-authorization"></a>), a relay that learns of the deletion only after the fact
+      does not meet this.
     </p>
     <p id="auth-client-denied">
       A client that receives a permission-denied message with the reason <code>write</code> MUST
@@ -822,9 +835,9 @@
       <a>confirmed</a>, whichever connection the content came from.
     </p>
     <p id="persist-pending">
-      A relay MUST keep the content it accepted that no log resource with <a>confirmed</a>
-      creation holds yet until one does, MUST keep it across any rebuild of its room state, and
-      MUST apply it to the rebuilt room state.
+      Until the room container is deleted, a relay MUST keep the content it accepted that no log
+      resource with <a>confirmed</a> creation holds yet until one does, MUST keep it across any
+      rebuild of its room state, and MUST apply it to the rebuilt room state.
     </p>
     <p id="persist-order">
       A relay MUST answer the sync step 1 messages it receives on a connection in the order it

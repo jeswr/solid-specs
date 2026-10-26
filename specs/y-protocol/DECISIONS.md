@@ -39,6 +39,9 @@ Because request cache directives are only advisory, the storage marks these resp
 access-control probes, including 404s) `no-cache`, and keeps the enumeration of a paginated
 listing stable while its membership tag is unchanged, so reordering cannot skip a member
 (review round 5).
+Every container has a non-repeating membership tag, and a load counts only when the tag is
+unchanged from before the final listing until after the last read, so an IRI deleted and
+recreated mid-load cannot hide a record (review round 6).
 A payload is valid only if it decodes with no trailing bytes and applies to an empty document,
 and readers apply it to a copy first: Yjs can decode an update that then throws mid-apply.
 
@@ -94,7 +97,9 @@ it sent after every message carrying the change, matched in order, since y-webso
 opening. "Stored" means creation confirmed by a `2xx` other than `202 Accepted` (or a later read),
 because `202` promises nothing (review round 3). A relay sends a sync step 2 only to answer that
 connection's sync step 1, and forwards everything else as update messages, so a forwarded step 2
-can never pass for a durability answer (review round 5). **Rejected:** a custom acknowledgement message type (breaks stock clients).
+can never pass for a durability answer (review round 5). Pending content dies with the room: a relay never
+writes content accepted before a committed room deletion, even into a new room at the same IRI,
+and never with a request that could recreate the room (review round 6). **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
 
