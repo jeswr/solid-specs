@@ -7,7 +7,7 @@
 # keyword for the single level required by the companion model.
 #
 # Testability: E = Enforceable (observable documents or exchanges);
-# A-int = AccountableIntegrity (uniformity/concurrent authorization properties);
+# A-int = AccountableIntegrity (uniformity/concurrent authorization and room-deletion properties);
 # A-exist = AccountableExistence (random-source or logging implementation audits);
 # P = Premature (not testable as specified; no paragraph is classified P here).
 # Test-case links identify manifest case IDs. A link covers only that case's byte or
@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:8aa866496e2a84427019b742892cb5ef906f7afc5c7c51df3d28748f229522c6" ;
+    sc:specVersion "sha256:e38f8de1f62225415f689b582de0a7908aa3172f412698f0eddb600e1ffdb57a" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -51,6 +51,7 @@
         <#YP-SRV-3> ,
         <#YP-LOAD-1> ,
         <#YP-LOAD-9> ,
+        <#YP-LOAD-12> ,
         <#YP-LOAD-10> ,
         <#YP-LOAD-4> ,
         <#YP-LOAD-5> ,
@@ -106,6 +107,7 @@
         <#YP-AUTH-4> ,
         <#YP-AUTH-5> ,
         <#YP-AUTH-6> ,
+        <#YP-PERSIST-11> ,
         <#YP-AUTH-7> ,
         <#YP-PERSIST-1> ,
         <#YP-PERSIST-2> ,
@@ -150,13 +152,13 @@
     sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
 
 <#gap-protocol> a sc:TestGap ;
-    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, stable paginated listings, relay message types, or per-connection sync step 2 answer matching."@en .
+    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, non-repeating membership tags at every container IRI, stable paginated listings, membership-tag checks spanning the final listing through the last resource read and revalidation, retention of unconfirmed content across rebuilds and discard on room deletion, log-creation requests that cannot create room or ancestor containers, relay message types, or per-connection sync step 2 answer matching."@en .
 
 <#gap-audit> a sc:TestGap ;
     dcterms:description "Random-source provenance, the number of random bits chosen and the absence of ticket logging require implementation and deployment inspection. Fixed vector nonces are fixtures and provide no evidence of production entropy or logging behaviour."@en .
 
 <#gap-integrity> a sc:TestGap ;
-    dcterms:description "Uniform not-found responses and authorization against every committed access-control change require adversarial integration testing and implementation review. The offline vectors supply no storage access-control or concurrency evidence."@en .
+    dcterms:description "Uniform not-found responses, authorization against every committed access-control change, and exclusion of content accepted before a room deletion committed before log creation, including after recreation at the same IRI, require adversarial integration testing and implementation review. The offline vectors supply no storage access-control, room-lifecycle or concurrency evidence."@en .
 
 <#gap-media-type> a sc:TestGap ;
     dcterms:description "The vectors verify body recognition with arbitrary and legacy-looking names, but have no HTTP media-type metadata. An integration harness must check that media type never controls recognition."@en .
@@ -365,6 +367,15 @@
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-loaded> ;
     sc:testGap <#gap-protocol> .
 
+<#YP-LOAD-12> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-12" ;
+    spec:statement "A reader MUST NOT treat the room as loaded unless the membership tag it obtained before that complete listing is unchanged when requested after its last read and revalidation of the resources the listing names; when it changed, the reader MUST list the room again." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-stable> ;
+    sc:testGap <#gap-protocol> .
+
 <#YP-LOAD-10> a spec:Requirement ;
     dcterms:identifier "YP-LOAD-10" ;
     spec:statement "For a resource that it read before that complete listing began, a reader MUST confirm that the resource still has the strong entity tag it read, for example with a conditional request, and MUST read it again when it does not." ;
@@ -531,7 +542,7 @@
 
 <#YP-SRV-2> a spec:Requirement ;
     dcterms:identifier "YP-SRV-2" ;
-    spec:statement "A storage server that paginates the listing of a container MUST give the container a membership tag that, after any member is added to or removed from it, differs from every membership tag the container had before, even when the set of members returns to an earlier state." ;
+    spec:statement "A storage server MUST give every container a membership tag that, after any member is added to or removed from it, differs from every membership tag a container at that IRI had before, even when the set of members returns to an earlier state." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#StorageServer> ;
     sc:testability sc:Enforceable ;
@@ -882,12 +893,21 @@
 
 <#YP-AUTH-6> a spec:Requirement ;
     dcterms:identifier "YP-AUTH-6" ;
-    spec:statement "When the room container is deleted, a relay MUST close every connection to the room with status code 4404, discard its room state, and stop accepting tickets issued for the room." ;
+    spec:statement "When the room container is deleted, a relay MUST close every connection to the room with status code 4404, discard its room state and the content it keeps under , and stop accepting tickets issued for the room." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-room-gone> ;
     sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-11> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-11" ;
+    spec:statement "A relay MUST NOT create a log resource holding content accepted before a deletion of the room container that was committed before that creation, whether or not a container has since been created at the same IRI, and MUST create log resources only with requests that cannot create the room container or any container above it. As with access changes (), a relay that learns of the deletion only after the fact does not meet this." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-same-room> ;
+    sc:testGap <#gap-integrity>, <#gap-protocol> .
 
 <#YP-AUTH-7> a spec:Requirement ;
     dcterms:identifier "YP-AUTH-7" ;
@@ -954,7 +974,7 @@
 
 <#YP-PERSIST-7> a spec:Requirement ;
     dcterms:identifier "YP-PERSIST-7" ;
-    spec:statement "A relay MUST keep the content it accepted that no log resource with confirmed creation holds yet until one does, MUST keep it across any rebuild of its room state, and MUST apply it to the rebuilt room state." ;
+    spec:statement "Until the room container is deleted, a relay MUST keep the content it accepted that no log resource with confirmed creation holds yet until one does, MUST keep it across any rebuild of its room state, and MUST apply it to the rebuilt room state." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
