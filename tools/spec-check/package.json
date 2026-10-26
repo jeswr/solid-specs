@@ -1,0 +1,16 @@
+{
+  "name": "@jeswr/solid-specs-check",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spec gate checks: SHACL shapes against example vectors, JSON-LD examples against their Turtle twins, vocabulary coverage and statement-companion quote fidelity.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "jsonld": "9.0.0",
+    "n3": "1.26.0",
+    "rdf-validate-shacl": "0.6.5"
+  }
+}
