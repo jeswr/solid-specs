@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:d467de9fb6c7620ce4668df7d2cf732618035fbb58e6de167c66a97a21572141" ;
+    sc:specVersion "sha256:1937191e5649e0d6b936985af8f4c3cf9f096af7b39e08f7d19283898074e532" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -123,6 +123,7 @@
         <#YP-INGEST-1> ,
         <#YP-INGEST-4> ,
         <#YP-INGEST-5> ,
+        <#YP-INGEST-6> ,
         <#YP-INGEST-2> ,
         <#YP-INGEST-3> ,
         <#YP-AW-1> ,
@@ -153,7 +154,7 @@
     sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
 
 <#gap-protocol> a sc:TestGap ;
-    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, non-repeating membership tags at every container IRI, stable paginated listings, membership-tag checks spanning the final listing through the last resource read and revalidation, retention of unconfirmed content across rebuilds and discard on room deletion, clearing all awareness state, cached awareness and undelivered room messages on deletion, client avoidance of deleted room IRIs and creation of a room at a new IRI for different readers, persistence of accepted content unless the room is deleted first, log-creation requests that cannot create room or ancestor containers, relay message types, per-connection sync step 2 answer matching, sending write refusals before answers to later sync step 1 messages on the same connection, or discarding prepared but unsent document-content messages after a log resource leaves the room other than by the relay's own compaction and sending only rebuilt room content thereafter."@en .
+    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, non-repeating membership tags at every container IRI, stable paginated listings, membership-tag checks spanning the final listing through the last resource read and revalidation, retention of unconfirmed content across rebuilds and discard on room deletion, clearing all awareness state, cached awareness and undelivered room messages on deletion, client avoidance of deleted room IRIs and creation of a room at a new IRI for different readers, persistence of accepted content unless the room is deleted first, log-creation requests that cannot create room or ancestor containers, relay message types, per-connection sync step 2 answer matching, sending write refusals before answers to later sync step 1 messages on the same connection, rebuilding from a new, empty document using only the final complete listing's records followed by retained pending content and excluding records absent from that listing even when read during earlier attempts, discarding prepared but unsent document-content messages after a log resource leaves the room other than by the relay's own compaction and sending only rebuilt room content thereafter, or excluding dropped content from forwarding, ingestion delivery and durability waits and not sending it unless a later accepted message or log resource adds it again."@en .
 
 <#gap-audit> a sc:TestGap ;
     dcterms:description "Random-source provenance, the number of random bits chosen and the absence of ticket logging require implementation and deployment inspection. Fixed vector nonces are fixtures and provide no evidence of production entropy or logging behaviour."@en .
@@ -1038,11 +1039,20 @@
 
 <#YP-INGEST-5> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-5" ;
-    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room, and applying the content kept under , before it next delivers content to a connection, and MUST discard every message carrying document content that it had prepared but not yet sent; it then sends connections only content of the rebuilt room state." ;
+    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state before it next delivers content to a connection: it starts a new, empty document, applies to it only the records of the complete listing against which that load completes (records it read for an earlier listing attempt that this listing does not include do not contribute), and then applies the content kept under . The relay MUST discard every message carrying document content that it had prepared but not yet sent, and then sends connections only content of the rebuilt room state." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-removal> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-INGEST-6> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-6" ;
+    spec:statement "Content that the room state held before a rebuild and the rebuilt room state does not hold is excluded: , and no longer require the relay to send it, to deliver it, or to wait for a log resource holding it, and the relay MUST NOT send it unless a later accepted message or log resource adds it again." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-excluded> ;
     sc:testGap <#gap-protocol> .
 
 <#YP-INGEST-2> a spec:Requirement ;
