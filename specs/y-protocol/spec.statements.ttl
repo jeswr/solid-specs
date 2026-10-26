@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:b7cc175278ab147f0a0051d3f2c37c32a2d986e6c4b9e03377122b26ad910e7a" ;
+    sc:specVersion "sha256:d467de9fb6c7620ce4668df7d2cf732618035fbb58e6de167c66a97a21572141" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -153,7 +153,7 @@
     sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
 
 <#gap-protocol> a sc:TestGap ;
-    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, non-repeating membership tags at every container IRI, stable paginated listings, membership-tag checks spanning the final listing through the last resource read and revalidation, retention of unconfirmed content across rebuilds and discard on room deletion, clearing all awareness state, cached awareness and undelivered room messages on deletion, client avoidance of deleted room IRIs and creation of a room at a new IRI for different readers, persistence of accepted content unless the room is deleted first, log-creation requests that cannot create room or ancestor containers, relay message types, or per-connection sync step 2 answer matching."@en .
+    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour, including request and response cache directives, storage validation of access-control answers, non-repeating membership tags at every container IRI, stable paginated listings, membership-tag checks spanning the final listing through the last resource read and revalidation, retention of unconfirmed content across rebuilds and discard on room deletion, clearing all awareness state, cached awareness and undelivered room messages on deletion, client avoidance of deleted room IRIs and creation of a room at a new IRI for different readers, persistence of accepted content unless the room is deleted first, log-creation requests that cannot create room or ancestor containers, relay message types, per-connection sync step 2 answer matching, sending write refusals before answers to later sync step 1 messages on the same connection, or discarding prepared but unsent document-content messages after a log resource leaves the room other than by the relay's own compaction and sending only rebuilt room content thereafter."@en .
 
 <#gap-audit> a sc:TestGap ;
     dcterms:description "Random-source provenance, the number of random bits chosen and the absence of ticket logging require implementation and deployment inspection. Fixed vector nonces are fixtures and provide no evidence of production entropy or logging behaviour."@en .
@@ -876,7 +876,7 @@
 
 <#YP-AUTH-4> a spec:Requirement ;
     dcterms:identifier "YP-AUTH-4" ;
-    spec:statement "When the agent may not write the room, the relay MUST NOT apply, persist or forward any part of the message, and MUST send a permission-denied message with the reason write. It MAY keep the connection open for reading." ;
+    spec:statement "When the agent may not write the room, the relay MUST NOT apply, persist or forward any part of the message, and MUST send a permission-denied message with the reason write, before it sends the answer to any sync step 1 it received after the refused message on that connection. It MAY keep the connection open for reading." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -1038,7 +1038,7 @@
 
 <#YP-INGEST-5> a spec:Requirement ;
     dcterms:identifier "YP-INGEST-5" ;
-    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room, and applying the content kept under , before it next delivers content to a connection." ;
+    spec:statement "When a log resource leaves the room other than by the relay's own compaction, the relay MUST rebuild its room state by loading the room, and applying the content kept under , before it next delivers content to a connection, and MUST discard every message carrying document content that it had prepared but not yet sent; it then sends connections only content of the rebuilt room state." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
