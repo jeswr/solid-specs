@@ -82,6 +82,7 @@
         <#SSD-SVC-VER-4> ,
         <#SSD-SVC-VER-5> ,
         <#SSD-SVC-TRASH-1> ,
+        <#SSD-SVC-TRASH-11> ,
         <#SSD-SVC-TRASH-2> ,
         <#SSD-SVC-TRASH-10> ,
         <#SSD-SVC-TRASH-8> ,
@@ -528,6 +529,15 @@
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-retention> .
 
+<#SSD-SVC-TRASH-11> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-11" ;
+    spec:statement "A storage server MUST refuse with 400 Bad Request, without changing anything, a POST request to the trash container whose body does not have exactly one of the members resource and restore." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-one-op> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
 <#SSD-SVC-TRASH-2> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-2" ;
     spec:statement "When a client sends a POST request to the trash container with an application/json body whose resource member is the IRI of a resource in the same storage that the client may delete, the storage server MUST move that resource into the trash and respond 201 Created with a Location header naming the trashed copy." ;
@@ -593,7 +603,7 @@
 
 <#SSD-SVC-TRASH-6> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-6" ;
-    spec:statement "A storage server MUST destroy a trashed resource when a client with permission to delete it sends a DELETE request to it." ;
+    spec:statement "A storage server MUST destroy a trashed data resource or empty trashed container when a client with permission to delete it sends a DELETE request to it." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Server> ;
     sc:testability sc:Enforceable ;
@@ -807,7 +817,7 @@
 
 <#SSD-CLI-8> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-8" ;
-    spec:statement "A client MUST NOT send credentials it holds for the storage to a service endpoint whose origin differs from the storage root's origin." ;
+    spec:statement "A client MUST NOT send credentials it holds for the storage to a service URL whose origin differs from the storage root's origin." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
@@ -816,7 +826,7 @@
 
 <#SSD-CLI-17> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-17" ;
-    spec:statement "A client MUST NOT send credentials it holds for the storage in a request that follows a redirect from a service endpoint to another origin." ;
+    spec:statement "A client MUST NOT send credentials it holds for the storage in a request that follows a redirect to another origin." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
@@ -825,7 +835,7 @@
 
 <#SSD-CLI-21> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-21" ;
-    spec:statement "A client that is not a web browser MUST NOT send a request to a service endpoint whose host resolves to a loopback, private-use or link-local address unless the storage root's host resolves to such an address too." ;
+    spec:statement "A client that is not a web browser MUST NOT send a request to a service URL whose host resolves to a loopback, private-use or link-local address unless the storage root's host resolves to such an address too." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;

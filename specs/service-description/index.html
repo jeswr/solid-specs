@@ -642,6 +642,11 @@
       A <code>ssd:TrashService</code> node MAY have one <code>ssd:retention</code>, an
       <code>xsd:duration</code> after which the storage may purge a trashed resource.
     </p>
+    <p id="svc-trash-one-op">
+      A storage server MUST refuse with <code>400 Bad Request</code>, without changing anything, a
+      <code>POST</code> request to the trash container whose body does not have exactly one of the
+      members <code>resource</code> and <code>restore</code>.
+    </p>
     <p id="svc-trash-move">
       When a client sends a <code>POST</code> request to the trash container with an
       <code>application/json</code> body whose <code>resource</code> member is the IRI of a
@@ -680,8 +685,13 @@
       refuse the restore with <code>409 Conflict</code> when that IRI is in use.
     </p>
     <p id="svc-trash-purge">
-      A storage server MUST destroy a trashed resource when a client with permission to delete it
-      sends a <code>DELETE</code> request to it.
+      A storage server MUST destroy a trashed data resource or empty trashed container when a
+      client with permission to delete it sends a <code>DELETE</code> request to it.
+    </p>
+    <p>
+      A trashed container that is not empty answers <code>DELETE</code> as any other container
+      does. A client purges it by deleting its members first, or in one request through a
+      recursive delete service.
     </p>
     <p id="svc-trash-access">
       A trashed resource MUST NOT be readable by any agent who could not read it before it was
@@ -886,16 +896,21 @@
       <code>ssd:SparqlQueryService</code> conforming to [[ACQ]], and as the same service as a
       <code>ssd:SparqlQueryService</code> with that endpoint.
     </p>
+    <p>
+      In the rules below, a <dfn>service URL</dfn> is a service endpoint, any URL a service returns
+      for the client to use (such as the <code>source</code> or <code>receiveFrom</code> URL of a
+      notification subscription), and the target of any redirect from either.
+    </p>
     <p id="client-endpoint-origin">
-      A client MUST NOT send credentials it holds for the storage to a service endpoint whose
-      origin differs from the storage root's origin.
+      A client MUST NOT send credentials it holds for the storage to a service URL whose origin
+      differs from the storage root's origin.
     </p>
     <p id="client-redirect">
       A client MUST NOT send credentials it holds for the storage in a request that follows a
-      redirect from a service endpoint to another origin.
+      redirect to another origin.
     </p>
     <p id="client-endpoint-network">
-      A client that is not a web browser MUST NOT send a request to a service endpoint whose host
+      A client that is not a web browser MUST NOT send a request to a service URL whose host
       resolves to a loopback, private-use or link-local address unless the storage root's host
       resolves to such an address too.
     </p>
