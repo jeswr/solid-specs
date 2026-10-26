@@ -880,10 +880,20 @@
     </p>
     <p id="ingest-removal">
       When a log resource leaves the room other than by the relay's own compaction, the relay MUST
-      rebuild its room state by loading the room, and applying the content kept under
-      <a href="#persist-pending"></a>, before it next delivers content to a connection, and MUST
-      discard every message carrying document content that it had prepared but not yet sent; it
-      then sends connections only content of the rebuilt room state.
+      rebuild its room state before it next delivers content to a connection: it starts a new,
+      empty document, applies to it only the records of the <a>complete listing</a> against which
+      that load completes (records it read for an earlier listing attempt that this listing does
+      not include do not contribute), and then applies the content kept under
+      <a href="#persist-pending"></a>. The relay MUST discard every message carrying document
+      content that it had prepared but not yet sent, and then sends connections only content of the
+      rebuilt room state.
+    </p>
+    <p id="ingest-excluded">
+      Content that the room state held before a rebuild and the rebuilt room state does not hold is
+      excluded: <a href="#persist-forward"></a>, <a href="#ingest"></a> and
+      <a href="#persist-ack"></a> no longer require the relay to send it, to deliver it, or to wait
+      for a log resource holding it, and the relay MUST NOT send it unless a later accepted message
+      or log resource adds it again.
     </p>
     <p>
       Deleting a log resource does not remove its content from a document: clients that hold the

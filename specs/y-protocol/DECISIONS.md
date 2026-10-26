@@ -102,7 +102,9 @@ writes content accepted before a committed room deletion, even into a new room a
 and never with a request that could recreate the room (review round 6). A client or
 compactor that writes old content into a recreated room is an authorized writer publishing what
 it knows, which no protocol can prevent; rooms are not reused for different readers instead
-(SHOULD), and deletion also clears awareness (review round 7). **Rejected:** a custom acknowledgement message type (breaks stock clients).
+(SHOULD), and deletion also clears awareness (review round 7). A rebuild after a removal starts from an empty document holding only the final listing's
+records and pending content; content it drops is excluded, so no forwarding, ingestion or
+durability rule can require sending it or block a sync answer on it (review round 9). **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
 
