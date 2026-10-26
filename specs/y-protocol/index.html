@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<!-- AUTHORED-BY Claude Opus 5.5 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yjs Sync Profile for Solid Storages (y-protocol-v1)</title>
+  <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
+  <script class="remove">
+    var respecConfig = {
+      specStatus: "unofficial",
+      shortName: "y-protocol-v1",
+      edDraftURI: "https://jeswr.github.io/solid-specs/specs/y-protocol/",
+      latestVersion: null,
+      github: "jeswr/solid-specs",
+      editors: [
+        {
+          name: "Jesse Wright",
+          url: "https://jeswr.org/#me"
+        }
+      ],
+      copyrightStart: "2026",
+      maxTocLevel: 3,
+      lint: { "no-unused-dfns": false },
+      localBiblio: {
+        "SOLID-PROTOCOL": {
+          title: "Solid Protocol",
+          href: "https://solidproject.org/TR/protocol",
+          authors: ["Sarven Capadisli", "Tim Berners-Lee", "Ruben Verborgh", "Kjetil Kjernsmo"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "SOLID-NOTIFICATIONS": {
+          title: "Solid Notifications Protocol",
+          href: "https://solidproject.org/TR/notifications-protocol",
+          authors: ["Sarven Capadisli"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WAC": {
+          title: "Web Access Control",
+          href: "https://solidproject.org/TR/wac",
+          authors: ["Sarven Capadisli"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "LWS-CORE": {
+          title: "Linked Web Storage Protocol 1.0",
+          href: "https://www.w3.org/TR/lws10-core/",
+          publisher: "W3C Linked Web Storage Working Group",
+          status: "Working Draft"
+        },
+        "SOLID-SD": {
+          title: "Solid Storage Service Description",
+          href: "https://jeswr.github.io/solid-specs/specs/service-description/",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Draft"
+        },
+        "YJS": {
+          title: "Yjs: shared data types for collaborative software (update encoding v1)",
+          href: "https://docs.yjs.dev/api/document-updates",
+          authors: ["Kevin Jahns"],
+          publisher: "Yjs"
+        },
+        "Y-PROTOCOLS": {
+          title: "y-protocols 1.0.6 (sync, awareness and auth encodings) and y-websocket 2.1.0 (message envelope)",
+          href: "https://github.com/yjs/y-protocols/tree/v1.0.6",
+          authors: ["Kevin Jahns"],
+          publisher: "Yjs"
+        },
+        "RFC6455": {
+          title: "The WebSocket Protocol",
+          href: "https://www.rfc-editor.org/rfc/rfc6455",
+          publisher: "IETF",
+          status: "Proposed Standard"
+        },
+        "RFC3339": {
+          title: "Date and Time on the Internet: Timestamps",
+          href: "https://www.rfc-editor.org/rfc/rfc3339",
+          publisher: "IETF",
+          status: "Proposed Standard"
+        },
+        "RFC9110": {
+          title: "HTTP Semantics",
+          href: "https://www.rfc-editor.org/rfc/rfc9110",
+          publisher: "IETF",
+          status: "Internet Standard"
+        },
+        "RFC9111": {
+          title: "HTTP Caching",
+          href: "https://www.rfc-editor.org/rfc/rfc9111",
+          publisher: "IETF",
+          status: "Internet Standard"
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+
+<section id="abstract">
+  <p>
+    This specification defines <code>y-protocol-v1</code>, the profile of the Solid Storage
+    Service Description's CRDT sync service for documents edited with Yjs. A Yjs document lives
+    in a container of a Solid or Linked Web Storage storage as a log of update resources. Clients
+    without a relay collaborate by writing and reading those resources. A relay adds real-time
+    exchange and presence over WebSocket: clients obtain a short-lived ticket, the relay
+    authorizes every message it delivers or accepts against the storage's access control at that
+    moment, persists what it accepts into the same container, and passes on what other clients
+    write there. The specification fixes the byte layout of the stored resources, the rules for
+    loading and compacting the log without losing updates, and the ticket exchange.
+  </p>
+</section>
+
+<section id="sotd">
+  <p>
+    This is an unofficial personal draft. It is not a work item of the W3C Solid Community Group
+    or of any W3C Working Group, and its identifier is minted under a personal namespace until a
+    venue adopts it. It completes the <code>ssd:CrdtSyncService</code> entry of [[SOLID-SD]],
+    which names this profile and leaves its protocol to this document.
+  </p>
+  <p>
+    This draft was prepared with the assistance of AI systems operated on behalf of the editor
+    (drafting: Claude Opus 5.5). The editor is responsible for all content. Issues are welcome
+    on the <a href="https://github.com/jeswr/solid-specs">GitHub repository</a>.
+  </p>
+</section>
+
+<section class="informative" id="introduction">
+  <h2>Introduction</h2>
+
+  <section id="motivation">
+    <h3>Motivation</h3>
+    <p>
+      Collaborative editors such as the suite's Docs, Sheets and Notes keep their documents as
+      Yjs documents. A Yjs document is a set of updates: applying the same updates in any order,
+      any number of times, gives the same document. That property lets a document live in a
+      storage as a container of small, write-once resources, one per update, which any client
+      with access can append to without a read-modify-write race.
+    </p>
+    <p>
+      A log of resources gives eventual consistency with latency of seconds and no presence. A
+      relay gives both, but a relay that only checks access when a connection opens keeps sending
+      a document to someone whose access was revoked, and a relay that keeps its own copy of the
+      document splits it from the log. This profile ties the two together: one storage encoding,
+      one loading rule, one compaction rule, and a relay that is a reader and writer of the same
+      log, bound to the storage's access control for every message.
+    </p>
+  </section>
+
+  <section id="overview">
+    <h3>Overview</h3>
+    <p>
+      A storage that offers a relay lists a <code>ssd:CrdtSyncService</code> whose
+      <code>dcterms:conformsTo</code> names this profile, with the ticket endpoint as its service
+      endpoint [[SOLID-SD]].
+    </p>
+    <pre class="example turtle" title="A storage description entry for a y-protocol-v1 relay">
+&lt;https://pod.example/&gt; did:service
+    [ a ssd:CrdtSyncService ;
+      did:serviceEndpoint &lt;https://pod.example/.sync/tickets&gt; ;
+      dct:conformsTo ssd:y-protocol-v1 ] .
+    </pre>
+    <p>A client that edits the document in the container <code>https://pod.example/docs/plan/</code>:</p>
+    <ol>
+      <li>loads the document by reading every update and snapshot resource in the container
+        (<a href="#loading"></a>);</li>
+      <li>requests a ticket by sending <code>{"room": "https://pod.example/docs/plan/"}</code> to
+        the ticket endpoint with its storage credentials, and receives a WebSocket URL and an
+        expiry (<a href="#tickets"></a>);</li>
+      <li>opens the WebSocket and exchanges Yjs sync and awareness messages with the relay
+        (<a href="#relay-messages"></a>);</li>
+      <li>without a relay, or while disconnected from it, writes each change as a new update
+        resource in the container (<a href="#writing"></a>).</li>
+    </ol>
+  </section>
+</section>
+
+<section id="conformance">
+  <p>
+    This specification defines four conformance classes. A <dfn>storage server</dfn> is a storage
+    server as [[SOLID-SD]] defines it that offers a relay for its storages. A <dfn>relay</dfn> is
+    the server component behind a <code>ssd:CrdtSyncService</code> that conforms to this profile.
+    A <dfn>client</dfn> is software that reads or edits a <a>room</a>, with or without a relay. A
+    <dfn>compactor</dfn> is a client or relay that compacts a room; it meets the requirements on
+    its own class and those of <a href="#compaction"></a>.
+  </p>
+  <p>
+    The machine-readable list of this specification's normative statements is the companion
+    document <a href="spec.statements.ttl">spec.statements.ttl</a>. The test vectors in
+    <a href="vectors/">vectors/</a> are normative for the byte layout and the loading rule:
+    where the prose and a vector disagree, report it as an issue. Examples are informative.
+  </p>
+</section>
+
+<section id="terminology">
+  <h2>Terminology</h2>
+  <p>
+    This specification uses the terms <em>storage</em>, <em>storage server</em>, <em>service</em>,
+    <em>service endpoint</em> and <em>service URL</em> as [[SOLID-SD]] defines them, and the
+    terms <em>update</em>, <em>state vector</em> and <em>client ID</em> as [[YJS]] defines them.
+  </p>
+  <dl>
+    <dt><dfn>room</dfn></dt>
+    <dd>A container in a storage that holds one Yjs document as a log of update and snapshot
+      resources. The container's IRI identifies the room and the document.</dd>
+    <dt><dfn>update resource</dfn></dt>
+    <dd>A non-container resource in a room whose body is a <code>JYU1</code> record
+      (<a href="#encoding"></a>).</dd>
+    <dt><dfn>snapshot resource</dfn></dt>
+    <dd>A non-container resource in a room whose body is a <code>JYS1</code> record: an update
+      that holds the content of other update and snapshot resources it replaced.</dd>
+    <dt><dfn>log resource</dfn></dt>
+    <dd>An update resource, a snapshot resource or a legacy update resource
+      (<a href="#legacy"></a>).</dd>
+    <dt><dfn>room state</dfn></dt>
+    <dd>The Yjs document a client or relay holds for a room.</dd>
+    <dt><dfn>connection</dfn></dt>
+    <dd>A WebSocket connection between a client and a relay, opened with a ticket, bound to one
+      room and one agent.</dd>
+    <dt><dfn>may read the room</dfn></dt>
+    <dd>An agent may read the room when the storage's access control lets it read the room
+      container and every log resource in it.</dd>
+    <dt><dfn>may write the room</dfn></dt>
+    <dd>An agent may write the room when it may read the room and the storage's access control
+      lets it create log resources in the room container with the requests this specification
+      describes (in Web Access Control [[WAC]], the access modes the storage requires for those
+      requests, such as <code>acl:Append</code> on the container and, for a <code>PUT</code>,
+      <code>acl:Write</code> on the new resource as its inherited access control gives it).</dd>
+    <dt><dfn>authorization context</dfn></dt>
+    <dd>Everything besides the agent that the storage's access control takes into account for a
+      request: in Web Access Control the request's <code>Origin</code>, in Solid-OIDC the client
+      identifier, and any grant the request presents. "May read" and "may write" are always
+      decided for an agent in an authorization context.</dd>
+    <dt><dfn>confirmed</dfn></dt>
+    <dd>The creation of a resource is confirmed when the storage answered the request that created
+      it with <code>201 Created</code> or another <code>2xx</code> status other than
+      <code>202 Accepted</code>, or when the creator has since read the resource and found the
+      body it wrote. A <code>202 Accepted</code> answer alone confirms nothing [[RFC9110]].</dd>
+    <dt><dfn>valid payload</dfn></dt>
+    <dd>A byte string that the Yjs v1 update decoder [[YJS]] decodes with no bytes left over,
+      and that applies without error to a new, empty Yjs document.</dd>
+  </dl>
+  <p>
+    The profile IRI is <code>https://jeswr.org/ns/solid-sd#y-protocol-v1</code>, written
+    <code>ssd:y-protocol-v1</code>.
+  </p>
+</section>
+
+<section id="encoding">
+  <h2>Storage encoding</h2>
+  <p>
+    A log resource body is a 16-byte header followed by a Yjs update. The header lets a reader
+    tell an update from a snapshot and order resources without relying on their names, which a
+    Linked Web Storage server chooses.
+  </p>
+  <table class="simple" id="header-layout">
+    <thead><tr><th>Bytes</th><th>Field</th><th>Content</th></tr></thead>
+    <tbody>
+      <tr><td>0–3</td><td>magic</td><td><code>4A 59 55 31</code> (ASCII <code>JYU1</code>) for an
+        update, <code>4A 59 53 31</code> (ASCII <code>JYS1</code>) for a snapshot</td></tr>
+      <tr><td>4–11</td><td>time</td><td>unsigned 64-bit big-endian integer: milliseconds since
+        1970-01-01T00:00:00Z when the writer created the record</td></tr>
+      <tr><td>12–15</td><td>nonce</td><td>4 bytes chosen at random by the writer</td></tr>
+      <tr><td>16–end</td><td>payload</td><td>a Yjs update in the v1 update encoding [[YJS]]</td></tr>
+    </tbody>
+  </table>
+  <p id="enc-layout">
+    A client or relay that writes a log resource MUST write a body laid out as in the table
+    above, with a <a>valid payload</a>.
+  </p>
+  <p id="enc-time">
+    The time field MUST NOT exceed 2<sup>53</sup>&nbsp;−&nbsp;1.
+  </p>
+  <p id="enc-nonce">
+    A writer MUST draw the nonce from a cryptographically secure random source.
+  </p>
+  <p id="enc-valid">
+    A reader MUST treat a body as a valid log record only when it is at least 16 bytes long,
+    begins with one of the two magic values, has a time field no greater than
+    2<sup>53</sup>&nbsp;−&nbsp;1, and has a <a>valid payload</a>.
+  </p>
+  <p>
+    The <dfn>ordering key</dfn> of a log resource is the triple (time, nonce read as an unsigned
+    32-bit big-endian integer, resource IRI compared by code point). Yjs gives the same document
+    in any order of application; the key only makes loading deterministic.
+  </p>
+  <p id="enc-media-type">
+    A writer MUST create log resources with the media type <code>application/octet-stream</code>.
+  </p>
+  <p id="enc-media-type-ignore">
+    A reader MUST decide whether a resource is an update resource or a snapshot resource from its
+    body, not from its media type or its name.
+  </p>
+  <p id="enc-immutable">
+    No client or relay may change the body of a log resource after it is created: a writer MUST
+    NOT send a <code>PUT</code> or <code>PATCH</code> request to an existing log resource.
+  </p>
+
+  <section id="legacy">
+    <h3>Legacy update resources</h3>
+    <p>
+      Version 0.1 of <code>@jeswr/y-solid</code> writes each update with no header, as a resource
+      named with a 15-digit zero-padded millisecond time, a hyphen and a UUID, for example
+      <code>001761480000000-0f8e2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c</code>. Rooms it wrote can be
+      read under this profile.
+    </p>
+    <p>
+      A <dfn>legacy update resource</dfn> is a non-container resource in a room whose body does
+      not begin with either magic value, whose last path segment matches
+      <code>^[0-9]{15}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$</code>, and
+      whose whole body is a <a>valid payload</a>. Its
+      ordering key is (the 15-digit time, 0, resource IRI).
+    </p>
+    <p id="legacy-read">
+      A reader SHOULD apply legacy update resources as it applies update resources.
+    </p>
+    <p id="legacy-write">
+      A writer MUST NOT create a legacy update resource.
+    </p>
+    <p>
+      A Yjs v1 update whose first four bytes equal a magic value would have to hold structures for 74
+      clients, the first with 89 structures and client ID 85 (<code>JYU1</code>) or 83
+      (<code>JYS1</code>); Yjs draws client IDs at random from 2<sup>32</sup> values, so a legacy
+      update is not mistaken for a headed one in practice.
+    </p>
+  </section>
+</section>
+
+<section id="log">
+  <h2>The update log</h2>
+
+  <section id="writing">
+    <h3>Writing updates</h3>
+    <p id="write-create">
+      A client that writes a change to a room without a relay MUST create a new update resource in
+      the room container whose payload holds the change, using a request that cannot replace an
+      existing resource: <code>POST</code> to the container, or, on a Solid storage only,
+      <code>PUT</code> with <code>If-None-Match: *</code>.
+    </p>
+    <p id="write-name">
+      A writer that suggests a name for a log resource MUST include at least 32 random bits in it.
+    </p>
+    <p>
+      Names such as <code>01761480000000-k3v9q2xa.yupdate</code> and
+      <code>snapshot-01761480000000-p8m2w7cd.ysnap</code> (13-digit time, eight base32 characters)
+      are a convenient choice. Unique names make it unlikely that a deleted record's IRI is
+      reused; conditional deletion with a strong entity tag (<a href="#compaction"></a>) makes
+      sure that a reused IRI is never deleted by mistake.
+    </p>
+    <p id="write-no-container">
+      A client or relay MUST NOT create a container inside a room.
+    </p>
+  </section>
+
+  <section id="loading">
+    <h3>Loading a room</h3>
+    <p>
+      A client or relay loads a room by listing the room container, reading each log resource it
+      lists and applying the payloads to its room state. Compactors replace resources while
+      others load (<a href="#compaction"></a>), so a reader keeps listing until a listing shows
+      nothing new.
+    </p>
+    <p>
+      A <dfn>complete listing</dfn> is a listing of the room container's members that reflects one
+      state of the container: a single unpaginated response, or every page of a paginated listing
+      where the <a>membership tag</a> of the room container was the same before the first page was
+      requested and after the last page was received. The <dfn>membership tag</dfn> is the strong
+      entity tag of the room container itself, returned by a <code>HEAD</code> request on the
+      container IRI, not the entity tag of a page. Because the storage never gives a container the
+      same membership tag for two different moments separated by a membership change, equal tags
+      before and after mean no member was added or removed in between.
+    </p>
+    <p id="load-complete-listing">
+      A reader MUST NOT use a listing that is not a <a>complete listing</a> to decide that a room
+      is loaded; when the membership tag changed during a paginated listing, or the storage gave
+      none, it MUST list again.
+    </p>
+    <p id="load-no-cache">
+      A reader MUST send every request for a listing page, a membership tag or a log resource,
+      every request that confirms an entity tag, and every request a compactor makes to learn a
+      resource's access control, with <code>Cache-Control: no-cache</code> [[RFC9111]].
+    </p>
+    <p id="srv-no-cache">
+      A storage server MUST mark every response to those requests, including error responses such
+      as <code>404 Not Found</code>, with <code>Cache-Control: no-cache</code> or
+      <code>no-store</code>, so that no cache reuses it without the storage validating it.
+      Request directives alone are advisory to caches.
+    </p>
+    <p id="load-all">
+      A reader MUST apply every valid update resource, every valid snapshot resource and, when it
+      supports them, every legacy update resource that it reads in the room, and MUST NOT leave
+      one out because of its time, its name, or the presence of a snapshot resource with a later
+      time.
+    </p>
+    <p id="load-loaded">
+      A reader MUST NOT treat the room as loaded until it holds a <a>complete listing</a> every log
+      resource of which it has read and applied, or found invalid.
+    </p>
+    <p id="load-stable">
+      A reader MUST NOT treat the room as loaded unless the membership tag it obtained before that
+      complete listing is unchanged when requested after its last read and revalidation of the
+      resources the listing names; when it changed, the reader MUST list the room again.
+    </p>
+    <p id="load-revalidate">
+      For a resource that it read before that complete listing began, a reader MUST confirm that
+      the resource still has the strong entity tag it read, for example with a conditional
+      request, and MUST read it again when it does not.
+    </p>
+    <p id="load-vanished">
+      When a resource that a listing named is gone when read (<code>404 Not Found</code> or
+      <code>410 Gone</code>), a reader MUST list the room container again and read every log
+      resource in the new listing that it has not yet read.
+    </p>
+    <p id="load-bound">
+      A reader MAY stop after a number of listings of its choosing, but MUST then report that the
+      load did not complete and MUST NOT report the room as loaded.
+    </p>
+    <p id="load-invalid">
+      A reader MUST NOT apply any part of a resource in a room that is not a valid log record or a
+      legacy update resource it supports, and SHOULD report it.
+    </p>
+    <p id="load-atomic">
+      A reader MUST apply each payload so that its room state is unchanged when the payload
+      cannot be applied without error, for example by applying it to a copy of the room state
+      first.
+    </p>
+    <p id="load-order">
+      A reader SHOULD apply log resources in ascending order of their ordering keys.
+    </p>
+    <p id="load-ignore-containers">
+      A reader MUST ignore containers inside a room.
+    </p>
+    <p>
+      Compaction keeps every update in some log resource at every moment, so the resources named
+      in a complete listing hold every update that existed when the container was in that state.
+      A resource gone between listing and reading was replaced by a snapshot resource that the
+      next listing names. Reading a record twice is harmless, because applying an update twice
+      changes nothing.
+    </p>
+  </section>
+
+  <section id="watching">
+    <h3>Watching a room without a relay</h3>
+    <p>
+      A client may subscribe to notifications on the room container [[SOLID-NOTIFICATIONS]] and
+      read each log resource reported as created. This gives eventual consistency within seconds,
+      with no presence.
+    </p>
+    <p id="watch-resync">
+      A client that relies on notifications to learn of new log resources MUST load the room again
+      whenever it cannot tell whether it missed a notification, such as after its subscription
+      lapsed or its channel reconnected.
+    </p>
+  </section>
+
+  <section id="compaction">
+    <h3>Compaction</h3>
+    <p>
+      A room grows by one resource per write. A compactor replaces a set of log resources with one
+      snapshot resource that holds their content, then deletes them. Several compactors may work
+      on a room at once, offline or online; the rules below keep every update in some resource at
+      every moment, whatever their interleaving.
+    </p>
+    <p id="cmp-snapshot">
+      A compactor that compacts a set <var>R</var> of log resources MUST first create a snapshot
+      resource whose payload is a Yjs update containing the content of every resource in
+      <var>R</var>, using a request that cannot replace an existing resource.
+    </p>
+    <p id="cmp-sources">
+      A compactor MUST build the snapshot payload only from log resources of the room that meet
+      <a href="#cmp-own-acl"></a>, for example by applying them to a new, empty Yjs document, and
+      MUST NOT include content that it holds from any other source.
+    </p>
+    <p id="cmp-after-create">
+      A compactor MUST NOT delete a resource in <var>R</var> until the creation of that snapshot
+      resource is <a>confirmed</a>.
+    </p>
+    <p id="cmp-only-read">
+      A compactor MUST NOT delete a resource unless it read the whole body of that resource,
+      found it to be a valid log record or a legacy update resource, and applied it to the room
+      state from which it built the snapshot.
+    </p>
+    <p id="cmp-pending">
+      When the compactor's room state holds content that Yjs has not yet integrated because it
+      depends on updates the compactor has not seen, the snapshot payload MUST include that
+      content, or the compactor MUST NOT delete the resources that carried it.
+    </p>
+    <p id="cmp-if-match">
+      A compactor MUST send each deletion with an <code>If-Match</code> header carrying the strong
+      entity tag it received when it read that resource, and MUST NOT delete a resource for which
+      it received no strong entity tag.
+    </p>
+    <p id="srv-etag">
+      A storage server MUST send a strong entity tag with every successful read of a log resource,
+      and MUST give a resource that moves to another container a strong entity tag it has not had
+      before, so that a conditional request prepared in one room never matches it in another.
+    </p>
+    <p id="srv-membership-tag">
+      A storage server MUST give every container a <a>membership tag</a> that, after any member is
+      added to or removed from it, differs from every membership tag a container at that IRI had
+      before, even when the set of members returns to an earlier state.
+    </p>
+    <p id="srv-stable-pages">
+      While a container's membership tag is unchanged, a storage server that paginates its listing
+      MUST list every member exactly once across the pages of a listing, whatever else changes,
+      such as a member's modification time or the order the storage would otherwise use.
+    </p>
+    <p id="cmp-own-acl">
+      A compactor MUST NOT compact a resource unless it has confirmed, from answers to requests it
+      sent after reading the resource and that no cache answered without the storage validating
+      them (<a href="#load-no-cache"></a>), that the resource has no access control of its own and
+      inherits the room container's.
+    </p>
+    <p id="cmp-gone">
+      A compactor MUST treat a <code>404 Not Found</code> or <code>410 Gone</code> answer to a
+      deletion as success, and a <code>412 Precondition Failed</code> answer as a resource it must
+      leave in place.
+    </p>
+    <p id="cmp-write">
+      A client MUST NOT compact a room that it may not write.
+    </p>
+    <p id="acl-room-wide">
+      A client MUST NOT give a log resource access control of its own.
+    </p>
+    <p>
+      Every deleted resource's content is in a snapshot resource that existed before the deletion.
+      A later compactor that deletes that snapshot has, by the same rules, first written a newer
+      snapshot holding it. Two compactors that read overlapping sets each write a snapshot holding
+      everything they read, so a resource deleted by one is still held by the other's snapshot or
+      by the first one's. A loader that reads every log resource therefore always sees every
+      update. Compaction removes history: a storage that offers a versioning service keeps
+      earlier versions as [[SOLID-SD]] describes.
+    </p>
+    <p>
+      This profile protects a room as a whole. Compaction moves content between resources, and the
+      relay merges the whole log into one state, so an agent who may read the room may in time
+      read every update ever written to it. Content meant for fewer readers belongs in another
+      room. In Web Access Control a compactor confirms inheritance by finding that the resource's
+      ACL resource does not exist, which needs <code>acl:Control</code> on the room in general;
+      a compactor that cannot confirm it does not compact, and leaves compaction to the relay or to
+      an agent who can. Access control that someone sets on a record after it was readable to the
+      whole room does not withdraw what readers already saw.
+    </p>
+  </section>
+</section>
+
+<section id="tickets">
+  <h2>Tickets</h2>
+  <p>
+    The relay speaks WebSocket, and browsers cannot attach the storage's credentials to a
+    WebSocket handshake. A client therefore exchanges its credentials for a ticket over HTTP
+    first. The ticket endpoint is the service endpoint of the <code>ssd:CrdtSyncService</code>.
+  </p>
+
+  <section id="ticket-request">
+    <h3>Requesting a ticket</h3>
+    <p id="tkt-request">
+      A client requests a ticket by sending a <code>POST</code> request to the ticket endpoint
+      with an <code>application/json</code> body: a JSON object whose <code>room</code> member is
+      the IRI of the room container.
+    </p>
+    <p id="tkt-credentials">
+      A client MUST send the request with the credentials it uses for the storage only when
+      [[SOLID-SD]] allows it to send them to that service URL, and otherwise MUST send it without
+      credentials.
+    </p>
+    <p>
+      The relay answers a ticket request with the first of the following that applies.
+    </p>
+    <p id="tkt-bad-request">
+      When the body is not a JSON object with a string <code>room</code> member holding an
+      absolute IRI, or that IRI is not in a storage the relay serves, the relay MUST respond
+      <code>400 Bad Request</code> without reading or changing any resource.
+    </p>
+    <p id="tkt-unauthenticated">
+      When the request carries no credentials, or credentials the storage does not accept, and the
+      public may not read the room in the request's <a>authorization context</a>, the relay MUST
+      respond <code>401 Unauthorized</code> with a <code>WWW-Authenticate</code> header as the
+      storage would for a read of a protected resource, with the same status, headers (including
+      the challenge) and body whether or not a container exists at the room IRI.
+    </p>
+    <p id="tkt-not-found">
+      When there is no container at the room IRI, or the requesting agent may not read the room
+      container in the request's <a>authorization context</a>, the relay MUST respond
+      <code>404 Not Found</code>, with the same body and headers in both cases.
+    </p>
+    <p id="tkt-forbidden">
+      When the requesting agent may read the room container but may not read every log resource in
+      it, the relay MUST respond <code>403 Forbidden</code>.
+    </p>
+    <p id="tkt-issue">
+      Otherwise the relay MUST respond <code>200 OK</code> with an <code>application/json</code>
+      body: a JSON object whose <code>url</code> member is the WebSocket URL to open and whose
+      <code>expires</code> member is the time the ticket stops being accepted, as an [[RFC3339]]
+      date-time with a time zone.
+    </p>
+    <p id="tkt-no-store">
+      The relay MUST send a ticket response with <code>Cache-Control: no-store</code>.
+    </p>
+    <p>
+      The relay merges every log resource into one room state and cannot send an agent part of
+      it, so it serves a room only to agents who may read all of it. Unauthenticated requests get
+      the same <code>401</code> for a missing room and a protected one, and authenticated ones the
+      same <code>404</code>, so the ticket endpoint does not reveal whether a container exists to
+      someone who may not read it.
+    </p>
+  </section>
+
+  <section id="ticket-properties">
+    <h3>Ticket properties</h3>
+    <p id="tkt-entropy">
+      A ticket MUST carry at least 128 bits from a cryptographically secure random source.
+    </p>
+    <p id="tkt-bind">
+      The relay MUST bind a ticket to the room, the requesting agent and the request's
+      <a>authorization context</a>, including the value of its <code>Origin</code> header or the
+      absence of one.
+    </p>
+    <p id="tkt-expiry">
+      The <code>expires</code> time MUST be no more than 300 seconds after the relay issues the
+      ticket, and SHOULD be no more than 60 seconds after.
+    </p>
+    <p id="tkt-single-use">
+      A relay MUST accept a ticket for at most one connection, and MUST NOT accept it after its
+      <code>expires</code> time.
+    </p>
+    <p id="tkt-url-origin">
+      The <code>url</code> MUST use the <code>wss</code> scheme and the host and port of the ticket
+      endpoint.
+    </p>
+    <p id="tkt-client-check">
+      A client MUST NOT open a <code>url</code> whose scheme is not <code>wss</code> or whose host
+      and port differ from those of the ticket endpoint, unless the host is a loopback address
+      the client is configured to trust, in which case the <code>ws</code> scheme is also allowed.
+    </p>
+    <p id="tkt-no-log">
+      A relay MUST NOT write tickets to logs, and SHOULD carry the ticket in the URL's query
+      component so that infrastructure which logs paths does not record it.
+    </p>
+  </section>
+</section>
+
+<section id="relay">
+  <h2>The relay</h2>
+
+  <section id="relay-connection">
+    <h3>Opening a connection</h3>
+    <p id="conn-open">
+      A client opens a connection by starting a WebSocket handshake [[RFC6455]] to the ticket's
+      <code>url</code>, unchanged, before the ticket expires.
+    </p>
+    <p id="conn-no-credentials">
+      A client MUST NOT add its storage credentials, such as an access token or a proof of
+      possession, to the WebSocket URL, the handshake's headers or the connection's messages.
+    </p>
+    <p id="conn-ticket-only">
+      A relay MUST authenticate a connection by its ticket alone, and MUST ignore cookies and other
+      credentials a browser attaches to the handshake on its own.
+    </p>
+    <p id="conn-refuse">
+      A relay MUST refuse the handshake with <code>403 Forbidden</code> when the ticket is missing,
+      unknown, expired or already used.
+    </p>
+    <p id="conn-origin">
+      A relay MUST refuse the handshake with <code>403 Forbidden</code> when its
+      <code>Origin</code> header, or the absence of one, differs from that of the ticket request.
+    </p>
+    <p id="conn-bind">
+      A relay MUST bind each connection to the room, agent and <a>authorization context</a> of its
+      ticket, whatever else the URL's path says.
+    </p>
+    <p id="conn-loaded">
+      Before a relay sends the first sync message on a connection, it MUST either complete a load
+      of the room as <a href="#loading"></a> describes after accepting the connection, or have
+      ingested, as <a href="#ingest"></a>, <a href="#ingest-gap"></a> and
+      <a href="#ingest-removal"></a> require, every change to the room container since its last
+      such load. Content that left the room before the relay read it, and that no log resource
+      holds, is exempt.
+    </p>
+    <p id="conn-observe">
+      A relay that relies on observing the room container MUST start observing before it starts a
+      load, so that no log resource created during the load is missed, and MUST load the room again
+      when it cannot tell whether it missed one.
+    </p>
+  </section>
+
+  <section id="relay-messages">
+    <h3>Messages</h3>
+    <p>
+      Messages are those of the y-websocket protocol [[Y-PROTOCOLS]]. Each message is one binary
+      WebSocket message, whatever frames carry it, laid out as below. <code>varUint</code> is the
+      variable-length unsigned integer, <code>varBytes</code> a <code>varUint</code> length followed
+      by that many bytes, and <code>varString</code> a <code>varBytes</code> holding UTF-8, all as
+      lib0 encodes them.
+    </p>
+    <table class="simple" id="message-layout">
+      <thead><tr><th>Message</th><th>Layout</th></tr></thead>
+      <tbody>
+        <tr><td>sync step 1</td><td><code>varUint 0</code>, <code>varUint 0</code>,
+          <code>varBytes</code> state vector</td></tr>
+        <tr><td>sync step 2</td><td><code>varUint 0</code>, <code>varUint 1</code>,
+          <code>varBytes</code> Yjs v1 update</td></tr>
+        <tr><td>update</td><td><code>varUint 0</code>, <code>varUint 2</code>,
+          <code>varBytes</code> Yjs v1 update</td></tr>
+        <tr><td>awareness update</td><td><code>varUint 1</code>, <code>varBytes</code> awareness
+          update as y-protocols encodes it</td></tr>
+        <tr><td>permission denied</td><td><code>varUint 2</code>, <code>varUint 0</code>,
+          <code>varString</code> reason</td></tr>
+        <tr><td>awareness query</td><td><code>varUint 3</code></td></tr>
+      </tbody>
+    </table>
+    <p id="msg-binary">
+      Clients and relays MUST send each message as one binary WebSocket message laid out as in the
+      table above.
+    </p>
+    <p id="msg-text-frame">
+      A relay MUST close a connection that sends a text message with status code 1003.
+    </p>
+    <p id="msg-undecodable">
+      A relay MUST close with status code 1007 a connection that sends a message it cannot decode,
+      or a sync step 2 or update whose payload it cannot apply without error, leaving its room
+      state unchanged.
+    </p>
+    <p id="msg-size">
+      A relay MAY close a connection that sends a message larger than a limit it chooses, with
+      status code 1009.
+    </p>
+    <p id="msg-order">
+      A relay MUST process the messages of one connection in the order it receives them.
+    </p>
+    <p id="msg-open-sync">
+      Once a connection is open and the room is loaded, a relay MUST send a sync step 1 holding the
+      state vector of its room state, and a client SHOULD send a sync step 1 holding its own.
+    </p>
+    <p id="msg-step2">
+      A relay MUST answer each sync step 1 it accepts with a sync step 2 holding the content of
+      its room state that the received state vector lacks.
+    </p>
+  </section>
+
+  <section id="relay-authorization">
+    <h3>Authorization of every message</h3>
+    <p>
+      Access to a room can change while a connection is open. The relay checks it for every
+      message it delivers and every update it accepts, against the access control in force when it
+      does so. There is no window after a change during which an earlier decision still applies.
+    </p>
+    <p id="auth-deliver">
+      When a relay hands a sync or awareness message to a connection for transmission, it MUST
+      establish that the connection's agent may read the room in the connection's
+      <a>authorization context</a>, taking into account every change to access control that the
+      storage committed before that moment.
+    </p>
+    <p id="auth-deliver-fail">
+      When the agent may no longer read the room, the relay MUST NOT send the message, MUST discard
+      every message queued for the connection and not yet transmitted, MUST send a
+      permission-denied message with the reason <code>read</code>, and MUST close the connection
+      with status code 4403.
+    </p>
+    <p id="auth-accept">
+      When a relay processes a sync step 2 or update received on a connection, it MUST establish
+      that the connection's agent may write the room in the connection's <a>authorization
+      context</a>, taking into account every change to access control that the storage committed
+      before that moment.
+    </p>
+    <p id="auth-accept-fail">
+      When the agent may not write the room, the relay MUST NOT apply, persist or forward any part
+      of the message, and MUST send a permission-denied message with the reason
+      <code>write</code>, before it sends the answer to any sync step 1 it received after the
+      refused message on that connection. It MAY keep the connection open for reading.
+    </p>
+    <p id="auth-awareness">
+      A relay MUST NOT forward an awareness update received on a connection whose agent may not
+      read the room.
+    </p>
+    <p id="auth-room-gone">
+      When the room container is deleted, a relay MUST close every connection to the room with
+      status code 4404, discard its room state, the content it keeps under
+      <a href="#persist-pending"></a>, and all awareness state, cached awareness and undelivered
+      messages it holds for the room, and stop accepting tickets issued for the room.
+    </p>
+    <p id="room-iri-reuse">
+      A client SHOULD NOT create a room at the IRI of a deleted room, and SHOULD create a new
+      room, at a new IRI, when it needs a room with different readers.
+    </p>
+    <p>
+      An agent that held a deleted room's content and may write a new room at the same IRI can
+      write that content there, as it can write anything it knows. This specification does not
+      prevent that; it only stops a relay, which acts for many agents, from carrying content across
+      on their behalf (<a href="#persist-same-room"></a>).
+    </p>
+    <p id="persist-same-room">
+      A relay MUST NOT create a log resource holding content accepted before a deletion of the room
+      container that was committed before that creation, whether or not a container has since been
+      created at the same IRI, and MUST create log resources only with requests that cannot create
+      the room container or any container above it. As with access changes
+      (<a href="#relay-authorization"></a>), a relay that learns of the deletion only after the fact
+      does not meet this.
+    </p>
+    <p id="auth-client-denied">
+      A client that receives a permission-denied message with the reason <code>write</code> MUST
+      stop sending updates on that connection and MUST keep every change it has not treated as
+      stored (<a href="#relay-client-durability"></a>), including changes it already sent.
+    </p>
+    <p>
+      A relay that runs beside the storage server can meet these rules by consulting the storage's
+      access control for each message, or by invalidating cached decisions inside the same
+      transaction that commits an access control change. The moments that count are when the
+      relay processes a received message and when it hands a message to the connection, not when
+      bytes reach the network. A relay that learns of changes through
+      notifications sent after the commit does not meet them.
+    </p>
+  </section>
+
+  <section id="relay-persistence">
+    <h3>Persistence</h3>
+    <p>
+      The relay is a writer and reader of the room's log like any client. What it accepts from
+      connections becomes update resources, and what clients write as resources reaches the
+      connections.
+    </p>
+    <p id="persist-accepted">
+      Unless the room container is deleted first, a relay MUST persist the content that each
+      accepted sync step 2 or update adds to its room state as update resources in the room
+      container.
+    </p>
+    <p id="persist-merge">
+      A relay MAY persist the content of several accepted messages as one update resource.
+    </p>
+    <p id="persist-before-forward">
+      A relay MUST NOT send content accepted from one connection to any other connection before
+      the creation of an update resource holding it is <a>confirmed</a>.
+    </p>
+    <p id="persist-forward">
+      Once the creation of an update resource holding content accepted from one connection is
+      <a>confirmed</a>, a relay MUST send that content to every other connection of the room,
+      subject to <a href="#relay-authorization"></a>.
+    </p>
+    <p id="relay-step2-only-answers">
+      A relay MUST send content that it forwards or ingests as update messages, and MUST NOT send a
+      sync step 2 on a connection except to answer a sync step 1 received on that connection.
+    </p>
+    <p id="persist-ack">
+      A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room
+      state at the moment it processed that sync step 1, and all content it accepted from that
+      connection before that sync step 1, is held by a log resource whose creation is
+      <a>confirmed</a>, whichever connection the content came from.
+    </p>
+    <p id="persist-pending">
+      Until the room container is deleted, a relay MUST keep the content it accepted that no log
+      resource with <a>confirmed</a> creation holds yet until one does, MUST keep it across any
+      rebuild of its room state, and MUST apply it to the rebuilt room state.
+    </p>
+    <p id="persist-order">
+      A relay MUST answer the sync step 1 messages it receives on a connection in the order it
+      received them, with one sync step 2 each.
+    </p>
+    <p id="persist-no-echo">
+      A relay MUST NOT create update resources for content that it added to its room state by
+      reading the room's log resources; it persists only what accepted messages add
+      (<a href="#persist-accepted"></a>), even when a resource it once read held the same content.
+      Snapshot resources it creates as a compactor are not affected.
+    </p>
+    <p id="persist-access">
+      A relay MUST NOT give a log resource it creates access control of its own; it is governed by
+      the room container's access control.
+    </p>
+    <p id="ingest">
+      While a room has open connections, a relay MUST apply to its room state the content of every
+      log resource that another writer creates in the room container or moves into it, either from
+      that resource or from a log resource that holds its content, and deliver the content it adds
+      to the connections, subject to <a href="#relay-authorization"></a>. Content that left the
+      room before the relay read it, and that no log resource holds, is exempt.
+    </p>
+    <p id="ingest-gap">
+      When a resource the relay learned of is gone when read, or the relay cannot tell whether it
+      missed a change to the room container, the relay MUST catch up from a <a>complete
+      listing</a> as <a href="#loading"></a> describes.
+    </p>
+    <p id="ingest-removal">
+      When a log resource leaves the room other than by the relay's own compaction, the relay MUST
+      rebuild its room state before it next delivers content to a connection: it starts a new,
+      empty document, applies to it only the records of the <a>complete listing</a> against which
+      that load completes (records it read for an earlier listing attempt that this listing does
+      not include do not contribute), and then applies the content kept under
+      <a href="#persist-pending"></a>. The relay MUST discard every message carrying document
+      content that it had prepared but not yet sent, and then sends connections only content of the
+      rebuilt room state.
+    </p>
+    <p id="ingest-excluded">
+      Content that the room state held before a rebuild and the rebuilt room state does not hold is
+      excluded: <a href="#persist-forward"></a>, <a href="#ingest"></a> and
+      <a href="#persist-ack"></a> no longer require the relay to send it, to deliver it, or to wait
+      for a log resource holding it, and the relay MUST NOT send it unless a later accepted message
+      or log resource adds it again.
+    </p>
+    <p>
+      Deleting a log resource does not remove its content from a document: clients that hold the
+      content send it again, and the relay persists it. Content is removed by editing the document,
+      which Yjs records as a deletion. Rebuilding the room state after a removal keeps the relay
+      from serving content that no log resource holds and no client sends.
+    </p>
+    <p id="ingest-latency">
+      A relay SHOULD deliver the content of a log resource that another writer creates in the room
+      within five seconds of its creation.
+    </p>
+    <p id="ingest-invalid">
+      A relay MUST NOT apply a resource that is not a valid log record or a supported legacy
+      update resource, and MUST NOT close connections because of one.
+    </p>
+  </section>
+
+  <section id="relay-awareness">
+    <h3>Awareness</h3>
+    <p>
+      Awareness carries presence: who is in the room, their cursor and selection, and whatever
+      other state the application shares. It is never stored.
+    </p>
+    <p id="aw-forward">
+      A relay MUST forward each awareness update it accepts to the other connections of the room,
+      subject to <a href="#relay-authorization"></a>.
+    </p>
+    <p id="aw-no-persist">
+      Clients and relays MUST NOT persist awareness state in the room.
+    </p>
+    <p id="aw-close">
+      When a connection closes, a relay SHOULD send the other connections of the room an awareness
+      update that removes the closed connection's awareness states.
+    </p>
+  </section>
+
+  <section id="relay-client-durability">
+    <h3>Client durability</h3>
+    <p>
+      The y-websocket protocol has no acknowledgement. A client knows its changes are stored when
+      the relay answers a sync step 1 the client sent after sending them, because of
+      <a href="#relay-persistence"></a>. A client that opens a connection sends a sync step 1 at
+      once, so the answer to that first sync step 1 confirms nothing the client sent after it.
+    </p>
+    <p id="dur-confirm">
+      A client MUST treat a change it sent to a relay as stored only after it has received a sync
+      step 2 answering a sync step 1 that it sent, on the same connection, after every message
+      carrying the change, with no permission-denied message between sending the change and
+      receiving that sync step 2. A client matches each sync step 2 it receives to the earliest
+      sync step 1 it sent on that connection that has no answer yet.
+    </p>
+    <p id="dur-fallback">
+      A client that holds changes not yet treated as stored and whose connection closed MUST,
+      before it discards them, either complete that exchange on a new connection or write them as
+      an update resource (<a href="#writing"></a>).
+    </p>
+    <p>
+      A client can compute the changes to write as the update between its room state and the last
+      state vector the relay confirmed. Writing a change the relay already stored only duplicates
+      it, which is harmless.
+    </p>
+  </section>
+</section>
+
+<section id="discovery">
+  <h2>Discovery</h2>
+  <p id="disc-entry">
+    A storage server that offers a relay MUST list it in the storage description as a
+    <code>ssd:CrdtSyncService</code> whose service endpoint is the ticket endpoint and whose
+    <code>dcterms:conformsTo</code> includes <code>ssd:y-protocol-v1</code> [[SOLID-SD]].
+  </p>
+  <p id="disc-any-container">
+    A relay listed for a storage MUST accept every container in that storage as a room.
+  </p>
+  <p>
+    The <code>ssd:roomTemplate</code> property of [[SOLID-SD]] is informative under this profile:
+    clients open the URL a ticket gives them and never build one from the template.
+  </p>
+  <p id="disc-no-relay">
+    A client that finds no relay conforming to this profile, or cannot reach one, MAY still edit a
+    room by writing and reading log resources as <a href="#log"></a> describes.
+  </p>
+</section>
+
+<section id="security">
+  <h2>Security considerations</h2>
+  <p>
+    A ticket is a bearer secret for one connection to one room. It is short-lived and single-use,
+    it never travels to another origin, and it grants nothing the agent could not already read.
+    Because the relay authorizes every message against current access control, a stolen ticket
+    used before its owner does gives the thief at most the owner's current access to that room,
+    and revoking the owner's access ends it.
+  </p>
+  <p>
+    Access control applies to a room as a whole (<a href="#compaction"></a>). A storage that lets
+    agents set access control on individual resources cannot stop a client that ignores
+    <a href="#acl-room-wide"></a> from doing so; the relay then refuses tickets to agents who
+    cannot read every log resource, and compactors that can see such access control leave those
+    resources alone.
+  </p>
+  <p>
+    Log resources and relayed messages come from other agents and may be hostile. Readers check
+    every payload decodes before applying it, cap the bytes they read for one resource and for a
+    listing, and reject redirects on credentialed requests as [[SOLID-SD]] requires. A writer
+    with access to a room can make the document arbitrarily large; storages can apply quotas to
+    room containers as to any other.
+  </p>
+  <p>
+    Cross-site WebSocket hijacking relies on credentials a browser attaches on its own. Relays
+    authenticate connections by ticket only and require the handshake's <code>Origin</code> to
+    match the ticket request's (<a href="#relay-connection"></a>), so a page on another site
+    cannot open a connection on a user's behalf, nor use another application's ticket to act
+    with that application's permissions.
+  </p>
+</section>
+
+<section id="privacy">
+  <h2>Privacy considerations</h2>
+  <p>
+    Awareness reveals who has a document open and where they are working in it, to every agent
+    who may read the room. Applications should tell users when their presence is shared. The
+    relay sees every update in plain form, as the storage does.
+  </p>
+</section>
+
+<section class="appendix informative" id="vectors-appendix">
+  <h2>Test vectors</h2>
+  <p>
+    The directory <a href="vectors/">vectors/</a> holds a manifest of cases. Each case lists
+    resources by name with their bodies in hexadecimal and states either the expected document
+    content after loading them, or that a named resource is not a valid log record. The cases
+    cover the header layout, update and snapshot records, a snapshot that does not hold an update
+    written earlier offline, legacy resources, and invalid bodies. They are generated with a pinned
+    version of Yjs, and <code>tools/spec-check</code> checks them in the repository gate.
+  </p>
+</section>
+
+<section class="appendix informative" id="implementation-status">
+  <h2>Implementation status</h2>
+  <p>
+    <code>@jeswr/y-solid</code> 0.1 implements the update log without headers (the legacy form)
+    and compacts by writing a merged update and deleting exactly what it merged. It does not yet
+    write headers, list again when a resource vanishes during a load, or delete with
+    <code>If-Match</code>. The suite's re-platformed provider (ADR-006 of the suite plan) adopts
+    this profile. No relay implements it yet; sparq tracks one.
+  </p>
+</section>
+
+<section class="appendix informative" id="acknowledgements">
+  <h2>Acknowledgements</h2>
+  <p>
+    The message layer is that of y-websocket and y-protocols by Kevin Jahns and the Yjs
+    contributors.
+  </p>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "y-protocol-v1",
+  "kind": "specification",
+  "status": "design",
+  "description": "Yjs sync profile for Solid storages: the update-log encoding, loading and compaction rules, and the ticketed WebSocket relay behind ssd:CrdtSyncService (unofficial draft).",
+  "conformsTo": ["jeswr/solid-sdk", "sparq-org/sparq"],
+  "relatedSpecs": ["specs/service-description"],
+  "tr": "solidproject.org/TR/ (target, on CG adoption)"
+}

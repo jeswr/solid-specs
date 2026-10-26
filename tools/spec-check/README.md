@@ -16,6 +16,24 @@ Gate checks for specs that ship shapes, examples and a statement companion. Run 
   its level matches its keyword, every normative paragraph of the spec is listed, the spec lists
   every requirement, and the companion conforms to the spec-companion shape.
 
+Also covers `specs/y-protocol`:
+
+- the companion conforms to the same shape, pins the draft's SHA-256, lists exactly one
+  verbatim statement per normative paragraph, and links vector cases or explicit test gaps;
+- every vector decodes according to the 16-byte header table or the legacy name rule,
+  including timestamp limits, unsigned nonces and invalid payloads;
+- loading every valid resource in ordering-key order and in reverse order yields the same
+  expected Y.Text content, including offline updates older than a snapshot, concurrent
+  snapshots and pending dependencies; invalid resources never partially mutate room state;
+- regenerating with the installed, pinned Yjs version reproduces the manifest byte-for-byte,
+  and every vector's statement reference names a normative paragraph in the draft.
+
+Regenerate the vectors from the repository root with
+`node specs/y-protocol/vectors/generate.mjs` (Node 24). See the
+[vector README](../../specs/y-protocol/vectors/README.md) for the manifest format. These
+offline checks do not exercise HTTP, compaction races, tickets, relay authorization or
+durability exchanges; those companion statements carry explicit coverage gaps.
+
 Checks are offline. JSON-LD contexts resolve only from `contexts/`:
 
 | File | Source |
