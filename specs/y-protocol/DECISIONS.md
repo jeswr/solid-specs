@@ -99,7 +99,10 @@ because `202` promises nothing (review round 3). A relay sends a sync step 2 onl
 connection's sync step 1, and forwards everything else as update messages, so a forwarded step 2
 can never pass for a durability answer (review round 5). Pending content dies with the room: a relay never
 writes content accepted before a committed room deletion, even into a new room at the same IRI,
-and never with a request that could recreate the room (review round 6). **Rejected:** a custom acknowledgement message type (breaks stock clients).
+and never with a request that could recreate the room (review round 6). A client or
+compactor that writes old content into a recreated room is an authorized writer publishing what
+it knows, which no protocol can prevent; rooms are not reused for different readers instead
+(SHOULD), and deletion also clears awareness (review round 7). **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
 

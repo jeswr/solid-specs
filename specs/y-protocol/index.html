@@ -577,8 +577,8 @@
       When the request carries no credentials, or credentials the storage does not accept, and the
       public may not read the room in the request's <a>authorization context</a>, the relay MUST
       respond <code>401 Unauthorized</code> with a <code>WWW-Authenticate</code> header as the
-      storage would for a read of a protected resource, whether or not a container exists at the
-      room IRI.
+      storage would for a read of a protected resource, with the same status, headers (including
+      the challenge) and body whether or not a container exists at the room IRI.
     </p>
     <p id="tkt-not-found">
       When there is no container at the room IRI, or the requesting agent may not read the room
@@ -775,8 +775,19 @@
     </p>
     <p id="auth-room-gone">
       When the room container is deleted, a relay MUST close every connection to the room with
-      status code 4404, discard its room state and the content it keeps under
-      <a href="#persist-pending"></a>, and stop accepting tickets issued for the room.
+      status code 4404, discard its room state, the content it keeps under
+      <a href="#persist-pending"></a>, and all awareness state, cached awareness and undelivered
+      messages it holds for the room, and stop accepting tickets issued for the room.
+    </p>
+    <p id="room-iri-reuse">
+      A client SHOULD NOT create a room at the IRI of a deleted room, and SHOULD create a new
+      room, at a new IRI, when it needs a room with different readers.
+    </p>
+    <p>
+      An agent that held a deleted room's content and may write a new room at the same IRI can
+      write that content there, as it can write anything it knows. This specification does not
+      prevent that; it only stops a relay, which acts for many agents, from carrying content across
+      on their behalf (<a href="#persist-same-room"></a>).
     </p>
     <p id="persist-same-room">
       A relay MUST NOT create a log resource holding content accepted before a deletion of the room
@@ -809,8 +820,9 @@
       connections.
     </p>
     <p id="persist-accepted">
-      A relay MUST persist the content that each accepted sync step 2 or update adds to its room
-      state as update resources in the room container.
+      Unless the room container is deleted first, a relay MUST persist the content that each
+      accepted sync step 2 or update adds to its room state as update resources in the room
+      container.
     </p>
     <p id="persist-merge">
       A relay MAY persist the content of several accepted messages as one update resource.
