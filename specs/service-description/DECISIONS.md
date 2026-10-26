@@ -73,19 +73,40 @@ ADR-006 gets the room URL from a ticket (`POST {room}` → `{url, expires}`); AD
 the ticket carries. The ticket URL is authoritative; the template is kept as an optional hint
 because sparq's context and the client already know it.
 
-## D9 — Origin rules: description same-origin, credentials same-origin
+## D9 — Origin rules: storage credentials never leave the storage's origin
 
-A client ignores services and capabilities from a description on another origin (SSD-CLI-1) and
-never sends credentials to an endpoint on another origin unless the type allows it (SSD-CLI-8).
-Only `ssd:SolidNotificationService` allows it, because Solid Notifications allows cross-origin
-subscription services. CRDT room URLs are capability URLs and carry no credentials.
+A client ignores services and capabilities from a Solid description on another origin
+(SSD-CLI-1), never sends the storage's credentials to an endpoint on another origin or across a
+redirect to one (SSD-CLI-8, SSD-CLI-17), never sends them when fetching a description on another
+origin (SSD-CLI-14), and never dereferences JSON-LD contexts at run time (SSD-CLI-15). Solid
+Notifications allows a subscription service on another origin; such a service is used only with
+credentials the client obtains for that origin. CRDT room URLs are capability URLs and carry no
+credentials. The first cut allowed cross-origin notification endpoints to receive the storage's
+credentials; Codex review flagged it [high] and it was removed.
 
-## D10 — Absence means "not offered" only when the storage uses this spec
+## D10 — Absence means unknown
 
-A CSS-style description says nothing about services, so a client cannot conclude "no trash"
-from it. SSD-CLI-10 lets a client treat absence as "not offered" only when the description lists
-at least one entry this spec defines. ADR-002's `deriveFeatures` "description present → unavailable"
-rule should read "description with solid-sd entries present".
+A description is not a complete list of behaviours, so a missing entry means "unknown", never
+"not offered" (SSD-CLI-10). The first cut let one solid-sd entry imply completeness; review
+showed that advertising only `AccessControl` would then hide notifications. Clients fall back
+to paths that work either way (log-mode Yjs, probing). ADR-002's `deriveFeatures` rule
+"description present → unavailable" should become "unknown" for these features.
+
+## D12 — Yjs loading replays every update; compaction deletes only what a snapshot contains
+
+ADR-006 §D1 has loaders apply "updates with ms ≥ snapshot ms". That loses an update written
+offline with an older timestamp after a snapshot that does not contain it. Yjs updates are
+idempotent, so loaders apply the newest snapshot and then every update (SSD-Y-11), and a
+compactor deletes only updates its snapshot was built from (SSD-Y-12). `y-solid` needs the same
+change (tracker follow-up).
+
+## D13 — Authorization of the trash, versions and sync rooms
+
+Trashing needs delete permission on a resource in the same storage; restoring needs delete on
+the trashed copy and create at the restore location; refusals answer as the storage would
+(SSD-SVC-TRASH-8/9). Versions and histories are never more readable than the live resource
+(SSD-SVC-VER-5). A sync ticket needs read access to the room container and every resource in
+it, because members can carry their own ACLs (SSD-Y-2/3/8).
 
 ## D11 — Not done in this draft
 

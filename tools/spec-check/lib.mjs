@@ -60,15 +60,16 @@ export async function jsonldToQuads(doc) {
 export async function validate(shapeQuads, dataQuads) {
   const validator = new SHACLValidator(new Store(shapeQuads));
   const report = await validator.validate(new Store(dataQuads));
-  return {
-    conforms: report.conforms,
-    results: report.results.map((r) => ({
+  const results = report.results.map((r) => ({
       message: (r.message ?? []).map((m) => m.value).join(" "),
       severity: r.severity?.value,
       focus: r.focusNode?.value,
-    })),
-  };
+  }));
+  // Warnings (SHOULD-level constraints) are reported but do not fail conformance.
+  return { conforms: !results.some((r) => r.severity === SH_VIOLATION), results };
 }
+
+const SH_VIOLATION = "http://www.w3.org/ns/shacl#Violation";
 
 const ENTITIES = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–" };
 

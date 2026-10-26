@@ -384,8 +384,8 @@
       IRI.
     </p>
     <p id="dm-service-root">
-      A storage description MUST include a service of type <code>lws:StorageRoot</code> whose
-      endpoint is the storage root.
+      A storage description that lists any service or capability MUST include a service of type
+      <code>lws:StorageRoot</code> whose endpoint is the storage root.
     </p>
     <p>
       The <code>lws:StorageRoot</code> service is redundant on Solid, where the storage root is
@@ -426,6 +426,11 @@
       A service type names what kind of service it is. The protocol it speaks, and that
       protocol's version, is a <a>profile</a>, named with <code>dcterms:conformsTo</code>. A new
       version of a service's protocol is a new profile IRI, not a new service type.
+    </p>
+    <p id="dm-media-type">
+      Every value of <code>ssd:source</code>, <code>ssd:patchType</code> and
+      <code>ssd:target</code> MUST be a media type of the form <code>type/subtype</code>, without
+      parameters.
     </p>
     <p id="dm-profile-iri">
       The value of <code>dcterms:conformsTo</code> on an entry MUST be an IRI.
@@ -562,8 +567,8 @@
       resources. The versions of a resource are found from the resource itself.
     </p>
     <p id="svc-version-link">
-      A storage server that lists a <code>ssd:VersioningService</code> MUST include, in responses
-      to <code>GET</code> and <code>HEAD</code> requests on each versioned resource, a
+      A storage server that lists a <code>ssd:VersioningService</code> MUST include, in successful
+      responses to <code>GET</code> and <code>HEAD</code> requests on each versioned resource, a
       <code>Link</code> header with the relation <code>version-history</code> whose target is a
       container listing that resource's versions.
     </p>
@@ -571,13 +576,17 @@
       A storage server MUST reject requests that modify a version resource.
     </p>
     <p id="svc-version-datetime">
-      A storage server MUST include a <code>Memento-Datetime</code> header in responses to
-      <code>GET</code> and <code>HEAD</code> requests on a version resource.
+      A storage server MUST include a <code>Memento-Datetime</code> header in successful responses
+      to <code>GET</code> and <code>HEAD</code> requests on a version resource.
     </p>
     <p id="svc-version-original">
-      A storage server MUST include, in responses to <code>GET</code> and <code>HEAD</code>
-      requests on a version resource, a <code>Link</code> header with the relation
+      A storage server MUST include, in successful responses to <code>GET</code> and
+      <code>HEAD</code> requests on a version resource, a <code>Link</code> header with the relation
       <code>original</code> whose target is the versioned resource.
+    </p>
+    <p id="svc-version-access">
+      A version or version history MUST NOT be readable by any agent who cannot currently read the
+      versioned resource.
     </p>
     <p>
       The service endpoint identifies the versioning service. This draft defines no operation on
@@ -600,20 +609,31 @@
     <p id="svc-trash-move">
       When a client sends a <code>POST</code> request to the trash container with an
       <code>application/json</code> body whose <code>resource</code> member is the IRI of a
-      resource the client may delete, the storage server MUST move that resource into the trash
-      and respond <code>201 Created</code> with a <code>Location</code> header naming the trashed
-      copy.
+      resource in the same storage that the client may delete, the storage server MUST move that
+      resource into the trash and respond <code>201 Created</code> with a <code>Location</code>
+      header naming the trashed copy.
+    </p>
+    <p id="svc-trash-move-refuse">
+      A storage server MUST refuse to trash a resource that is outside the storage or that the
+      client may not delete, responding as it would to a <code>DELETE</code> request for that
+      resource by that client.
     </p>
     <p id="svc-trash-original">
-      A storage server MUST include, in responses to <code>GET</code> and <code>HEAD</code>
-      requests on a trashed resource, a <code>Link</code> header with the relation
+      A storage server MUST include, in successful responses to <code>GET</code> and
+      <code>HEAD</code> requests on a trashed resource, a <code>Link</code> header with the relation
       <code>original</code> whose target is the IRI the resource had before it was trashed.
     </p>
     <p id="svc-trash-restore">
       When a client sends a <code>POST</code> request to the trash container with an
       <code>application/json</code> body whose <code>restore</code> member is the IRI of a trashed
-      resource, the storage server MUST move it out of the trash and respond with a
-      <code>Location</code> header naming the restored resource.
+      resource in that trash, and the client may delete the trashed resource and may create a
+      resource at the restore location, the storage server MUST move it out of the trash and
+      respond with a <code>Location</code> header naming the restored resource.
+    </p>
+    <p id="svc-trash-restore-refuse">
+      A storage server MUST refuse a restore that the client is not permitted to make, responding
+      <code>403 Forbidden</code> when the client may read the trashed resource and
+      <code>404 Not Found</code> otherwise.
     </p>
     <p id="svc-trash-restore-solid">
       A Solid storage server MUST restore a resource to the IRI it had before it was trashed, or
@@ -767,28 +787,45 @@
 
   <section id="client-resolution">
     <h3>Finding the description</h3>
-    <p>A client finds a storage's services and capabilities from any resource in it as follows.</p>
+    <p>
+      A client finds a Solid storage's services and capabilities from any resource in it as
+      follows.
+    </p>
     <ol>
       <li>Read the <code>Link</code> headers of a response for the resource.</li>
       <li>If they contain the relation <code>https://www.w3.org/ns/lws#storage</code>, the storage
-        is a Linked Web Storage storage; read its description as [[LWS-CORE]] defines.</li>
+        is a Linked Web Storage storage: read its description as [[LWS-CORE]] defines, where the
+        subject of the entries is the storage identifier and the storage root is the endpoint of
+        its <code>StorageRoot</code> service. The rest of this list does not apply.</li>
       <li>Otherwise, if they contain the relation
         <code>http://www.w3.org/ns/solid/terms#storageDescription</code>, retrieve its target,
         preferring <code>application/ld+json</code> or <code>text/turtle</code>, and parse it as
         RDF.</li>
       <li>Find the storage root: the resource itself if its <code>Link</code> headers type it
-        <code>pim:Storage</code>, otherwise the nearest ancestor container whose headers do, and
-        otherwise the subject typed <code>pim:Storage</code> in the description.</li>
+        <code>pim:Storage</code>, otherwise the nearest ancestor container whose headers do. If
+        neither exists, the storage root is unknown.</li>
       <li>Read the entries as <a href="#client-entries"></a> describes.</li>
     </ol>
+    <p id="client-desc-credentials">
+      A client MUST NOT send credentials it holds for the storage when it retrieves a storage
+      description resource whose origin differs from the origin of the resource it started from.
+    </p>
+    <p id="client-no-remote-context">
+      A client MUST NOT dereference JSON-LD contexts named by a storage description at run time,
+      other than from a cache of contexts it already trusts.
+    </p>
     <p id="client-origin">
       A client MUST ignore the <code>did:service</code> and <code>lws:capability</code> statements
-      of a storage description resource whose origin differs from the origin of the storage
+      of a Solid storage description resource whose origin differs from the origin of the storage
       root.
     </p>
+    <p id="client-root-unknown">
+      A client MUST ignore the <code>did:service</code> and <code>lws:capability</code> statements
+      of a Solid storage description when the storage root is unknown.
+    </p>
     <p id="client-root-match">
-      A client MUST ignore <code>did:service</code> and <code>lws:capability</code> statements
-      whose subject is not the storage root it found.
+      A client MUST ignore <code>did:service</code> and <code>lws:capability</code> statements in
+      a Solid storage description whose subject is not the storage root it found.
     </p>
   </section>
 
@@ -815,13 +852,17 @@
       <code>ssd:SparqlQueryService</code> with that endpoint.
     </p>
     <p id="client-endpoint-origin">
-      A client MUST NOT send credentials to a service endpoint whose origin differs from the
-      storage root's origin, unless the service type's definition permits it.
+      A client MUST NOT send credentials it holds for the storage to a service endpoint whose
+      origin differs from the storage root's origin.
+    </p>
+    <p id="client-redirect">
+      A client MUST NOT send credentials it holds for the storage in a request that follows a
+      redirect from a service endpoint to another origin.
     </p>
     <p>
-      Of the types this specification defines, only <code>ssd:SolidNotificationService</code>
-      permits an endpoint on another origin, because the Solid Notifications Protocol does. The
-      WebSocket URL a CRDT sync ticket returns is a capability URL and carries no credentials.
+      A subscription service on another origin, which the Solid Notifications Protocol allows,
+      is used only with credentials the client obtains for that origin. The WebSocket URL a CRDT
+      sync ticket returns is a capability URL and carries no credentials.
     </p>
   </section>
 
@@ -832,8 +873,13 @@
       information.
     </p>
     <p id="client-absent">
-      A client MUST NOT conclude from the absence of an entry that a storage lacks the behaviour,
-      unless the storage description lists at least one entry this specification defines.
+      A client MUST NOT conclude from the absence of an entry that a storage lacks the
+      behaviour.
+    </p>
+    <p>
+      A description is not a complete list of what a storage does. A client that finds no entry
+      for a behaviour treats it as unknown: it may probe, or use a fallback that works either way,
+      such as writing collaborative updates as resources when no sync service is listed.
     </p>
     <p id="client-not-authority">
       A client MUST NOT treat a storage description as evidence that an agent is permitted to
@@ -960,14 +1006,16 @@
       container, authenticated as for any request to the storage.
     </p>
     <p id="y-ticket-response">
-      When the client may read the room container, the service MUST respond with an
+      When the client may read the room container and every resource in it, the service MUST
+      respond with an
       <code>application/json</code> body whose <code>url</code> member is a <code>wss:</code>
       URL for the room and whose <code>expires</code> member is the time, as an RFC 3339
       date-time, after which the URL can no longer be used to connect.
     </p>
     <p id="y-ticket-refuse">
-      When the client may not read the room container, the service MUST respond as the storage
-      responds to a read of the room container by that client.
+      When the client may not read the room container or some resource in it, the service MUST
+      refuse the ticket, responding as the storage responds to a read of the room container by
+      that client.
     </p>
     <p id="y-ticket-capability">
       The room URL MUST contain at least 128 bits of entropy and MUST be bound to the client's
@@ -991,7 +1039,7 @@
     </p>
     <p id="y-revoke">
       The service MUST close a client's connection within 30 seconds after the client loses read
-      access to the room container.
+      access to the room container or to any resource in it.
     </p>
   </section>
 
@@ -1008,8 +1056,20 @@
     <p>
       The encoding is that of the suite's log-mode provider: each update resource begins with
       the 4-byte magic <code>JYU1</code>, an 8-byte big-endian millisecond timestamp and 4 random
-      bytes, followed by the Yjs update; snapshots begin with <code>JYS1</code>. Loaders apply the
-      newest snapshot, then every update with a timestamp at or after the snapshot's.
+      bytes, followed by the Yjs update; snapshots begin with <code>JYS1</code>.
+    </p>
+    <p id="y-load">
+      A client loading a room container MUST apply the newest snapshot and then every update
+      resource in the container, whatever its timestamp.
+    </p>
+    <p id="y-compact">
+      A party compacting a room container MUST NOT delete an update resource unless the snapshot
+      it wrote was built from a document state that included that update.
+    </p>
+    <p>
+      Applying a Yjs update twice has no effect, so replaying every update is always safe. A
+      timestamp filter is not: an update written offline can carry a timestamp older than a
+      snapshot that does not contain it.
     </p>
     <p class="issue" title="Byte layout in a companion">
       The byte layout is specified here by reference to one implementation. A later draft moves

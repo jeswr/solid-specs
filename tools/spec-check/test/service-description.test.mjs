@@ -34,6 +34,35 @@ const definedTerms = new Set(
     .map((q) => q.subject.value),
 );
 
+const DID = "https://www.w3.org/ns/did#";
+const PIM_STORAGE = "http://www.w3.org/ns/pim/space#Storage";
+const LWS_STORAGE_ROOT = "https://www.w3.org/ns/lws#StorageRoot";
+
+/**
+ * SSD-DM-3 for Solid descriptions, which SHACL core cannot express: a pim:Storage subject that
+ * lists services has a StorageRoot service whose endpoint is the subject itself.
+ */
+function solidRootCheck(quads) {
+  const has = (s, p, o) => quads.some((q) => q.subject.value === s && q.predicate.value === p && q.object.value === o);
+  const objects = (s, p) => quads.filter((q) => q.subject.value === s && q.predicate.value === p).map((q) => q.object.value);
+  const storages = new Set(quads.filter((q) => q.predicate.value === `${DID}service`).map((q) => q.subject.value));
+  const results = [];
+  for (const storage of storages) {
+    if (!has(storage, RDF_TYPE, PIM_STORAGE)) continue;
+    const ok = objects(storage, `${DID}service`).some(
+      (svc) => has(svc, RDF_TYPE, LWS_STORAGE_ROOT) && has(svc, `${DID}serviceEndpoint`, storage),
+    );
+    if (!ok) results.push({ severity: "http://www.w3.org/ns/shacl#Violation", focus: storage, message: "The lws:StorageRoot service of a Solid storage MUST have the storage root as its endpoint (SSD-DM-3)." });
+  }
+  return results;
+}
+
+async function check(quads) {
+  const report = await validate(shapes, quads);
+  const extra = solidRootCheck(quads);
+  return { conforms: report.conforms && extra.length === 0, results: [...report.results, ...extra] };
+}
+
 function describeFailures(report) {
   return report.results.map((r) => `${r.severity?.split("#")[1]} ${r.focus}: ${r.message}`).join("\n");
 }
@@ -41,14 +70,14 @@ function describeFailures(report) {
 describe("valid examples conform to the shapes", () => {
   for (const file of listFiles(join(SPEC, "examples"), ".ttl")) {
     it(basename(file), async () => {
-      const report = await validate(shapes, readTurtle(file));
+      const report = await check(readTurtle(file));
       assert.ok(report.conforms, describeFailures(report));
     });
   }
   for (const file of listFiles(join(SPEC, "examples"), ".jsonld")) {
     it(basename(file), async () => {
       const quads = await jsonldToQuads(JSON.parse(readFileSync(file, "utf8")));
-      const report = await validate(shapes, quads);
+      const report = await check(quads);
       assert.ok(report.conforms, describeFailures(report));
     });
   }
@@ -58,9 +87,9 @@ describe("invalid examples are rejected for the expected reason", () => {
   for (const file of listFiles(join(SPEC, "examples/invalid"), ".ttl")) {
     it(basename(file), async () => {
       const text = readFileSync(file, "utf8");
-      const expect = text.match(/^# EXPECT: (\S+)/m)?.[1];
+      const expect = text.match(/^# EXPECT: (.+)$/m)?.[1].trim();
       assert.ok(expect, "invalid vector names its expected statement with '# EXPECT:'");
-      const report = await validate(shapes, parseTurtle(text, `file://${file}`));
+      const report = await check(parseTurtle(text, `file://${file}`));
       assert.equal(report.conforms, false, "vector unexpectedly conforms");
       assert.ok(
         report.results.some((r) => r.message.includes(expect)),
@@ -88,7 +117,7 @@ describe("examples in the spec text", () => {
     it(`example ${i + 1} parses and conforms`, async () => {
       const text = block.trim();
       const quads = text.startsWith("{") ? await jsonldToQuads(JSON.parse(text)) : parseTurtle(text, "https://pod.example/");
-      const report = await validate(shapes, quads);
+      const report = await check(quads);
       assert.ok(report.conforms, describeFailures(report));
     });
   });
@@ -153,13 +182,28 @@ describe("statement companion", () => {
     assert.deepEqual(missing, []);
   });
 
-  it("every normative paragraph of the spec is in the companion", () => {
+  it("every normative paragraph of the spec is anchored and in the companion", () => {
     const quoted = new Set(requirements.map((r) => value(r, `${SPEC_NS}statement`)));
-    const paragraphs = [...html.matchAll(/<p id="([^"]+)">([\s\S]*?)<\/p>/g)]
-      .map((m) => [m[1], normalizeHtml(m[2])])
-      .filter(([, t]) => /\b(MUST|SHOULD|MAY)\b/.test(t));
-    const unquoted = paragraphs.filter(([, t]) => !quoted.has(t)).map(([id]) => id);
+    const paragraphs = [...html.matchAll(/<(p|li)\b([^>]*)>([\s\S]*?)<\/\1>/g)]
+      .map((m) => ({ id: m[2].match(/\bid="([^"]+)"/)?.[1], text: normalizeHtml(m[3]) }))
+      .filter(({ text }) => /\b(MUST|SHOULD|MAY)\b/.test(text));
+    assert.ok(paragraphs.length > 50);
+    const unanchored = paragraphs.filter((p) => !p.id).map((p) => p.text.slice(0, 80));
+    assert.deepEqual(unanchored, [], "normative paragraphs without an id");
+    const unquoted = paragraphs.filter((p) => !quoted.has(p.text)).map((p) => p.id);
     assert.deepEqual(unquoted, []);
+  });
+
+  it("every anchor points into this spec at the element that holds the statement", () => {
+    const base = "https://jeswr.github.io/solid-specs/specs/service-description/#";
+    const elements = new Map(
+      [...html.matchAll(/<(p|li)\b[^>]*\bid="([^"]+)"[^>]*>([\s\S]*?)<\/\1>/g)].map((m) => [m[2], normalizeHtml(m[3])]),
+    );
+    for (const r of requirements) {
+      const anchor = value(r, "https://w3id.org/jeswr/spec-companion#anchor");
+      assert.ok(anchor.startsWith(base), `${r}: ${anchor}`);
+      assert.equal(elements.get(anchor.slice(base.length)), value(r, `${SPEC_NS}statement`), `${r}: ${anchor}`);
+    }
   });
 
   it("every anchor exists in the spec", () => {
@@ -179,7 +223,7 @@ describe("statement companion", () => {
   it("every invalid vector cites a statement or section that exists", () => {
     const idents = new Set(byPredicate("http://purl.org/dc/terms/identifier").map((q) => q.object.value));
     for (const file of listFiles(join(SPEC, "examples/invalid"), ".ttl")) {
-      const expect = readFileSync(file, "utf8").match(/^# EXPECT: (\S+)/m)[1];
+      const expect = readFileSync(file, "utf8").match(/^# EXPECT: (.+)$/m)[1].trim();
       assert.ok(idents.has(expect) || ids.has(expect.replace(/^#/, "")), `${basename(file)}: ${expect}`);
     }
   });

@@ -62,7 +62,8 @@ ssdsh:ServiceShape
     sh:property [
         sh:path rdf:type ;
         sh:minCount 1 ;
-        sh:message "A service node MUST have at least one rdf:type (SSD-DM-1, #dm-services)." ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A service node MUST have at least one rdf:type (SSD-DM-1, #dm-services) Types are IRIs (SSD-DM-10)." ;
     ] ;
     # SSD-DM-2
     sh:property [
@@ -87,7 +88,8 @@ ssdsh:CapabilityShape
     sh:property [
         sh:path rdf:type ;
         sh:minCount 1 ;
-        sh:message "A capability node MUST have at least one rdf:type (SSD-DM-4, #dm-capabilities)." ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A capability node MUST have at least one rdf:type (SSD-DM-4, #dm-capabilities) Types are IRIs (SSD-DM-10)." ;
     ] ;
     # SSD-DM-6
     sh:property [
@@ -176,6 +178,7 @@ ssdsh:PatchSupportShape
     # SSD-CAP-PATCH-1
     sh:property [
         sh:path ssd:source ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
@@ -184,6 +187,7 @@ ssdsh:PatchSupportShape
     # SSD-CAP-PATCH-2
     sh:property [
         sh:path ssd:patchType ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "An ssd:PatchSupport node MUST have at least one ssd:patchType, a media type string (SSD-CAP-PATCH-2, #cap-patch)." ;
@@ -216,6 +220,7 @@ ssdsh:ContentNegotiationShape
     # SSD-CAP-CONNEG-1
     sh:property [
         sh:path ssd:source ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
@@ -223,7 +228,30 @@ ssdsh:ContentNegotiationShape
     ] ;
     sh:property [
         sh:path ssd:target ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "An ssd:ContentNegotiation node MUST have at least one ssd:target, a media type string (SSD-CAP-CONNEG-1, #cap-conneg)." ;
+    ] .
+
+#################################################################
+# Media types (SSD-DM-12) and reused Linked Web Storage services
+#################################################################
+
+ssdsh:MediaTypeShape
+    a sh:NodeShape ;
+    sh:targetObjectsOf ssd:source, ssd:patchType, ssd:target ;
+    sh:datatype xsd:string ;
+    sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+    sh:message "Every value of ssd:source, ssd:patchType and ssd:target MUST be a media type type/subtype without parameters (SSD-DM-12, #dm-media-type)." .
+
+ssdsh:LwsNotificationServiceShape
+    a sh:NodeShape ;
+    sh:targetClass lws:NotificationService ;
+    # Inherited from LWS core #Notification Discovery: subscriptionType is required.
+    sh:property [
+        sh:path lws:subscriptionType ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "An lws:NotificationService MUST list its subscription types with lws:subscriptionType (LWS core, Notification Discovery; #svc-lws)." ;
     ] .
