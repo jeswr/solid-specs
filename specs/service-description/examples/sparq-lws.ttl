@@ -11,13 +11,13 @@
     did:service <https://lws.example/#storage-root> , <https://lws.example/#notifications> ,
                 <https://lws.example/#type-index> , <https://lws.example/#type-search> ,
                 <https://lws.example/#access-requests> , <https://lws.example/#access-grants> ,
-                <https://lws.example/#sparql> , <https://lws.example/#sync> ;
+                <https://lws.example/#sparql> , <https://lws.example/#sync> ,
+                <https://lws.example/#recursive-delete> ;
     lws:capability [ a ssd:AccessControl ; ssd:model ssd:ODRLGrants ] ,
                    [ a ssd:PatchSupport ; ssd:source "application/json" ;
                      ssd:patchType "application/json-patch+json" ] ,
                    [ a ssd:PatchSupport ; ssd:source "application/ld+json" ;
                      ssd:patchType "application/json-patch+json" ] ,
-                   [ a ssd:RecursiveDelete ] ,
                    [ a lws:MoveResource ; lws:appliesTo lws:DataResource, lws:Container ;
                      lws:preservesIdentifier false ] .
 
@@ -42,3 +42,5 @@
 <https://lws.example/#sync> a ssd:CrdtSyncService ;
     did:serviceEndpoint <https://lws.example/.sync/tickets> ;
     dct:conformsTo ssd:y-protocol-v1 .
+<https://lws.example/#recursive-delete> a ssd:RecursiveDeleteService ;
+    did:serviceEndpoint <https://lws.example/.delete> .

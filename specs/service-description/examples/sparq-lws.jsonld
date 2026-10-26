@@ -51,13 +51,17 @@
       "type": "CrdtSyncService",
       "serviceEndpoint": "https://lws.example/.sync/tickets",
       "conformsTo": ["https://jeswr.org/ns/solid-sd#y-protocol-v1"]
+    },
+    {
+      "id": "https://lws.example/#recursive-delete",
+      "type": "RecursiveDeleteService",
+      "serviceEndpoint": "https://lws.example/.delete"
     }
   ],
   "capability": [
     { "type": "AccessControl", "model": "ODRLGrants" },
     { "type": "PatchSupport", "source": "application/json", "patchType": ["application/json-patch+json"] },
     { "type": "PatchSupport", "source": "application/ld+json", "patchType": ["application/json-patch+json"] },
-    { "type": "RecursiveDelete" },
     { "type": "MoveResource", "appliesTo": ["DataResource", "Container"], "preservesIdentifier": false }
   ]
 }

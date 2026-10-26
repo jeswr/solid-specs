@@ -94,11 +94,6 @@
           authors: ["Jesse Wright"],
           status: "Unofficial Draft"
         },
-        "Y-PROTOCOLS": {
-          title: "y-protocols: binary encoding protocols for Yjs",
-          href: "https://github.com/yjs/y-protocols",
-          publisher: "Yjs"
-        },
         "TUS": {
           title: "tus resumable upload protocol 1.0.x",
           href: "https://tus.io/protocols/resumable-upload",
@@ -209,13 +204,14 @@
       dct:conformsTo &lt;https://jeswr.github.io/solid-specs/specs/access-controlled-query/&gt; ] ,
     [ a ssd:CrdtSyncService ;
       did:serviceEndpoint &lt;https://pod.example/.sync/tickets&gt; ;
-      dct:conformsTo ssd:y-protocol-v1 ] ;
+      dct:conformsTo ssd:y-protocol-v1 ] ,
+    [ a ssd:RecursiveDeleteService ;
+      did:serviceEndpoint &lt;https://pod.example/.delete&gt; ] ;
   lws:capability
     [ a ssd:AccessControl ; ssd:model ssd:WAC ] ,
     [ a ssd:PatchSupport ;
       ssd:source "text/turtle" ;
-      ssd:patchType "text/n3", "application/sparql-update" ] ,
-    [ a ssd:RecursiveDelete ] .
+      ssd:patchType "text/n3", "application/sparql-update" ] .
     </pre>
   </section>
 </section>
@@ -446,8 +442,11 @@
       Any party MAY define new service and capability types.
     </p>
     <p id="dm-ext-iri">
+      Every type of a service or capability entry MUST be an absolute IRI.
+    </p>
+    <p id="dm-ext-namespace">
       A service or capability type that this specification or [[LWS-CORE]] does not define MUST
-      be identified by an absolute IRI in a namespace its definer controls.
+      be in a namespace its definer controls.
     </p>
     <p id="dm-ext-properties">
       An entry MAY carry properties beyond those its type definition names.
@@ -549,14 +548,51 @@
       A <code>ssd:CrdtSyncService</code> node MUST have a <code>dcterms:conformsTo</code> naming
       its sync profile.
     </p>
-    <p id="svc-crdt-y">
-      A <code>ssd:CrdtSyncService</code> whose endpoint implements the Yjs sync profile this
-      specification defines MUST list <code>ssd:y-protocol-v1</code> as a profile.
+    <p>
+      The suite's Yjs relay is identified by the profile IRI <code>ssd:y-protocol-v1</code>. This
+      draft names that IRI so descriptions can list it; the profile itself (tickets, rooms,
+      authorization of each delivered update, and the storage encoding shared with clients that
+      write updates as ordinary resources) is specified in a separate draft.
     </p>
-    <p>The profile is defined in <a href="#y-protocol"></a>.</p>
+    <p class="issue" title="The y-protocol-v1 profile is specified separately">
+      An earlier version of this draft carried the profile as an appendix. Review showed that it
+      needs more than an appendix can hold: serialized or merging compaction so concurrent
+      compactors cannot drop updates, authorization of every relayed update rather than only at
+      connection time, two-way exchange between the relay and the update resources in the room
+      container, and a byte-level encoding with test vectors. It moves to its own draft.
+    </p>
     <p id="svc-crdt-room-template">
       A <code>ssd:CrdtSyncService</code> node MAY have one <code>ssd:roomTemplate</code>, an
       informative URI template for room URLs.
+    </p>
+  </section>
+
+  <section id="svc-recursive-delete">
+    <h3>Recursive delete service</h3>
+    <p>
+      The Solid Protocol refuses a <code>DELETE</code> request on a container that is not empty,
+      so a client deleting a folder walks it and deletes each resource. A
+      <code>ssd:RecursiveDeleteService</code> deletes a container and everything beneath it in one
+      request, leaving the behaviour of <code>DELETE</code> unchanged.
+    </p>
+    <p id="svc-rd">
+      When a client sends a <code>POST</code> request to a recursive delete service endpoint with
+      an <code>application/json</code> body whose <code>container</code> member is the IRI of a
+      container in the storage, and the client may delete the container and every resource
+      beneath it, the storage server MUST delete them all and respond <code>204 No Content</code>.
+    </p>
+    <p id="svc-rd-outside">
+      A storage server MUST refuse a recursive delete of a container outside the storage with
+      <code>400 Bad Request</code>, without reading or changing that container.
+    </p>
+    <p id="svc-rd-refuse">
+      A storage server MUST refuse a recursive delete that the client is not permitted to make,
+      deleting nothing and responding <code>403 Forbidden</code> when the client may read the
+      container and <code>404 Not Found</code> otherwise.
+    </p>
+    <p id="svc-rd-atomic">
+      When a recursive delete cannot delete every resource beneath the container, the storage
+      server MUST NOT delete the container.
     </p>
   </section>
 
@@ -613,10 +649,14 @@
       resource into the trash and respond <code>201 Created</code> with a <code>Location</code>
       header naming the trashed copy.
     </p>
+    <p id="svc-trash-move-outside">
+      A storage server MUST refuse a request to trash a resource outside the storage with
+      <code>400 Bad Request</code>, without reading or changing that resource.
+    </p>
     <p id="svc-trash-move-refuse">
-      A storage server MUST refuse to trash a resource that is outside the storage or that the
-      client may not delete, responding as it would to a <code>DELETE</code> request for that
-      resource by that client.
+      A storage server MUST refuse to trash a resource in the storage that the client may not
+      delete, responding as it would to a <code>DELETE</code> request for that resource by that
+      client.
     </p>
     <p id="svc-trash-original">
       A storage server MUST include, in successful responses to <code>GET</code> and
@@ -699,20 +739,6 @@
       <code>text/n3</code> for <code>text/turtle</code>. The flat shape mirrors the
       <code>source</code> and <code>target</code> shape of the content negotiation capability in
       the Linked Web Storage discovery example.
-    </p>
-  </section>
-
-  <section id="cap-recursive-delete">
-    <h3>Recursive delete</h3>
-    <p id="cap-rd">
-      A storage server that lists an <code>ssd:RecursiveDelete</code> capability MUST, on a
-      <code>DELETE</code> request to a non-empty container that carries the header
-      <code>Depth: infinity</code> and that the client is allowed to make, delete the container
-      and everything beneath it.
-    </p>
-    <p id="cap-rd-atomic">
-      When a recursive delete cannot delete every resource beneath the container, the storage
-      server MUST NOT delete the container.
     </p>
   </section>
 
@@ -806,18 +832,23 @@
         neither exists, the storage root is unknown.</li>
       <li>Read the entries as <a href="#client-entries"></a> describes.</li>
     </ol>
-    <p id="client-desc-credentials">
-      A client MUST NOT send credentials it holds for the storage when it retrieves a storage
-      description resource whose origin differs from the origin of the resource it started from.
+    <p id="client-desc-origin">
+      A client MUST NOT retrieve a storage description, Solid or Linked Web Storage, whose origin
+      differs from the origin of the resource it started from.
+    </p>
+    <p id="client-desc-redirect">
+      A client MUST NOT follow a redirect to another origin while retrieving a storage
+      description.
     </p>
     <p id="client-no-remote-context">
       A client MUST NOT dereference JSON-LD contexts named by a storage description at run time,
       other than from a cache of contexts it already trusts.
     </p>
-    <p id="client-origin">
-      A client MUST ignore the <code>did:service</code> and <code>lws:capability</code> statements
-      of a Solid storage description resource whose origin differs from the origin of the storage
-      root.
+    <p>
+      The storage root is the resource itself or one of its ancestors, so it shares the origin of
+      the resource the client started from, and so does every description the client retrieves.
+      A link to a description elsewhere is never dereferenced, which keeps a hostile resource from
+      making the client send requests to other hosts.
     </p>
     <p id="client-root-unknown">
       A client MUST ignore the <code>did:service</code> and <code>lws:capability</code> statements
@@ -838,8 +869,12 @@
       A client MUST ignore properties of an entry that it does not recognise.
     </p>
     <p id="client-profile">
-      A client MUST NOT use a service whose profiles it does not implement, when the service's type
-      requires a profile.
+      A client MUST NOT use a service whose type requires a profile unless the client implements
+      at least one of the profiles the service lists.
+    </p>
+    <p id="client-profile-choice">
+      A client MAY use such a service through any one of its listed profiles that the client
+      implements.
     </p>
     <p id="client-notify-merge">
       A client MUST treat a subscription service listed with <code>notify:subscription</code> and a
@@ -859,10 +894,17 @@
       A client MUST NOT send credentials it holds for the storage in a request that follows a
       redirect from a service endpoint to another origin.
     </p>
+    <p id="client-endpoint-network">
+      A client that is not a web browser MUST NOT send a request to a service endpoint whose host
+      resolves to a loopback, private-use or link-local address unless the storage root's host
+      resolves to such an address too.
+    </p>
     <p>
       A subscription service on another origin, which the Solid Notifications Protocol allows,
-      is used only with credentials the client obtains for that origin. The WebSocket URL a CRDT
-      sync ticket returns is a capability URL and carries no credentials.
+      is used only with credentials the client obtains for that origin. A web browser already
+      keeps pages from reaching private networks through its own policy; agents and servers that
+      act as clients have no such guard, so they check each endpoint's resolved address, and
+      again after each redirect, before sending a request.
     </p>
   </section>
 
@@ -968,9 +1010,9 @@
     origin, from receiving a client's credentials.
   </p>
   <p>
-    A capability can make a client send a request it would not otherwise send, such as a
-    recursive delete. Clients confirm destructive operations with the user as they would without
-    the capability, and the server authorizes each request as usual.
+    A service can make a client send a request it would not otherwise send, such as a recursive
+    delete. Clients confirm destructive operations with the user as they would without the
+    service, and the server authorizes each request as usual.
   </p>
   <p id="sec-no-private">
     A storage description MUST NOT disclose the IRIs of resources that are not themselves public,
@@ -989,95 +1031,6 @@
   </p>
 </section>
 
-<section class="appendix" id="y-protocol">
-  <h2>The y-protocol-v1 profile</h2>
-  <p>
-    This appendix defines the profile <code>ssd:y-protocol-v1</code> for a
-    <code>ssd:CrdtSyncService</code> that relays Yjs document updates. A Yjs document is kept in
-    a container of the storage (its room container) as update resources and snapshot resources,
-    so a client without the service can still load and edit it.
-  </p>
-
-  <section id="y-ticket">
-    <h3>Tickets</h3>
-    <p id="y-ticket-request">
-      To join a room, a client MUST send a <code>POST</code> request to the service endpoint with
-      an <code>application/json</code> body whose <code>room</code> member is the IRI of the room
-      container, authenticated as for any request to the storage.
-    </p>
-    <p id="y-ticket-response">
-      When the client may read the room container and every resource in it, the service MUST
-      respond with an
-      <code>application/json</code> body whose <code>url</code> member is a <code>wss:</code>
-      URL for the room and whose <code>expires</code> member is the time, as an RFC 3339
-      date-time, after which the URL can no longer be used to connect.
-    </p>
-    <p id="y-ticket-refuse">
-      When the client may not read the room container or some resource in it, the service MUST
-      refuse the ticket, responding as the storage responds to a read of the room container by
-      that client.
-    </p>
-    <p id="y-ticket-capability">
-      The room URL MUST contain at least 128 bits of entropy and MUST be bound to the client's
-      identity and the room.
-    </p>
-  </section>
-
-  <section id="y-room">
-    <h3>Rooms</h3>
-    <p id="y-messages">
-      Over the room's WebSocket, the client and service MUST exchange the y-websocket messages of
-      [[Y-PROTOCOLS]]: sync (type 0), awareness (type 1) and auth (type 2).
-    </p>
-    <p id="y-read-only">
-      The service MUST NOT apply or relay a document update from a client that may not write to
-      the room container.
-    </p>
-    <p id="y-read-only-close">
-      The service MUST close the connection of a client that sends an update it may not make,
-      with close code 4403.
-    </p>
-    <p id="y-revoke">
-      The service MUST close a client's connection within 30 seconds after the client loses read
-      access to the room container or to any resource in it.
-    </p>
-  </section>
-
-  <section id="y-persistence">
-    <h3>Persistence</h3>
-    <p id="y-persist">
-      The service MUST store every update it relays as a resource in the room container before
-      relaying it to other clients.
-    </p>
-    <p id="y-persist-format">
-      The service MUST store updates and snapshots in the encoding that clients without the
-      service use, so that all clients converge on the same document.
-    </p>
-    <p>
-      The encoding is that of the suite's log-mode provider: each update resource begins with
-      the 4-byte magic <code>JYU1</code>, an 8-byte big-endian millisecond timestamp and 4 random
-      bytes, followed by the Yjs update; snapshots begin with <code>JYS1</code>.
-    </p>
-    <p id="y-load">
-      A client loading a room container MUST apply the newest snapshot and then every update
-      resource in the container, whatever its timestamp.
-    </p>
-    <p id="y-compact">
-      A party compacting a room container MUST NOT delete an update resource unless the snapshot
-      it wrote was built from a document state that included that update.
-    </p>
-    <p>
-      Applying a Yjs update twice has no effect, so replaying every update is always safe. A
-      timestamp filter is not: an update written offline can carry a timestamp older than a
-      snapshot that does not contain it.
-    </p>
-    <p class="issue" title="Byte layout in a companion">
-      The byte layout is specified here by reference to one implementation. A later draft moves
-      it into a normative subsection with test vectors.
-    </p>
-  </section>
-</section>
-
 <section class="appendix" id="vocabulary">
   <h2>Vocabulary</h2>
   <p>
@@ -1094,15 +1047,15 @@
       <tr><td><code>ssd:CrdtSyncService</code></td><td>service type</td><td><a href="#svc-crdt"></a></td></tr>
       <tr><td><code>ssd:VersioningService</code></td><td>service type</td><td><a href="#svc-versioning"></a></td></tr>
       <tr><td><code>ssd:TrashService</code></td><td>service type</td><td><a href="#svc-trash"></a></td></tr>
+      <tr><td><code>ssd:RecursiveDeleteService</code></td><td>service type</td><td><a href="#svc-recursive-delete"></a></td></tr>
       <tr><td><code>ssd:AccessControl</code></td><td>capability type</td><td><a href="#cap-access-control"></a></td></tr>
       <tr><td><code>ssd:PatchSupport</code></td><td>capability type</td><td><a href="#cap-patch"></a></td></tr>
-      <tr><td><code>ssd:RecursiveDelete</code></td><td>capability type</td><td><a href="#cap-recursive-delete"></a></td></tr>
       <tr><td><code>ssd:ResumableUploads</code></td><td>capability type</td><td><a href="#cap-resumable"></a></td></tr>
       <tr><td><code>ssd:Pagination</code></td><td>capability type</td><td><a href="#cap-pagination"></a></td></tr>
       <tr><td><code>ssd:ContentNegotiation</code></td><td>capability type</td><td><a href="#cap-conneg"></a></td></tr>
       <tr><td><code>ssd:WAC</code>, <code>ssd:ACP</code>, <code>ssd:ODRLGrants</code></td><td>access control models</td><td><a href="#cap-access-control"></a></td></tr>
       <tr><td><code>ssd:SseSubscription</code>, <code>ssd:WebSocketSubscription</code></td><td>subscription types</td><td><a href="#subscription-types"></a></td></tr>
-      <tr><td><code>ssd:y-protocol-v1</code></td><td>profile</td><td><a href="#y-protocol"></a></td></tr>
+      <tr><td><code>ssd:y-protocol-v1</code></td><td>profile (specified separately)</td><td><a href="#svc-crdt"></a></td></tr>
       <tr><td><code>ssd:model</code></td><td>property</td><td><a href="#cap-access-control"></a></td></tr>
       <tr><td><code>ssd:source</code>, <code>ssd:patchType</code>, <code>ssd:target</code></td><td>properties</td><td><a href="#cap-patch"></a>, <a href="#cap-conneg"></a></td></tr>
       <tr><td><code>ssd:retention</code></td><td>property</td><td><a href="#svc-trash"></a></td></tr>
@@ -1136,13 +1089,13 @@
       "channelType": "WebSocketChannel2023" },
     { "type": "SparqlQueryService",
       "serviceEndpoint": "https://pod.example/sparql",
-      "conformsTo": ["https://jeswr.github.io/solid-specs/specs/access-controlled-query/"] }
+      "conformsTo": ["https://jeswr.github.io/solid-specs/specs/access-controlled-query/"] },
+    { "type": "RecursiveDeleteService", "serviceEndpoint": "https://pod.example/.delete" }
   ],
   "capability": [
     { "type": "AccessControl", "model": "WAC" },
     { "type": "PatchSupport", "source": "text/turtle",
-      "patchType": ["text/n3", "application/sparql-update"] },
-    { "type": "RecursiveDelete" }
+      "patchType": ["text/n3", "application/sparql-update"] }
   ]
 }
   </pre>

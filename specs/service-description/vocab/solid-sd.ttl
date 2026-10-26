@@ -68,7 +68,7 @@ ssd:SparqlQueryService a rdfs:Class ;
 ssd:CrdtSyncService a rdfs:Class ;
     rdfs:subClassOf ssd:Service ;
     rdfs:label "CRDT sync service"@en ;
-    rdfs:comment "A real-time sync relay for CRDT documents stored in the storage. dcterms:conformsTo names the sync protocol profile; its did:serviceEndpoint is the profile's entry point (for ssd:y-protocol-v1, the ticket endpoint)."@en ;
+    rdfs:comment "A real-time sync relay for CRDT documents stored in the storage. dcterms:conformsTo names the sync protocol profile; its did:serviceEndpoint is the profile's entry point."@en ;
     rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
 
 ssd:VersioningService a rdfs:Class ;
@@ -81,6 +81,12 @@ ssd:TrashService a rdfs:Class ;
     rdfs:subClassOf ssd:Service ;
     rdfs:label "Trash service"@en ;
     rdfs:comment "A container into which resources are moved instead of being destroyed, from which they can be restored or purged. Its did:serviceEndpoint is the trash container."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:RecursiveDeleteService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "Recursive delete service"@en ;
+    rdfs:comment "Deletes a container and everything beneath it in one request: a POST to its did:serviceEndpoint naming the container. DELETE on a non-empty container keeps its Solid Protocol behaviour."@en ;
     rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
 
 #################################################################
@@ -97,12 +103,6 @@ ssd:PatchSupport a rdfs:Class ;
     rdfs:subClassOf ssd:Capability ;
     rdfs:label "Patch support"@en ;
     rdfs:comment "The storage accepts PATCH requests on resources of one media type (ssd:source) in the listed patch document media types (ssd:patchType). A storage describes one PatchSupport capability per source media type."@en ;
-    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
-
-ssd:RecursiveDelete a rdfs:Class ;
-    rdfs:subClassOf ssd:Capability ;
-    rdfs:label "Recursive delete"@en ;
-    rdfs:comment "The storage deletes a non-empty container and everything beneath it when a DELETE request carries the header Depth: infinity."@en ;
     rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
 
 ssd:ResumableUploads a rdfs:Class ;
@@ -164,7 +164,7 @@ ssd:WebSocketSubscription a rdfs:Class ;
 
 ssd:y-protocol-v1 a dcterms:Standard ;
     rdfs:label "Yjs sync protocol, version 1"@en ;
-    rdfs:comment "The CRDT sync profile defined in the appendix of the service description draft: a ticket endpoint and y-websocket rooms persisted to the room's container."@en ;
+    rdfs:comment "The suite's Yjs relay profile. The service description draft names this IRI; the profile itself is specified in a separate draft."@en ;
     rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
 
 #################################################################
@@ -207,7 +207,7 @@ ssd:retention a rdf:Property ;
 
 ssd:roomTemplate a rdf:Property ;
     rdfs:label "room template"@en ;
-    rdfs:comment "An informative RFC 6570 URI template, with the variable room, for the sync relay's room URLs. Clients use the URL a ticket response returns, never one expanded from this template."@en ;
+    rdfs:comment "An informative RFC 6570 URI template, with the variable room, for the sync relay's room URLs. The sync profile says how a client obtains the URL it actually connects to."@en ;
     rdfs:domain ssd:CrdtSyncService ;
     rdfs:range xsd:string ;
     rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .

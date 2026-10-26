@@ -66,19 +66,28 @@ DELETE to purge, `rel=original` on trashed copies, `ssd:retention`) is normative
 than in an appendix, because a service type without its protocol is not implementable. Solid
 restores to the original IRI or refuses with 409; LWS may restore under a new identifier.
 
-## D8 — CRDT tickets are authoritative; `ssd:roomTemplate` is informative
+## D8 — The Yjs relay profile is named here and specified separately
 
-ADR-006 gets the room URL from a ticket (`POST {room}` → `{url, expires}`); ADR-008 also had a
-`roomTemplate`. Two sources for one URL invite drift and let a client skip the authorization
-the ticket carries. The ticket URL is authoritative; the template is kept as an optional hint
-because sparq's context and the client already know it.
+ADR-006 gets the room URL from a ticket (`POST {room}` → `{url, expires}`). The first two cuts of
+this draft carried that protocol as an appendix (`ssd:y-protocol-v1`). Two review rounds showed
+it needs a document of its own: concurrent compactors can drop updates unless compaction is
+serialized or snapshots merge; authorization has to cover every relayed update, not only the
+ticket; the relay must ingest updates that log-mode clients write as resources, not only persist
+its own; and the byte encoding needs a normative layout with vectors. This draft keeps
+`ssd:CrdtSyncService` (with a required profile) and names the IRI `ssd:y-protocol-v1`; the
+profile moves to a separate draft (tracker follow-up). `ssd:roomTemplate` stays an optional,
+informative hint. **Rejected:** shipping the appendix with open [high] findings.
 
 ## D9 — Origin rules: storage credentials never leave the storage's origin
 
-A client ignores services and capabilities from a Solid description on another origin
-(SSD-CLI-1), never sends the storage's credentials to an endpoint on another origin or across a
-redirect to one (SSD-CLI-8, SSD-CLI-17), never sends them when fetching a description on another
-origin (SSD-CLI-14), and never dereferences JSON-LD contexts at run time (SSD-CLI-15). Solid
+A client never retrieves a storage description, Solid or LWS, from an origin other than that of
+the resource it started from, nor follows a redirect to one (SSD-CLI-18, SSD-CLI-19), so a
+hostile link cannot make it fetch from other hosts. It never sends the storage's credentials to
+an endpoint on another origin or across a redirect to one (SSD-CLI-8, SSD-CLI-17), never
+dereferences JSON-LD contexts at run time (SSD-CLI-15), and, when it is not a browser, never
+sends requests to loopback, private-use or link-local endpoints unless the storage itself is
+on one (SSD-CLI-21). The second review round found that checking the origin after fetching
+(the first fix) still allowed requests to internal hosts. Solid
 Notifications allows a subscription service on another origin; such a service is used only with
 credentials the client obtains for that origin. CRDT room URLs are capability URLs and carry no
 credentials. The first cut allowed cross-origin notification endpoints to receive the storage's
@@ -92,25 +101,39 @@ showed that advertising only `AccessControl` would then hide notifications. Clie
 to paths that work either way (log-mode Yjs, probing). ADR-002's `deriveFeatures` rule
 "description present → unavailable" should become "unknown" for these features.
 
-## D12 — Yjs loading replays every update; compaction deletes only what a snapshot contains
+## D12 — Yjs loading must not filter by timestamp (carried to the profile draft)
 
 ADR-006 §D1 has loaders apply "updates with ms ≥ snapshot ms". That loses an update written
 offline with an older timestamp after a snapshot that does not contain it. Yjs updates are
-idempotent, so loaders apply the newest snapshot and then every update (SSD-Y-11), and a
-compactor deletes only updates its snapshot was built from (SSD-Y-12). `y-solid` needs the same
-change (tracker follow-up).
+idempotent, so loaders can replay every update; review also showed that concurrent compactors
+need serializing or snapshot merging. Both go to the profile draft (D8), and `y-solid` needs the
+loader change now (tracker follow-up sst-br1.7).
 
-## D13 — Authorization of the trash, versions and sync rooms
+## D13 — Authorization of the trash, versions and recursive delete
 
 Trashing needs delete permission on a resource in the same storage; restoring needs delete on
 the trashed copy and create at the restore location; refusals answer as the storage would
 (SSD-SVC-TRASH-8/9). Versions and histories are never more readable than the live resource
-(SSD-SVC-VER-5). A sync ticket needs read access to the room container and every resource in
-it, because members can carry their own ACLs (SSD-Y-2/3/8).
+(SSD-SVC-VER-5). A request naming a resource outside the storage is refused with 400 before
+anything is read, so the refusal never depends on the client's rights in another storage
+(SSD-SVC-TRASH-10, SSD-SVC-RD-3).
+
+## D14 — Recursive delete is a service, not a `Depth: infinity` capability
+
+The Solid Protocol requires 409 for `DELETE` on a non-empty container, so a capability that
+changes `DELETE` would contradict it. `ssd:RecursiveDeleteService` takes `POST {container}` at
+its own endpoint, deletes nothing when the client lacks permission for any part, never removes
+the container after a partial failure, and leaves `DELETE` alone. **Rejected:**
+`ssd:RecursiveDelete` + `Depth: infinity` (ADR-008), which no server ships yet (sparq does not).
+
+## D15 — Profile choice: one implemented profile is enough
+
+A service that lists several profiles is usable by a client that implements any one of them
+(SSD-CLI-5, SSD-CLI-20), so adding a protocol version never cuts off existing clients.
 
 ## D11 — Not done in this draft
 
-- Byte-level test vectors for the Yjs update encoding (open issue in the appendix).
+- The `y-protocol-v1` profile (D8): its own draft, with byte-level vectors for the update encoding.
 - The jeswr.org `/ns/solid-sd` redirect and context hosting (needs the maintainer's go).
 - An `application/lws+cid` Link relation for Solid storages: whether a Solid storage also emits
   `rel=lws#storage` is left to a later draft, since it changes how LWS clients treat the storage.

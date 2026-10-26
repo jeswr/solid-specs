@@ -178,7 +178,7 @@ ssdsh:PatchSupportShape
     # SSD-CAP-PATCH-1
     sh:property [
         sh:path ssd:source ;
-        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
@@ -187,7 +187,7 @@ ssdsh:PatchSupportShape
     # SSD-CAP-PATCH-2
     sh:property [
         sh:path ssd:patchType ;
-        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "An ssd:PatchSupport node MUST have at least one ssd:patchType, a media type string (SSD-CAP-PATCH-2, #cap-patch)." ;
@@ -220,7 +220,7 @@ ssdsh:ContentNegotiationShape
     # SSD-CAP-CONNEG-1
     sh:property [
         sh:path ssd:source ;
-        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:string ;
@@ -228,7 +228,7 @@ ssdsh:ContentNegotiationShape
     ] ;
     sh:property [
         sh:path ssd:target ;
-        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
         sh:message "An ssd:ContentNegotiation node MUST have at least one ssd:target, a media type string (SSD-CAP-CONNEG-1, #cap-conneg)." ;
@@ -242,7 +242,7 @@ ssdsh:MediaTypeShape
     a sh:NodeShape ;
     sh:targetObjectsOf ssd:source, ssd:patchType, ssd:target ;
     sh:datatype xsd:string ;
-    sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$" ;
+    sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
     sh:message "Every value of ssd:source, ssd:patchType and ssd:target MUST be a media type type/subtype without parameters (SSD-DM-12, #dm-media-type)." .
 
 ssdsh:LwsNotificationServiceShape
