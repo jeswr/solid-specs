@@ -138,6 +138,12 @@ export function generateManifest() {
   // Removing the final delete-set byte leaves complete insert structs: applying this
   // payload directly can mutate a Y.Doc before it throws. Decode before applying it.
   const truncated = textUpdate(4, "poison").slice(0, -1);
+  const trailing = resource("trailing-payload-bytes",
+    record("JYU1", 1000, 1, Buffer.concat([hi, Buffer.from([0xff, 0x00])])));
+  // Y.decodeUpdate consumes this whole payload, but Y.applyUpdate inserts A into
+  // root t before throwing on the second struct (verified with Yjs 13.6.31).
+  const unapplicable = resource("unapplicable-payload",
+    record("JYU1", 1000, 1, Buffer.from("01020100040101740141840164014200", "hex")));
   const wrongMagic = record("BAD1", 1000, 1, hi);
   const invalid = [
     resource("short-header", record("JYU1", 1000, 1, hi).subarray(0, 15)),
@@ -149,6 +155,8 @@ export function generateManifest() {
     resource("unrecognised-headerless-name", hi),
     resource(legacyName.replace("0f8e", "0F8E"), hi),
     resource("1761480000000-0f8e2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c", hi),
+    trailing,
+    unapplicable,
   ];
   const invalidDescriptions = [
     "A body shorter than 16 bytes (15 bytes of an otherwise valid header).",
@@ -160,14 +168,21 @@ export function generateManifest() {
     "A valid headerless Yjs update without the required legacy name is not a log resource.",
     "Uppercase hexadecimal in the UUID does not match the case-sensitive legacy name pattern.",
     "A 13-digit time does not match the 15-digit legacy name pattern.",
+    "Valid JYU1 header and a valid update inserting hi, followed by trailing FF 00 bytes that Y.decodeUpdate ignores. A valid payload must consume every byte.",
+    "Valid JYU1 header and payload 01020100040101740141840164014200: Y.decodeUpdate consumes it, but Y.applyUpdate throws after inserting A into root t in an empty document.",
   ];
   const invalidIds = ["short-header", "wrong-magic", "unsafe-time", "undecodable-payload",
-    "legacy-undecodable", "empty-payload", "headerless-name", "legacy-uppercase", "legacy-short-time"];
+    "legacy-undecodable", "empty-payload", "headerless-name", "legacy-uppercase", "legacy-short-time",
+    "trailing-payload-bytes", "unapplicable-payload"];
   invalid.forEach((r, i) => add(`invalid-${invalidIds[i]}`, invalidDescriptions[i],
-    ["enc-valid", "load-invalid", "load-atomic", ...(i === 4 || i >= 6 ? ["legacy-read"] : [])],
+    ["enc-valid", "load-invalid", "load-atomic", ...(i === 4 || (i >= 6 && i <= 8) ? ["legacy-read"] : [])],
     [r], loaded("", [], [r.name])));
+  add("reject-unapplicable-without-partial-application",
+    "Load hi with a payload that decodes fully but throws after a partial insert. Rejecting the payload must leave exactly hi, with no root t or partial A.",
+    ["enc-valid", "load-all", "load-invalid", "load-atomic"], [update, unapplicable],
+    loaded("hi", [update.name], [unapplicable.name]));
   add("reject-invalid-without-partial-application",
-    "Load hi alongside all malformed resources. Validate each whole payload before application: none may insert even part of poison, in either ordering direction.",
+    "Load hi alongside all malformed resources. Require full payload consumption and error-free application to an empty document, then apply atomically: none may add partial content, in either ordering direction.",
     ["enc-valid", "enc-time", "load-all", "load-invalid", "load-atomic", "legacy-read"],
     [invalid[3], update, ...invalid.filter((_, i) => i !== 3)],
     loaded("hi", [update.name], invalid.map((r) => r.name)));

@@ -582,8 +582,87 @@
       }
     },
     {
+      "id": "invalid-trailing-payload-bytes",
+      "description": "Valid JYU1 header and a valid update inserting hi, followed by trailing FF 00 bytes that Y.decodeUpdate ignores. A valid payload must consume every byte.",
+      "statements": [
+        "enc-valid",
+        "load-invalid",
+        "load-atomic"
+      ],
+      "resources": [
+        {
+          "name": "trailing-payload-bytes",
+          "hex": "4a59553100000000000003e80000000101010a000401047465787402686900ff00"
+        }
+      ],
+      "expect": {
+        "text": {
+          "text": ""
+        },
+        "valid": [],
+        "invalid": [
+          "trailing-payload-bytes"
+        ]
+      }
+    },
+    {
+      "id": "invalid-unapplicable-payload",
+      "description": "Valid JYU1 header and payload 01020100040101740141840164014200: Y.decodeUpdate consumes it, but Y.applyUpdate throws after inserting A into root t in an empty document.",
+      "statements": [
+        "enc-valid",
+        "load-invalid",
+        "load-atomic"
+      ],
+      "resources": [
+        {
+          "name": "unapplicable-payload",
+          "hex": "4a59553100000000000003e80000000101020100040101740141840164014200"
+        }
+      ],
+      "expect": {
+        "text": {
+          "text": ""
+        },
+        "valid": [],
+        "invalid": [
+          "unapplicable-payload"
+        ]
+      }
+    },
+    {
+      "id": "reject-unapplicable-without-partial-application",
+      "description": "Load hi with a payload that decodes fully but throws after a partial insert. Rejecting the payload must leave exactly hi, with no root t or partial A.",
+      "statements": [
+        "enc-valid",
+        "load-all",
+        "load-invalid",
+        "load-atomic"
+      ],
+      "resources": [
+        {
+          "name": "server-chosen-name",
+          "hex": "4a59553100000000000003e80102030401010a000401047465787402686900"
+        },
+        {
+          "name": "unapplicable-payload",
+          "hex": "4a59553100000000000003e80000000101020100040101740141840164014200"
+        }
+      ],
+      "expect": {
+        "text": {
+          "text": "hi"
+        },
+        "valid": [
+          "server-chosen-name"
+        ],
+        "invalid": [
+          "unapplicable-payload"
+        ]
+      }
+    },
+    {
       "id": "reject-invalid-without-partial-application",
-      "description": "Load hi alongside all malformed resources. Validate each whole payload before application: none may insert even part of poison, in either ordering direction.",
+      "description": "Load hi alongside all malformed resources. Require full payload consumption and error-free application to an empty document, then apply atomically: none may add partial content, in either ordering direction.",
       "statements": [
         "enc-valid",
         "enc-time",
@@ -632,6 +711,14 @@
         {
           "name": "1761480000000-0f8e2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c",
           "hex": "01010a000401047465787402686900"
+        },
+        {
+          "name": "trailing-payload-bytes",
+          "hex": "4a59553100000000000003e80000000101010a000401047465787402686900ff00"
+        },
+        {
+          "name": "unapplicable-payload",
+          "hex": "4a59553100000000000003e80000000101020100040101740141840164014200"
         }
       ],
       "expect": {
@@ -650,7 +737,9 @@
           "empty-payload",
           "unrecognised-headerless-name",
           "001761480000000-0F8E2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c",
-          "1761480000000-0f8e2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c"
+          "1761480000000-0f8e2c6a-3b1d-4f5e-9a7c-2d4b6e8f0a1c",
+          "trailing-payload-bytes",
+          "unapplicable-payload"
         ]
       }
     }

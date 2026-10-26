@@ -20,6 +20,9 @@ const SC = "https://w3id.org/jeswr/spec-companion#";
 const SPEC_NS = "http://www.w3.org/ns/spec#";
 const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const IDENTIFIER = "http://purl.org/dc/terms/identifier";
+// Use Yjs's existing lib0 dependency without adding a workspace dependency.
+const require = createRequire(import.meta.url);
+const { hasContent } = createRequire(require.resolve("yjs/package.json"))("lib0/decoding");
 const html = readFileSync(join(SPEC, "index.html"), "utf8");
 const manifestBytes = readFileSync(join(SPEC, "vectors/manifest.json"));
 const manifest = JSON.parse(manifestBytes.toString("utf8"));
@@ -43,6 +46,18 @@ const subjectsOfType = (type) => statements
   .filter((q) => q.predicate.value === RDF_TYPE && q.object.value === type)
   .map((q) => q.subject.value);
 const requirements = subjectsOfType(`${SPEC_NS}Requirement`);
+
+function decodePayload(payload) {
+  let decoder;
+  // The exported decoder hook exposes the cursor after structs AND the delete set.
+  Y.decodeUpdateV2(payload, class extends Y.UpdateDecoderV1 {
+    constructor(restDecoder) {
+      super(restDecoder);
+      decoder = restDecoder;
+    }
+  });
+  if (hasContent(decoder)) throw new Error("Trailing bytes in Yjs v1 payload");
+}
 
 /** Independent reader of the draft's table and legacy definition; no generator imports. */
 function decodeResource(resource) {
@@ -69,12 +84,16 @@ function decodeResource(resource) {
     nonce = 0;
     payload = body;
   }
-  // applyUpdate can integrate structs before throwing on a malformed delete set.
-  // Decode the WHOLE payload without a room state before applying any of it.
+  // Decoding alone can ignore trailing bytes or accept structs that fail to
+  // integrate. A valid payload must also apply to a fresh, empty document.
+  const probe = room();
   try {
-    Y.decodeUpdate(payload);
+    decodePayload(payload);
+    Y.applyUpdate(probe, payload);
   } catch {
     return { kind: "invalid" };
+  } finally {
+    probe.destroy();
   }
   return { kind, time, nonce, payload, iri, name: resource.name };
 }
@@ -90,33 +109,54 @@ function compareCodePoints(a, b) {
 
 const orderingKey = (a, b) => a.time - b.time || a.nonce - b.nonce || compareCodePoints(a.iri, b.iri);
 
-function room() {
+function room(clientID = 0x7fffffff) {
   const doc = new Y.Doc({ guid: "vector-test-room" });
-  doc.clientID = 0x7fffffff;
+  doc.clientID = clientID;
   return doc;
+}
+
+function applyPayloadAtomically(doc, payload) {
+  const copy = room(0x7ffffffe);
+  try {
+    // Include pending structs and delete sets, not just integrated state.
+    Y.applyUpdate(copy, Y.encodeStateAsUpdate(doc));
+    Y.applyUpdate(copy, payload);
+  } catch {
+    return false;
+  } finally {
+    copy.destroy();
+  }
+  Y.applyUpdate(doc, payload);
+  return true;
 }
 
 function acceptResource(doc, resource) {
   const decoded = decodeResource(resource);
-  if (decoded.kind === "invalid") return false;
-  Y.applyUpdate(doc, decoded.payload);
-  return true;
+  return decoded.kind !== "invalid" && applyPayloadAtomically(doc, decoded.payload);
 }
 
-function assertRejectedWithoutMutation(doc, resource) {
+function assertUnchangedAfterRejection(doc, attempt, name) {
   // Full update bytes include pending content as well as integrated state, unlike
   // a text-only or state-vector check. No update event may escape either.
   const before = Y.encodeStateAsUpdate(doc);
+  const beforeVector = Y.encodeStateVector(doc);
+  const beforeContent = doc.toJSON();
   let events = 0;
   const onUpdate = () => { events++; };
   doc.on("update", onUpdate);
   try {
-    assert.equal(acceptResource(doc, resource), false, resource.name);
-    assert.deepEqual(Y.encodeStateAsUpdate(doc), before, `${resource.name}: mutated room state`);
-    assert.equal(events, 0, `${resource.name}: emitted a partial update`);
+    assert.equal(attempt(), false, name);
+    assert.deepEqual(Y.encodeStateAsUpdate(doc), before, `${name}: mutated room state`);
+    assert.deepEqual(Y.encodeStateVector(doc), beforeVector, `${name}: mutated state vector`);
+    assert.deepEqual(doc.toJSON(), beforeContent, `${name}: mutated content`);
+    assert.equal(events, 0, `${name}: emitted a partial update`);
   } finally {
     doc.off("update", onUpdate);
   }
+}
+
+function assertRejectedWithoutMutation(doc, resource) {
+  assertUnchangedAfterRejection(doc, () => acceptResource(doc, resource), resource.name);
 }
 
 function documentText(doc, expected) {
@@ -143,13 +183,21 @@ describe("y-protocol statement companion", () => {
     assert.ok(report.conforms, JSON.stringify(report.results, null, 2));
   });
 
+  it("defines all four conformance classes, including the storage server", () => {
+    assert.deepEqual(subjectsOfType(`${SC}ConformanceClass`).sort(),
+      ["Client", "Relay", "Compactor", "StorageServer"].map((id) => `${COMPANION_IRI}#${id}`).sort());
+    assert.equal(value(`${COMPANION_IRI}#StorageServer`, `${SC}definedBy`), `${SPEC_IRI}#conformance`);
+    const etagRequirement = requirements.find((r) => value(r, `${SC}anchor`) === `${SPEC_IRI}#srv-etag`);
+    assert.deepEqual(objects(etagRequirement, `${SPEC_NS}requirementSubject`), [`${COMPANION_IRI}#StorageServer`]);
+  });
+
   it("has exactly one verbatim statement per normative paragraph, at its actual anchor", () => {
     assert.deepEqual(normative.filter((p) => !p.id), [], "unanchored normative paragraphs");
     const anchors = [];
     const identifiers = [];
     for (const requirement of requirements) {
       const identifier = value(requirement, IDENTIFIER);
-      assert.match(identifier, /^YP-(ENC|LEGACY|WRITE|LOAD|WATCH|CMP|TKT|CONN|MSG|AUTH|PERSIST|INGEST|AW|DUR|DISC|SEC)-[1-9][0-9]*$/);
+      assert.match(identifier, /^YP-(ENC|LEGACY|WRITE|LOAD|WATCH|CMP|SRV|ACL|TKT|CONN|MSG|AUTH|PERSIST|INGEST|AW|DUR|DISC|SEC)-[1-9][0-9]*$/);
       assert.equal(requirement, `${COMPANION_IRI}#${identifier}`);
       identifiers.push(identifier);
       const anchor = value(requirement, `${SC}anchor`);
@@ -266,6 +314,57 @@ describe("y-protocol vectors", () => {
       assert.equal(doc.getText("text").toString(), "poison", "fixture must expose partial application");
     } finally {
       doc.destroy();
+    }
+  });
+
+  it("rejects trailing bytes even when Y.decodeUpdate accepts the update", () => {
+    const c = manifest.cases.find((c) => c.id === "invalid-trailing-payload-bytes");
+    const payload = Buffer.from(c.resources[0].hex, "hex").subarray(16);
+    assert.doesNotThrow(() => Y.decodeUpdate(payload));
+    assert.throws(() => decodePayload(payload), /Trailing bytes/);
+    const doc = room();
+    try {
+      Y.applyUpdate(doc, payload);
+      assert.equal(doc.getText("text").toString(), "hi");
+      assert.equal(decodeResource(c.resources[0]).kind, "invalid");
+    } finally {
+      doc.destroy();
+    }
+  });
+
+  it("rejects a fully decoded payload that throws after partially applying to an empty document", () => {
+    const c = manifest.cases.find((c) => c.id === "invalid-unapplicable-payload");
+    const payload = Buffer.from(c.resources[0].hex, "hex").subarray(16);
+    assert.equal(payload.toString("hex"), "01020100040101740141840164014200");
+    assert.doesNotThrow(() => Y.decodeUpdate(payload));
+    assert.doesNotThrow(() => decodePayload(payload));
+    const doc = room();
+    try {
+      assert.throws(() => Y.applyUpdate(doc, payload));
+      assert.equal(doc.getText("t").toString(), "A", "fixture must expose partial application");
+      assert.equal(decodeResource(c.resources[0]).kind, "invalid");
+    } finally {
+      doc.destroy();
+    }
+  });
+
+  it("keeps live state, content and pending updates intact when application to a copy fails", () => {
+    const pending = manifest.cases.find((c) => c.id === "snapshot-with-pending-update").resources[0];
+    for (const id of ["invalid-undecodable-payload", "invalid-unapplicable-payload"]) {
+      const resource = manifest.cases.find((c) => c.id === id).resources[0];
+      const payload = Buffer.from(resource.hex, "hex").subarray(16);
+      const doc = room();
+      try {
+        doc.getText("text").insert(0, "untouched");
+        assert.equal(acceptResource(doc, pending), true);
+        assert.ok(doc.store.pendingStructs, "live room must hold pending content");
+        // Exercise the copy's failure path directly; resource validation already
+        // rejects these payloads before normal loading reaches this step.
+        assertUnchangedAfterRejection(doc, () => applyPayloadAtomically(doc, payload), id);
+        assert.equal(doc.getText("text").toString(), "untouched");
+      } finally {
+        doc.destroy();
+      }
     }
   });
 
