@@ -28,6 +28,10 @@ it reports the room loaded; a bounded loader reports failure rather than a parti
 that reflects a single state of the container: a paginated listing is checked with the
 container's strong ETag (or membership version) before and after, because a compaction between
 pages shifts members and can hide a record without any read returning 404 (spec review round 1).
+Page ETags do not cover the whole membership, so the check uses the container's own strong ETag
+from HEAD (the *membership tag*), which a paginating storage must change on every membership
+change; records read before the final listing are revalidated by ETag, because a deleted IRI can
+be reused (review round 2).
 A payload is valid only if it decodes with no trailing bytes and applies to an empty document,
 and readers apply it to a copy first: Yjs can decode an update that then throws mid-apply.
 
@@ -70,7 +74,9 @@ notifications does not conform. **Rejected:** checking at connect time only, or 
 y-websocket has no acknowledgement. The relay persists accepted content before forwarding it,
 and answers a sync step 1 only after persisting everything accepted from that connection before
 it. A client therefore knows its changes are stored when a sync step 2 answers a sync step 1 it
-sent after them, and otherwise writes them to the log itself. This keeps unmodified y-protocols
+sent after them, and otherwise writes them to the log itself. The relay answers a sync step 1
+only once everything in its room state is held by a confirmed log resource, whichever connection
+it came from, so a duplicate submission cannot get an early confirmation (review round 2). This keeps unmodified y-protocols
 clients working. **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
@@ -78,7 +84,10 @@ clients working. **Rejected:** a custom acknowledgement message type (breaks sto
 Compaction moves content between resources and the relay merges the whole log, so per-resource
 access control inside a room cannot hold. Clients never set it, compactors leave alone resources
 they can see carry it, and the relay serves only agents who can read every record. Content meant
-for fewer readers goes in another room. **Rejected:** carrying the intersection of source ACLs
+for fewer readers goes in another room. A compactor must positively confirm a record inherits the room's access control before
+compacting it (in WAC: no ACL resource of its own, which needs Control), and the relay rebuilds
+its state when a record leaves the room other than by its own compaction (review round 2).
+**Rejected:** carrying the intersection of source ACLs
 onto snapshots (not expressible across WAC and ACP, and the relay state still merges everything).
 
 ## Y11 — Tickets carry the authorization context, and the handshake Origin must match

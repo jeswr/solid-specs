@@ -307,8 +307,9 @@
     </p>
     <p>
       A Yjs v1 update whose first four bytes equal a magic value would have to hold structures for 74
-      clients, the first with 89 structures and client ID 85; Yjs draws client IDs at random from 2<sup>32</sup>
-      values, so a legacy update is not mistaken for a headed one in practice.
+      clients, the first with 89 structures and client ID 85 (<code>JYU1</code>) or 83
+      (<code>JYS1</code>); Yjs draws client IDs at random from 2<sup>32</sup> values, so a legacy
+      update is not mistaken for a headed one in practice.
     </p>
   </section>
 </section>
@@ -350,13 +351,15 @@
     <p>
       A <dfn>complete listing</dfn> is a listing of the room container's members that reflects one
       state of the container: a single unpaginated response, or every page of a paginated listing
-      where the container's strong entity tag, or the storage's own membership version, was the
-      same before the first page was requested and after the last page was received.
+      where the <a>membership tag</a> of the room container was the same before the first page was
+      requested and after the last page was received. The <dfn>membership tag</dfn> is the strong
+      entity tag of the room container itself, returned by a <code>HEAD</code> request on the
+      container IRI, not the entity tag of a page.
     </p>
     <p id="load-complete-listing">
       A reader MUST NOT use a listing that is not a <a>complete listing</a> to decide that a room
-      is loaded; when the entity tag or membership version changed during a paginated listing, it
-      MUST list again.
+      is loaded; when the membership tag changed during a paginated listing, or the storage gave
+      none, it MUST list again.
     </p>
     <p id="load-all">
       A reader MUST apply every valid update resource, every valid snapshot resource and, when it
@@ -367,6 +370,11 @@
     <p id="load-loaded">
       A reader MUST NOT treat the room as loaded until it holds a <a>complete listing</a> every log
       resource of which it has read and applied, or found invalid.
+    </p>
+    <p id="load-revalidate">
+      For a resource that it read before that complete listing began, a reader MUST confirm that
+      the resource still has the strong entity tag it read, for example with a conditional
+      request, and MUST read it again when it does not.
     </p>
     <p id="load-vanished">
       When a resource that a listing named is gone when read (<code>404 Not Found</code> or
@@ -448,12 +456,15 @@
       it received no strong entity tag.
     </p>
     <p id="srv-etag">
-      A storage server MUST send a strong entity tag with every successful read of a log resource,
-      and with every listing of a room container that it paginates.
+      A storage server MUST send a strong entity tag with every successful read of a log resource.
+    </p>
+    <p id="srv-membership-tag">
+      A storage server that paginates the listing of a container MUST give the container a
+      <a>membership tag</a> that changes whenever a member is added to or removed from it.
     </p>
     <p id="cmp-own-acl">
-      A compactor MUST NOT compact a resource that it can tell has access control of its own,
-      rather than access control inherited from the room container.
+      A compactor MUST NOT compact a resource unless it has confirmed, after reading the resource,
+      that the resource has no access control of its own and inherits the room container's.
     </p>
     <p id="cmp-gone">
       A compactor MUST treat a <code>404 Not Found</code> or <code>410 Gone</code> answer to a
@@ -479,9 +490,11 @@
       This profile protects a room as a whole. Compaction moves content between resources, and the
       relay merges the whole log into one state, so an agent who may read the room may in time
       read every update ever written to it. Content meant for fewer readers belongs in another
-      room. In Web Access Control a compactor can tell that a resource has access control of its
-      own when the resource's ACL resource exists; with other access control systems it may not
-      be able to tell, which is why clients never set it (<a href="#acl-room-wide"></a>).
+      room. In Web Access Control a compactor confirms inheritance by finding that the resource's
+      ACL resource does not exist, which needs <code>acl:Control</code> on the room in general;
+      a compactor that cannot confirm it does not compact, and leaves compaction to the relay or to
+      an agent who can. Access control that someone sets on a record after it was readable to the
+      whole room does not withdraw what readers already saw.
     </p>
   </section>
 </section>
@@ -751,9 +764,9 @@
       <code>2xx</code> status.
     </p>
     <p id="persist-ack">
-      A relay MUST NOT send a sync step 2 answering a sync step 1 received on a connection until
-      every update resource holding content it accepted from that connection before that sync step
-      1 has been created.
+      A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room
+      state at the moment it processed that sync step 1 is held by a log resource that the storage
+      has confirmed, whichever connection the content came from.
     </p>
     <p id="persist-no-echo">
       A relay MUST NOT create update resources for content that it read from the room's log
@@ -764,13 +777,29 @@
       the room container's access control.
     </p>
     <p id="ingest">
-      While a room has open connections, a relay MUST apply to its room state every log resource
-      created in the room container by any other writer, and deliver the content it adds to the
-      connections, subject to <a href="#relay-authorization"></a>.
+      While a room has open connections, a relay MUST apply to its room state the content of every
+      log resource that another writer creates in the room container or moves into it, either from
+      that resource or from a log resource that holds its content, and deliver the content it adds
+      to the connections, subject to <a href="#relay-authorization"></a>.
+    </p>
+    <p id="ingest-gap">
+      When a resource the relay learned of is gone when read, or the relay cannot tell whether it
+      missed a change to the room container, the relay MUST catch up from a <a>complete
+      listing</a> as <a href="#loading"></a> describes.
+    </p>
+    <p id="ingest-removal">
+      When a log resource leaves the room other than by the relay's own compaction, the relay MUST
+      rebuild its room state by loading the room before it next delivers content to a connection.
+    </p>
+    <p>
+      Deleting a log resource does not remove its content from a document: clients that hold the
+      content send it again, and the relay persists it. Content is removed by editing the document,
+      which Yjs records as a deletion. Rebuilding the room state after a removal keeps the relay
+      from serving content that no log resource holds and no client sends.
     </p>
     <p id="ingest-latency">
-      A relay SHOULD deliver the content of such a log resource within five seconds of its
-      creation.
+      A relay SHOULD deliver the content of a log resource that another writer creates in the room
+      within five seconds of its creation.
     </p>
     <p id="ingest-invalid">
       A relay MUST NOT apply a resource that is not a valid log record or a supported legacy
