@@ -2,7 +2,7 @@
   "name": "@jeswr/solid-specs-check",
   "version": "0.0.0",
   "private": true,
-  "description": "Spec gate checks: SHACL shapes against example vectors, JSON-LD examples against their Turtle twins, vocabulary coverage and statement-companion quote fidelity.",
+  "description": "Spec gate checks: SHACL shapes, JSON-LD equivalence, vocabulary coverage, statement-companion fidelity and deterministic Yjs profile vectors.",
   "type": "module",
   "license": "MIT",
   "scripts": {

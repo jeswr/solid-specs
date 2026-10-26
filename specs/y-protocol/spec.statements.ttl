@@ -1,0 +1,900 @@
+# AUTHORED-BY Codex GPT-6.1-Sol
+#
+# Normative-statement companion for the Yjs Sync Profile for Solid Storages.
+# The full text in index.html is the normative document. Quotes strip tags, decode
+# entities, unbracket [[refs]] and collapse whitespace, as tools/spec-check verifies.
+# One requirement per normative paragraph; mixed-keyword paragraphs use their first
+# keyword for the single level required by the companion model.
+#
+# Testability: E = Enforceable (observable documents or exchanges);
+# A-int = AccountableIntegrity (uniformity/concurrent authorization properties);
+# A-exist = AccountableExistence (random-source or logging implementation audits);
+# P = Premature (not testable as specified; no paragraph is classified P here).
+# Test-case links identify manifest case IDs. A link covers only that case's byte or
+# loading assertion; remaining HTTP, reporting and compaction checks have explicit gaps.
+
+@base <https://jeswr.github.io/solid-specs/specs/y-protocol/spec.statements.ttl> .
+@prefix sc:      <https://w3id.org/jeswr/spec-companion#> .
+@prefix spec:    <http://www.w3.org/ns/spec#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+<> a sc:CompanionDocument ;
+    dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
+    sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
+    sc:specVersion "sha256:27e121eab74a889425c5d35cfdb32a66cd47bc9a5e4aef9247f0f2bce3e70b2f" ;
+    dcterms:created "2026-10-26"^^xsd:date ;
+    prov:wasAttributedTo <https://jeswr.org/#me> ;
+    dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
+
+<https://jeswr.github.io/solid-specs/specs/y-protocol/> a spec:Specification ;
+    dcterms:title "Yjs Sync Profile for Solid Storages (y-protocol-v1)"@en ;
+    spec:conformance <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> ;
+    spec:consideration <https://jeswr.github.io/solid-specs/specs/y-protocol/#security> ;
+    spec:requirement
+        <#YP-ENC-1> ,
+        <#YP-ENC-2> ,
+        <#YP-ENC-3> ,
+        <#YP-ENC-4> ,
+        <#YP-ENC-5> ,
+        <#YP-ENC-6> ,
+        <#YP-ENC-7> ,
+        <#YP-LEGACY-1> ,
+        <#YP-LEGACY-2> ,
+        <#YP-WRITE-1> ,
+        <#YP-WRITE-2> ,
+        <#YP-WRITE-3> ,
+        <#YP-LOAD-1> ,
+        <#YP-LOAD-2> ,
+        <#YP-LOAD-3> ,
+        <#YP-LOAD-4> ,
+        <#YP-LOAD-5> ,
+        <#YP-LOAD-6> ,
+        <#YP-LOAD-7> ,
+        <#YP-WATCH-1> ,
+        <#YP-CMP-1> ,
+        <#YP-CMP-2> ,
+        <#YP-CMP-3> ,
+        <#YP-CMP-4> ,
+        <#YP-CMP-5> ,
+        <#YP-CMP-6> ,
+        <#YP-CMP-7> ,
+        <#YP-TKT-1> ,
+        <#YP-TKT-2> ,
+        <#YP-TKT-3> ,
+        <#YP-TKT-4> ,
+        <#YP-TKT-5> ,
+        <#YP-TKT-6> ,
+        <#YP-TKT-7> ,
+        <#YP-TKT-8> ,
+        <#YP-TKT-9> ,
+        <#YP-TKT-10> ,
+        <#YP-TKT-11> ,
+        <#YP-TKT-12> ,
+        <#YP-TKT-13> ,
+        <#YP-CONN-1> ,
+        <#YP-CONN-2> ,
+        <#YP-CONN-3> ,
+        <#YP-CONN-4> ,
+        <#YP-CONN-5> ,
+        <#YP-MSG-1> ,
+        <#YP-MSG-2> ,
+        <#YP-MSG-3> ,
+        <#YP-MSG-4> ,
+        <#YP-MSG-5> ,
+        <#YP-MSG-6> ,
+        <#YP-MSG-7> ,
+        <#YP-AUTH-1> ,
+        <#YP-AUTH-2> ,
+        <#YP-AUTH-3> ,
+        <#YP-AUTH-4> ,
+        <#YP-AUTH-5> ,
+        <#YP-AUTH-6> ,
+        <#YP-AUTH-7> ,
+        <#YP-PERSIST-1> ,
+        <#YP-PERSIST-2> ,
+        <#YP-PERSIST-3> ,
+        <#YP-PERSIST-4> ,
+        <#YP-PERSIST-5> ,
+        <#YP-PERSIST-6> ,
+        <#YP-INGEST-1> ,
+        <#YP-INGEST-2> ,
+        <#YP-INGEST-3> ,
+        <#YP-AW-1> ,
+        <#YP-AW-2> ,
+        <#YP-AW-3> ,
+        <#YP-DUR-1> ,
+        <#YP-DUR-2> ,
+        <#YP-DISC-1> ,
+        <#YP-DISC-2> ,
+        <#YP-DISC-3> .
+
+<https://jeswr.github.io/solid-specs/specs/y-protocol/#security> a spec:SecurityConsiderations .
+
+<#Client> a sc:ConformanceClass ;
+    rdfs:label "client"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
+
+<#Relay> a sc:ConformanceClass ;
+    rdfs:label "relay"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
+
+<#Compactor> a sc:ConformanceClass ;
+    rdfs:label "compactor"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#conformance> .
+
+<#StorageServer> a sc:ConformanceClass ;
+    rdfs:label "storage server offering a relay"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/y-protocol/#disc-entry> .
+
+# StorageServer records the actor explicitly constrained by disc-entry, although
+# the conformance clause enumerates only client, relay and compactor.
+
+<#gap-protocol> a sc:TestGap ;
+    dcterms:description "No executable client, relay, storage or HTTP conformance harness is supplied here. Byte and in-memory loading vectors do not exercise this request, response, notification, authorization, persistence or discovery behaviour."@en .
+
+<#gap-audit> a sc:TestGap ;
+    dcterms:description "Random-source provenance, the number of random bits chosen and the absence of ticket logging require implementation and deployment inspection. Fixed vector nonces are fixtures and provide no evidence of production entropy or logging behaviour."@en .
+
+<#gap-integrity> a sc:TestGap ;
+    dcterms:description "Uniform not-found responses and authorization against every committed access-control change require adversarial integration testing and implementation review. The offline vectors supply no storage access-control or concurrency evidence."@en .
+
+<#gap-media-type> a sc:TestGap ;
+    dcterms:description "The vectors verify body recognition with arbitrary and legacy-looking names, but have no HTTP media-type metadata. An integration harness must check that media type never controls recognition."@en .
+
+<#gap-invalid-report> a sc:TestGap ;
+    dcterms:description "The vectors verify rejection without partial application. They do not check the SHOULD-level diagnostic reporting of invalid resources by a client or relay."@en .
+
+<#gap-compaction> a sc:TestGap ;
+    dcterms:description "The vectors exercise inclusion of integrated or pending Yjs content in snapshot payloads. They do not exercise conditional resource creation, deletion ordering, entity tags, or the alternative of retaining resources whose pending content is not included."@en .
+
+### Normative statements
+
+<#YP-ENC-1> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-1" ;
+    spec:statement "A client or relay that writes a log resource MUST write a body laid out as in the table above, with a payload that decodes without error as a Yjs update in the v1 update encoding." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-layout> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-snapshot> .
+
+<#YP-ENC-2> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-2" ;
+    spec:statement "The time field MUST NOT exceed 253 − 1." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-time> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-zero-time-max-nonce>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-max-safe-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> .
+
+<#YP-ENC-3> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-3" ;
+    spec:statement "A writer MUST draw the nonce from a cryptographically secure random source." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-nonce> ;
+    sc:testGap <#gap-audit> .
+
+<#YP-ENC-4> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-4" ;
+    spec:statement "A reader MUST treat a body as a valid log record only when it is at least 16 bytes long, begins with one of the two magic values, has a time field no greater than 253 − 1, and has a payload that decodes without error as a Yjs update in the v1 update encoding." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-valid> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#offline-older-than-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#headed-legacy-name>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-zero-time-max-nonce>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-max-safe-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-short-header>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-wrong-magic>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-unsafe-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-undecodable-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-undecodable>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-empty-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-headerless-name>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-uppercase>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-short-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> .
+
+<#YP-ENC-5> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-5" ;
+    spec:statement "A writer MUST create log resources with the media type application/octet-stream." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-media-type> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-ENC-6> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-6" ;
+    spec:statement "A reader MUST decide whether a resource is a log resource from its body, not from its media type or its name." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-media-type-ignore> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#headed-legacy-name> ;
+    sc:testGap <#gap-media-type> .
+
+<#YP-ENC-7> a spec:Requirement ;
+    dcterms:identifier "YP-ENC-7" ;
+    spec:statement "No client or relay may change the body of a log resource after it is created: a writer MUST NOT send a PUT or PATCH request to an existing log resource." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#enc-immutable> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-LEGACY-1> a spec:Requirement ;
+    dcterms:identifier "YP-LEGACY-1" ;
+    spec:statement "A reader SHOULD apply legacy update resources as it applies update resources." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#legacy-read> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#header-legacy>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#legacy-update>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#short-valid-legacy>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-undecodable>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-headerless-name>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-uppercase>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-short-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> .
+
+<#YP-LEGACY-2> a spec:Requirement ;
+    dcterms:identifier "YP-LEGACY-2" ;
+    spec:statement "A writer MUST NOT create a legacy update resource." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#legacy-write> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-WRITE-1> a spec:Requirement ;
+    dcterms:identifier "YP-WRITE-1" ;
+    spec:statement "A client that writes a change to a room without a relay MUST create a new update resource in the room container whose payload holds the change, using a request that cannot replace an existing resource: POST to the container, or PUT with If-None-Match: *." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#write-create> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-WRITE-2> a spec:Requirement ;
+    dcterms:identifier "YP-WRITE-2" ;
+    spec:statement "A writer that suggests a name for a log resource MUST include at least 32 random bits in it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#write-name> ;
+    sc:testGap <#gap-audit> .
+
+<#YP-WRITE-3> a spec:Requirement ;
+    dcterms:identifier "YP-WRITE-3" ;
+    spec:statement "A client or relay MUST NOT create a container inside a room." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#write-no-container> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-LOAD-1> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-1" ;
+    spec:statement "A reader MUST apply every valid update resource, every valid snapshot resource and, when it supports them, every legacy update resource that it reads in the room, and MUST NOT leave one out because of its time, its name, or the presence of a snapshot resource with a later time." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-all> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-update-hi>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#single-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#offline-older-than-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#concurrent-snapshots>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#overlapping-snapshots-and-updates>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#snapshot-with-pending-update>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#legacy-update>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#ordering-key-tie-break>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> .
+
+<#YP-LOAD-2> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-2" ;
+    spec:statement "A reader MUST NOT apply any part of a resource in a room that is not a valid log record or a legacy update resource it supports, and SHOULD report it." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-invalid> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-short-header>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-wrong-magic>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-unsafe-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-undecodable-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-undecodable>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-empty-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-headerless-name>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-uppercase>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-short-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> ;
+    sc:testGap <#gap-invalid-report> .
+
+<#YP-LOAD-3> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-3" ;
+    spec:statement "A reader MUST check that a payload decodes without error before applying any of it to its room state." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-atomic> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-short-header>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-wrong-magic>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-unsafe-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-undecodable-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-undecodable>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-empty-payload>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-headerless-name>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-uppercase>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#invalid-legacy-short-time>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#reject-invalid-without-partial-application> .
+
+<#YP-LOAD-4> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-4" ;
+    spec:statement "When a resource that a listing named is gone when read (404 Not Found or 410 Gone), a reader MUST list the room container again and read every log resource in the new listing that it has not yet read, before it treats the room as loaded." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-vanished> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-LOAD-5> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-5" ;
+    spec:statement "A reader MAY stop after a number of listings of its choosing, but MUST then report that the load did not complete and MUST NOT report the room as loaded." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-bound> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-LOAD-6> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-6" ;
+    spec:statement "A reader SHOULD apply log resources in ascending order of their ordering keys." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-order> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#offline-older-than-snapshot>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#concurrent-snapshots>,
+        <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#ordering-key-tie-break> .
+
+<#YP-LOAD-7> a spec:Requirement ;
+    dcterms:identifier "YP-LOAD-7" ;
+    spec:statement "A reader MUST ignore containers inside a room." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#load-ignore-containers> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-WATCH-1> a spec:Requirement ;
+    dcterms:identifier "YP-WATCH-1" ;
+    spec:statement "A client that relies on notifications to learn of new log resources MUST load the room again whenever it cannot tell whether it missed a notification, such as after its subscription lapsed or its channel reconnected." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#watch-resync> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CMP-1> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-1" ;
+    spec:statement "A compactor that compacts a set R of log resources MUST first create a snapshot resource whose payload is a Yjs update containing the content of every resource in R, using a request that cannot replace an existing resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-snapshot> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#snapshot-with-pending-update> ;
+    sc:testGap <#gap-compaction> .
+
+<#YP-CMP-2> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-2" ;
+    spec:statement "A compactor MUST NOT delete a resource in R until the storage has answered the creation of that snapshot resource with a 2xx status." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-after-create> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CMP-3> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-3" ;
+    spec:statement "A compactor MUST NOT delete a resource unless it read the whole body of that resource, found it to be a valid log record or a legacy update resource, and applied it to the room state from which it built the snapshot." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-only-read> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CMP-4> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-4" ;
+    spec:statement "When the compactor's room state holds content that Yjs has not yet integrated because it depends on updates the compactor has not seen, the snapshot payload MUST include that content, or the compactor MUST NOT delete the resources that carried it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-pending> ;
+    spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#snapshot-with-pending-update> ;
+    sc:testGap <#gap-compaction> .
+
+<#YP-CMP-5> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-5" ;
+    spec:statement "A compactor MUST send each deletion with an If-Match header carrying the entity tag it received when it read that resource, when it received one, and MUST NOT delete a resource for which it received none unless the resource's IRI includes at least 32 random bits." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-if-match> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CMP-6> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-6" ;
+    spec:statement "A compactor MUST treat a 404 Not Found or 410 Gone answer to a deletion as success, and a 412 Precondition Failed answer as a resource it must leave in place." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-gone> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CMP-7> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-7" ;
+    spec:statement "A client MUST NOT compact a room that it may not write." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-write> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-1> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-1" ;
+    spec:statement "A client MUST send the request with the credentials it uses for the storage only when SOLID-SD allows it to send them to that service URL, and otherwise MUST send it without credentials." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-credentials> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-2> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-2" ;
+    spec:statement "When the room member names a container in a storage the relay serves, and the requesting agent may read the room, the relay MUST respond 200 OK with an application/json body: a JSON object whose url member is the WebSocket URL to open and whose expires member is the time the ticket stops being accepted, as an RFC3339 date-time with a time zone." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-issue> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-3> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-3" ;
+    spec:statement "The relay MUST send a ticket response with Cache-Control: no-store." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-no-store> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-4> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-4" ;
+    spec:statement "The relay MUST respond 400 Bad Request, without reading or changing any resource, when the body is not a JSON object with a string room member holding an absolute IRI, or when that IRI is not in a storage the relay serves." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-bad-request> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-5> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-5" ;
+    spec:statement "When the request carries no credentials, or credentials the storage does not accept, and the public may not read the room, the relay MUST respond 401 Unauthorized with a WWW-Authenticate header as the storage would for a read of the room container." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-unauthenticated> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-6> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-6" ;
+    spec:statement "When there is no container at the room IRI, or the authenticated agent may not read the room container, the relay MUST respond 404 Not Found, with the same body and headers in both cases." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-not-found> ;
+    sc:testGap <#gap-integrity> .
+
+<#YP-TKT-7> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-7" ;
+    spec:statement "When the authenticated agent may read the room container but may not read every log resource in it, the relay MUST respond 403 Forbidden." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-forbidden> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-8> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-8" ;
+    spec:statement "A ticket MUST carry at least 128 bits from a cryptographically secure random source, and the relay MUST bind it to the room and to the agent that requested it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-entropy> ;
+    sc:testGap <#gap-audit> .
+
+<#YP-TKT-9> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-9" ;
+    spec:statement "The expires time MUST be no more than 300 seconds after the relay issues the ticket, and SHOULD be no more than 60 seconds after." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-expiry> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-10> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-10" ;
+    spec:statement "A relay MUST accept a ticket for at most one connection, and MUST NOT accept it after its expires time." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-single-use> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-11> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-11" ;
+    spec:statement "The url MUST use the wss scheme and the host and port of the ticket endpoint." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-url-origin> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-12> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-12" ;
+    spec:statement "A client MUST NOT open a url whose scheme is not wss or whose host and port differ from those of the ticket endpoint, unless the host is a loopback address the client is configured to trust, in which case the ws scheme is also allowed." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-client-check> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-TKT-13> a spec:Requirement ;
+    dcterms:identifier "YP-TKT-13" ;
+    spec:statement "A relay MUST NOT write tickets to logs, and SHOULD carry the ticket in the URL's query component so that infrastructure which logs paths does not record it." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#tkt-no-log> ;
+    sc:testGap <#gap-audit> .
+
+<#YP-CONN-1> a spec:Requirement ;
+    dcterms:identifier "YP-CONN-1" ;
+    spec:statement "A client MUST NOT send its storage credentials on the WebSocket handshake or over the connection." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#conn-no-credentials> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CONN-2> a spec:Requirement ;
+    dcterms:identifier "YP-CONN-2" ;
+    spec:statement "A relay MUST authenticate a connection by its ticket alone, and MUST NOT accept cookies or other credentials the browser attaches on its own as a substitute." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#conn-ticket-only> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CONN-3> a spec:Requirement ;
+    dcterms:identifier "YP-CONN-3" ;
+    spec:statement "A relay MUST refuse the handshake with 401 Unauthorized when the ticket is missing, unknown, expired or already used." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#conn-refuse> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CONN-4> a spec:Requirement ;
+    dcterms:identifier "YP-CONN-4" ;
+    spec:statement "A relay MUST bind each connection to the room and agent of its ticket, whatever else the URL's path says." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#conn-bind> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-CONN-5> a spec:Requirement ;
+    dcterms:identifier "YP-CONN-5" ;
+    spec:statement "A relay MUST NOT send a sync message on a connection until it has loaded the room as describes." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#conn-loaded> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-1> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-1" ;
+    spec:statement "Clients and relays MUST send messages as binary frames encoded as Y-PROTOCOLS defines." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-binary> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-2> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-2" ;
+    spec:statement "A relay MUST close a connection that sends a text frame with status code 1003." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-text-frame> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-3> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-3" ;
+    spec:statement "A relay MUST close a connection that sends a message it cannot decode, or a sync update that does not decode as a Yjs update, with status code 1007, without applying any part of it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-undecodable> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-4> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-4" ;
+    spec:statement "A relay MAY close a connection that sends a message larger than a limit it chooses, with status code 1009." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-size> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-5> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-5" ;
+    spec:statement "A relay MUST process the messages of one connection in the order it receives them." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-order> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-6> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-6" ;
+    spec:statement "Once a connection is open and the room is loaded, a relay MUST send a sync step 1 holding the state vector of its room state, and a client SHOULD send a sync step 1 holding its own." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client>, <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-open-sync> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-MSG-7> a spec:Requirement ;
+    dcterms:identifier "YP-MSG-7" ;
+    spec:statement "A relay MUST answer each sync step 1 it accepts with a sync step 2 holding the content of its room state that the received state vector lacks." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#msg-step2> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AUTH-1> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-1" ;
+    spec:statement "Before a relay sends a sync or awareness message on a connection, it MUST establish that the connection's agent may read the room, taking into account every change to access control that the storage committed before the message is sent." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-deliver> ;
+    sc:testGap <#gap-integrity> .
+
+<#YP-AUTH-2> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-2" ;
+    spec:statement "When the agent may no longer read the room, the relay MUST NOT send the message, MUST send an auth message of type permission-denied with the reason read, and MUST close the connection with status code 4403." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-deliver-fail> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AUTH-3> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-3" ;
+    spec:statement "When a relay receives a sync step 2 or update on a connection, it MUST establish that the connection's agent may write the room, taking into account every change to access control that the storage committed before the relay received the message." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-accept> ;
+    sc:testGap <#gap-integrity> .
+
+<#YP-AUTH-4> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-4" ;
+    spec:statement "When the agent may not write the room, the relay MUST NOT apply, persist or forward any part of the message, and MUST send an auth message of type permission-denied with the reason write. It MAY keep the connection open for reading." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-accept-fail> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AUTH-5> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-5" ;
+    spec:statement "A relay MUST NOT forward an awareness update received on a connection whose agent may not read the room." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-awareness> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AUTH-6> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-6" ;
+    spec:statement "When the room container is deleted, a relay MUST close every connection to the room with status code 4404." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-room-gone> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AUTH-7> a spec:Requirement ;
+    dcterms:identifier "YP-AUTH-7" ;
+    spec:statement "A client that receives a permission-denied auth message with the reason write MUST stop sending updates on that connection and MUST keep its unsent changes." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#auth-client-denied> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-1> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-1" ;
+    spec:statement "A relay MUST persist the content that each accepted sync step 2 or update adds to its room state as update resources in the room container." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-accepted> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-2> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-2" ;
+    spec:statement "A relay MAY persist the content of several accepted messages as one update resource." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-merge> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-3> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-3" ;
+    spec:statement "A relay MUST NOT send content accepted from one connection to any other connection before the storage has answered the creation of an update resource holding it with a 2xx status." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-before-forward> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-4> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-4" ;
+    spec:statement "A relay MUST NOT send a sync step 2 answering a sync step 1 received on a connection until every update resource holding content it accepted from that connection before that sync step 1 has been created." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-ack> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-5> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-5" ;
+    spec:statement "A relay MUST NOT persist content that it read from the room's log resources." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-no-echo> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-6> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-6" ;
+    spec:statement "A relay MUST NOT give a log resource it creates access control of its own; it is governed by the room container's access control." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-access> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-INGEST-1> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-1" ;
+    spec:statement "While a room has open connections, a relay MUST apply to its room state every log resource created in the room container by any other writer, and deliver the content it adds to the connections, subject to ." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-INGEST-2> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-2" ;
+    spec:statement "A relay SHOULD deliver the content of such a log resource within five seconds of its creation." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-latency> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-INGEST-3> a spec:Requirement ;
+    dcterms:identifier "YP-INGEST-3" ;
+    spec:statement "A relay MUST NOT apply a resource that is not a valid log record or a supported legacy update resource, and MUST NOT close connections because of one." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#ingest-invalid> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AW-1> a spec:Requirement ;
+    dcterms:identifier "YP-AW-1" ;
+    spec:statement "A relay MUST forward each awareness update it accepts to the other connections of the room, subject to ." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#aw-forward> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AW-2> a spec:Requirement ;
+    dcterms:identifier "YP-AW-2" ;
+    spec:statement "Clients and relays MUST NOT persist awareness state in the room." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client>, <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#aw-no-persist> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-AW-3> a spec:Requirement ;
+    dcterms:identifier "YP-AW-3" ;
+    spec:statement "When a connection closes, a relay SHOULD send the other connections of the room an awareness update that removes the closed connection's awareness states." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#aw-close> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-DUR-1> a spec:Requirement ;
+    dcterms:identifier "YP-DUR-1" ;
+    spec:statement "A client MUST treat a change it sent to a relay as stored only after it has received a sync step 2 answering a sync step 1 that it sent after the change, on the same connection." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#dur-confirm> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-DUR-2> a spec:Requirement ;
+    dcterms:identifier "YP-DUR-2" ;
+    spec:statement "A client that holds changes not yet treated as stored and whose connection closed MUST, before it discards them, either complete that exchange on a new connection or write them as an update resource ()." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#dur-fallback> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-DISC-1> a spec:Requirement ;
+    dcterms:identifier "YP-DISC-1" ;
+    spec:statement "A storage server that offers a relay MUST list it in the storage description as a ssd:CrdtSyncService whose service endpoint is the ticket endpoint and whose dcterms:conformsTo includes ssd:y-protocol-v1 SOLID-SD." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#StorageServer> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#disc-entry> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-DISC-2> a spec:Requirement ;
+    dcterms:identifier "YP-DISC-2" ;
+    spec:statement "A relay listed for a storage MUST accept every container in that storage as a room." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#disc-any-container> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-DISC-3> a spec:Requirement ;
+    dcterms:identifier "YP-DISC-3" ;
+    spec:statement "A client that finds no relay conforming to this profile, or cannot reach one, MAY still edit a room by writing and reading log resources as describes." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#disc-no-relay> ;
+    sc:testGap <#gap-protocol> .
+
