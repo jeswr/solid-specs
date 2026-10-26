@@ -63,8 +63,8 @@
           publisher: "Yjs"
         },
         "Y-PROTOCOLS": {
-          title: "y-protocols: sync, awareness and auth message encodings",
-          href: "https://github.com/yjs/y-protocols/blob/master/PROTOCOL.md",
+          title: "y-protocols 1.0.6 (sync, awareness and auth encodings) and y-websocket 2.1.0 (message envelope)",
+          href: "https://github.com/yjs/y-protocols/tree/v1.0.6",
           authors: ["Kevin Jahns"],
           publisher: "Yjs"
         },
@@ -172,9 +172,10 @@
 
 <section id="conformance">
   <p>
-    This specification defines three conformance classes. A <dfn>relay</dfn> is the server
-    component behind a <code>ssd:CrdtSyncService</code> that conforms to this profile. A
-    <dfn>client</dfn> is software that reads or edits a <a>room</a>, with or without a relay. A
+    This specification defines four conformance classes. A <dfn>storage server</dfn> is a storage
+    server as [[SOLID-SD]] defines it that offers a relay for its storages. A <dfn>relay</dfn> is
+    the server component behind a <code>ssd:CrdtSyncService</code> that conforms to this profile.
+    A <dfn>client</dfn> is software that reads or edits a <a>room</a>, with or without a relay. A
     <dfn>compactor</dfn> is a client or relay that compacts a room; it meets the requirements on
     its own class and those of <a href="#compaction"></a>.
   </p>
@@ -218,6 +219,14 @@
     <dd>An agent may write the room when it may read the room and the storage's access control
       lets it create resources in the room container (in Web Access Control [[WAC]],
       <code>acl:Append</code> or <code>acl:Write</code> on the container).</dd>
+    <dt><dfn>authorization context</dfn></dt>
+    <dd>Everything besides the agent that the storage's access control takes into account for a
+      request: in Web Access Control the request's <code>Origin</code>, in Solid-OIDC the client
+      identifier, and any grant the request presents. "May read" and "may write" are always
+      decided for an agent in an authorization context.</dd>
+    <dt><dfn>valid payload</dfn></dt>
+    <dd>A byte string that the Yjs v1 update decoder [[YJS]] decodes with no bytes left over,
+      and that applies without error to a new, empty Yjs document.</dd>
   </dl>
   <p>
     The profile IRI is <code>https://jeswr.org/ns/solid-sd#y-protocol-v1</code>, written
@@ -245,7 +254,7 @@
   </table>
   <p id="enc-layout">
     A client or relay that writes a log resource MUST write a body laid out as in the table
-    above, with a payload that decodes without error as a Yjs update in the v1 update encoding.
+    above, with a <a>valid payload</a>.
   </p>
   <p id="enc-time">
     The time field MUST NOT exceed 2<sup>53</sup>&nbsp;−&nbsp;1.
@@ -256,8 +265,7 @@
   <p id="enc-valid">
     A reader MUST treat a body as a valid log record only when it is at least 16 bytes long,
     begins with one of the two magic values, has a time field no greater than
-    2<sup>53</sup>&nbsp;−&nbsp;1, and has a payload that decodes without error as a Yjs update
-    in the v1 update encoding.
+    2<sup>53</sup>&nbsp;−&nbsp;1, and has a <a>valid payload</a>.
   </p>
   <p>
     The <dfn>ordering key</dfn> of a log resource is the triple (time, nonce read as an unsigned
@@ -268,8 +276,8 @@
     A writer MUST create log resources with the media type <code>application/octet-stream</code>.
   </p>
   <p id="enc-media-type-ignore">
-    A reader MUST decide whether a resource is a log resource from its body, not from its media
-    type or its name.
+    A reader MUST decide whether a resource is an update resource or a snapshot resource from its
+    body, not from its media type or its name.
   </p>
   <p id="enc-immutable">
     No client or relay may change the body of a log resource after it is created: a writer MUST
@@ -288,7 +296,7 @@
       A <dfn>legacy update resource</dfn> is a non-container resource in a room whose body does
       not begin with either magic value, whose last path segment matches
       <code>^[0-9]{15}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$</code>, and
-      whose whole body decodes without error as a Yjs update in the v1 update encoding. Its
+      whose whole body is a <a>valid payload</a>. Its
       ordering key is (the 15-digit time, 0, resource IRI).
     </p>
     <p id="legacy-read">
@@ -313,8 +321,8 @@
     <p id="write-create">
       A client that writes a change to a room without a relay MUST create a new update resource in
       the room container whose payload holds the change, using a request that cannot replace an
-      existing resource: <code>POST</code> to the container, or <code>PUT</code> with
-      <code>If-None-Match: *</code>.
+      existing resource: <code>POST</code> to the container, or, on a Solid storage only,
+      <code>PUT</code> with <code>If-None-Match: *</code>.
     </p>
     <p id="write-name">
       A writer that suggests a name for a log resource MUST include at least 32 random bits in it.
@@ -322,9 +330,9 @@
     <p>
       Names such as <code>01761480000000-k3v9q2xa.yupdate</code> and
       <code>snapshot-01761480000000-p8m2w7cd.ysnap</code> (13-digit time, eight base32 characters)
-      are a convenient choice. Unique names, conditional creation and conditional deletion
-      together keep a resource's IRI from ever naming two different records, which compaction
-      relies on.
+      are a convenient choice. Unique names make it unlikely that a deleted record's IRI is
+      reused; conditional deletion with a strong entity tag (<a href="#compaction"></a>) makes
+      sure that a reused IRI is never deleted by mistake.
     </p>
     <p id="write-no-container">
       A client or relay MUST NOT create a container inside a room.
@@ -335,7 +343,20 @@
     <h3>Loading a room</h3>
     <p>
       A client or relay loads a room by listing the room container, reading each log resource it
-      lists and applying the payloads to its room state.
+      lists and applying the payloads to its room state. Compactors replace resources while
+      others load (<a href="#compaction"></a>), so a reader keeps listing until a listing shows
+      nothing new.
+    </p>
+    <p>
+      A <dfn>complete listing</dfn> is a listing of the room container's members that reflects one
+      state of the container: a single unpaginated response, or every page of a paginated listing
+      where the container's strong entity tag, or the storage's own membership version, was the
+      same before the first page was requested and after the last page was received.
+    </p>
+    <p id="load-complete-listing">
+      A reader MUST NOT use a listing that is not a <a>complete listing</a> to decide that a room
+      is loaded; when the entity tag or membership version changed during a paginated listing, it
+      MUST list again.
     </p>
     <p id="load-all">
       A reader MUST apply every valid update resource, every valid snapshot resource and, when it
@@ -343,22 +364,27 @@
       one out because of its time, its name, or the presence of a snapshot resource with a later
       time.
     </p>
+    <p id="load-loaded">
+      A reader MUST NOT treat the room as loaded until it holds a <a>complete listing</a> every log
+      resource of which it has read and applied, or found invalid.
+    </p>
+    <p id="load-vanished">
+      When a resource that a listing named is gone when read (<code>404 Not Found</code> or
+      <code>410 Gone</code>), a reader MUST list the room container again and read every log
+      resource in the new listing that it has not yet read.
+    </p>
+    <p id="load-bound">
+      A reader MAY stop after a number of listings of its choosing, but MUST then report that the
+      load did not complete and MUST NOT report the room as loaded.
+    </p>
     <p id="load-invalid">
       A reader MUST NOT apply any part of a resource in a room that is not a valid log record or a
       legacy update resource it supports, and SHOULD report it.
     </p>
     <p id="load-atomic">
-      A reader MUST check that a payload decodes without error before applying any of it to its
-      room state.
-    </p>
-    <p id="load-vanished">
-      When a resource that a listing named is gone when read (<code>404 Not Found</code> or
-      <code>410 Gone</code>), a reader MUST list the room container again and read every log
-      resource in the new listing that it has not yet read, before it treats the room as loaded.
-    </p>
-    <p id="load-bound">
-      A reader MAY stop after a number of listings of its choosing, but MUST then report that the
-      load did not complete and MUST NOT report the room as loaded.
+      A reader MUST apply each payload so that its room state is unchanged when the payload
+      cannot be applied without error, for example by applying it to a copy of the room state
+      first.
     </p>
     <p id="load-order">
       A reader SHOULD apply log resources in ascending order of their ordering keys.
@@ -367,9 +393,11 @@
       A reader MUST ignore containers inside a room.
     </p>
     <p>
-      A resource gone between listing and reading was deleted by a compactor after its content was
-      written to a new snapshot resource (<a href="#compaction"></a>), so the next listing names
-      that snapshot. Reading it again is harmless because applying an update twice changes nothing.
+      Compaction keeps every update in some log resource at every moment, so the resources named
+      in a complete listing hold every update that existed when the container was in that state.
+      A resource gone between listing and reading was replaced by a snapshot resource that the
+      next listing names. Reading a record twice is harmless, because applying an update twice
+      changes nothing.
     </p>
   </section>
 
@@ -415,10 +443,17 @@
       content, or the compactor MUST NOT delete the resources that carried it.
     </p>
     <p id="cmp-if-match">
-      A compactor MUST send each deletion with an <code>If-Match</code> header carrying the
-      entity tag it received when it read that resource, when it received one, and MUST NOT
-      delete a resource for which it received none unless the resource's IRI includes at least
-      32 random bits.
+      A compactor MUST send each deletion with an <code>If-Match</code> header carrying the strong
+      entity tag it received when it read that resource, and MUST NOT delete a resource for which
+      it received no strong entity tag.
+    </p>
+    <p id="srv-etag">
+      A storage server MUST send a strong entity tag with every successful read of a log resource,
+      and with every listing of a room container that it paginates.
+    </p>
+    <p id="cmp-own-acl">
+      A compactor MUST NOT compact a resource that it can tell has access control of its own,
+      rather than access control inherited from the room container.
     </p>
     <p id="cmp-gone">
       A compactor MUST treat a <code>404 Not Found</code> or <code>410 Gone</code> answer to a
@@ -428,6 +463,9 @@
     <p id="cmp-write">
       A client MUST NOT compact a room that it may not write.
     </p>
+    <p id="acl-room-wide">
+      A client MUST NOT give a log resource access control of its own.
+    </p>
     <p>
       Every deleted resource's content is in a snapshot resource that existed before the deletion.
       A later compactor that deletes that snapshot has, by the same rules, first written a newer
@@ -436,6 +474,14 @@
       by the first one's. A loader that reads every log resource therefore always sees every
       update. Compaction removes history: a storage that offers a versioning service keeps
       earlier versions as [[SOLID-SD]] describes.
+    </p>
+    <p>
+      This profile protects a room as a whole. Compaction moves content between resources, and the
+      relay merges the whole log into one state, so an agent who may read the room may in time
+      read every update ever written to it. Content meant for fewer readers belongs in another
+      room. In Web Access Control a compactor can tell that a resource has access control of its
+      own when the resource's ACL resource exists; with other access control systems it may not
+      be able to tell, which is why clients never set it (<a href="#acl-room-wide"></a>).
     </p>
   </section>
 </section>
@@ -460,48 +506,57 @@
       [[SOLID-SD]] allows it to send them to that service URL, and otherwise MUST send it without
       credentials.
     </p>
+    <p>
+      The relay answers a ticket request with the first of the following that applies.
+    </p>
+    <p id="tkt-bad-request">
+      When the body is not a JSON object with a string <code>room</code> member holding an
+      absolute IRI, or that IRI is not in a storage the relay serves, the relay MUST respond
+      <code>400 Bad Request</code> without reading or changing any resource.
+    </p>
+    <p id="tkt-unauthenticated">
+      When the request carries no credentials, or credentials the storage does not accept, and the
+      public may not read the room in the request's <a>authorization context</a>, the relay MUST
+      respond <code>401 Unauthorized</code> with a <code>WWW-Authenticate</code> header as the
+      storage would for a read of a protected resource, whether or not a container exists at the
+      room IRI.
+    </p>
+    <p id="tkt-not-found">
+      When there is no container at the room IRI, or the requesting agent may not read the room
+      container in the request's <a>authorization context</a>, the relay MUST respond
+      <code>404 Not Found</code>, with the same body and headers in both cases.
+    </p>
+    <p id="tkt-forbidden">
+      When the requesting agent may read the room container but may not read every log resource in
+      it, the relay MUST respond <code>403 Forbidden</code>.
+    </p>
     <p id="tkt-issue">
-      When the room member names a container in a storage the relay serves, and the requesting
-      agent may read the room, the relay MUST respond <code>200 OK</code> with an
-      <code>application/json</code> body: a JSON object whose <code>url</code> member is the
-      WebSocket URL to open and whose <code>expires</code> member is the time the ticket stops
-      being accepted, as an [[RFC3339]] date-time with a time zone.
+      Otherwise the relay MUST respond <code>200 OK</code> with an <code>application/json</code>
+      body: a JSON object whose <code>url</code> member is the WebSocket URL to open and whose
+      <code>expires</code> member is the time the ticket stops being accepted, as an [[RFC3339]]
+      date-time with a time zone.
     </p>
     <p id="tkt-no-store">
       The relay MUST send a ticket response with <code>Cache-Control: no-store</code>.
     </p>
-    <p id="tkt-bad-request">
-      The relay MUST respond <code>400 Bad Request</code>, without reading or changing any
-      resource, when the body is not a JSON object with a string <code>room</code> member holding
-      an absolute IRI, or when that IRI is not in a storage the relay serves.
-    </p>
-    <p id="tkt-unauthenticated">
-      When the request carries no credentials, or credentials the storage does not accept, and the
-      public may not read the room, the relay MUST respond <code>401 Unauthorized</code> with a
-      <code>WWW-Authenticate</code> header as the storage would for a read of the room container.
-    </p>
-    <p id="tkt-not-found">
-      When there is no container at the room IRI, or the authenticated agent may not read the room
-      container, the relay MUST respond <code>404 Not Found</code>, with the same body and headers
-      in both cases.
-    </p>
-    <p id="tkt-forbidden">
-      When the authenticated agent may read the room container but may not read every log
-      resource in it, the relay MUST respond <code>403 Forbidden</code>.
-    </p>
     <p>
       The relay merges every log resource into one room state and cannot send an agent part of
-      it, so it serves a room only to agents who may read all of it. The <code>404</code> answer
-      covers both a missing room and an unreadable one, so the ticket endpoint does not reveal
-      whether a container exists to someone who may not read it.
+      it, so it serves a room only to agents who may read all of it. Unauthenticated requests get
+      the same <code>401</code> for a missing room and a protected one, and authenticated ones the
+      same <code>404</code>, so the ticket endpoint does not reveal whether a container exists to
+      someone who may not read it.
     </p>
   </section>
 
   <section id="ticket-properties">
     <h3>Ticket properties</h3>
     <p id="tkt-entropy">
-      A ticket MUST carry at least 128 bits from a cryptographically secure random source, and the
-      relay MUST bind it to the room and to the agent that requested it.
+      A ticket MUST carry at least 128 bits from a cryptographically secure random source.
+    </p>
+    <p id="tkt-bind">
+      The relay MUST bind a ticket to the room, the requesting agent and the request's
+      <a>authorization context</a>, including the value of its <code>Origin</code> header or the
+      absence of one.
     </p>
     <p id="tkt-expiry">
       The <code>expires</code> time MUST be no more than 300 seconds after the relay issues the
@@ -537,44 +592,74 @@
       <code>url</code>, unchanged, before the ticket expires.
     </p>
     <p id="conn-no-credentials">
-      A client MUST NOT send its storage credentials on the WebSocket handshake or over the
-      connection.
+      A client MUST NOT add its storage credentials, such as an access token or a proof of
+      possession, to the WebSocket URL, the handshake's headers or the connection's messages.
     </p>
     <p id="conn-ticket-only">
-      A relay MUST authenticate a connection by its ticket alone, and MUST NOT accept cookies or
-      other credentials the browser attaches on its own as a substitute.
+      A relay MUST authenticate a connection by its ticket alone, and MUST ignore cookies and other
+      credentials a browser attaches to the handshake on its own.
     </p>
     <p id="conn-refuse">
-      A relay MUST refuse the handshake with <code>401 Unauthorized</code> when the ticket is
-      missing, unknown, expired or already used.
+      A relay MUST refuse the handshake with <code>403 Forbidden</code> when the ticket is missing,
+      unknown, expired or already used.
+    </p>
+    <p id="conn-origin">
+      A relay MUST refuse the handshake with <code>403 Forbidden</code> when its
+      <code>Origin</code> header, or the absence of one, differs from that of the ticket request.
     </p>
     <p id="conn-bind">
-      A relay MUST bind each connection to the room and agent of its ticket, whatever else the
-      URL's path says.
+      A relay MUST bind each connection to the room, agent and <a>authorization context</a> of its
+      ticket, whatever else the URL's path says.
     </p>
     <p id="conn-loaded">
-      A relay MUST NOT send a sync message on a connection until it has loaded the room as
-      <a href="#loading"></a> describes.
+      Before a relay sends the first sync message on a connection, its room state MUST hold every
+      log resource in the room container when the relay accepted the connection: it MUST either
+      load the room as <a href="#loading"></a> describes after accepting the connection, or have
+      observed every log resource created in the room since its last such load.
+    </p>
+    <p id="conn-observe">
+      A relay that relies on observing the room container MUST start observing before it starts a
+      load, so that no log resource created during the load is missed, and MUST load the room again
+      when it cannot tell whether it missed one.
     </p>
   </section>
 
   <section id="relay-messages">
     <h3>Messages</h3>
     <p>
-      Messages are those of the y-websocket protocol [[Y-PROTOCOLS]]. Each WebSocket message is
-      one binary frame holding a variable-length unsigned integer message type followed by the
-      message for that type: 0 for a sync message (sync step 1, sync step 2 or update), 1 for an
-      awareness update, 2 for an auth message, 3 for an awareness query.
+      Messages are those of the y-websocket protocol [[Y-PROTOCOLS]]. Each message is one binary
+      WebSocket message, whatever frames carry it, laid out as below. <code>varUint</code> is the
+      variable-length unsigned integer, <code>varBytes</code> a <code>varUint</code> length followed
+      by that many bytes, and <code>varString</code> a <code>varBytes</code> holding UTF-8, all as
+      lib0 encodes them.
     </p>
+    <table class="simple" id="message-layout">
+      <thead><tr><th>Message</th><th>Layout</th></tr></thead>
+      <tbody>
+        <tr><td>sync step 1</td><td><code>varUint 0</code>, <code>varUint 0</code>,
+          <code>varBytes</code> state vector</td></tr>
+        <tr><td>sync step 2</td><td><code>varUint 0</code>, <code>varUint 1</code>,
+          <code>varBytes</code> Yjs v1 update</td></tr>
+        <tr><td>update</td><td><code>varUint 0</code>, <code>varUint 2</code>,
+          <code>varBytes</code> Yjs v1 update</td></tr>
+        <tr><td>awareness update</td><td><code>varUint 1</code>, <code>varBytes</code> awareness
+          update as y-protocols encodes it</td></tr>
+        <tr><td>permission denied</td><td><code>varUint 2</code>, <code>varUint 0</code>,
+          <code>varString</code> reason</td></tr>
+        <tr><td>awareness query</td><td><code>varUint 3</code></td></tr>
+      </tbody>
+    </table>
     <p id="msg-binary">
-      Clients and relays MUST send messages as binary frames encoded as [[Y-PROTOCOLS]] defines.
+      Clients and relays MUST send each message as one binary WebSocket message laid out as in the
+      table above.
     </p>
     <p id="msg-text-frame">
-      A relay MUST close a connection that sends a text frame with status code 1003.
+      A relay MUST close a connection that sends a text message with status code 1003.
     </p>
     <p id="msg-undecodable">
-      A relay MUST close a connection that sends a message it cannot decode, or a sync update that
-      does not decode as a Yjs update, with status code 1007, without applying any part of it.
+      A relay MUST close with status code 1007 a connection that sends a message it cannot decode,
+      or a sync step 2 or update whose payload it cannot apply without error, leaving its room
+      state unchanged.
     </p>
     <p id="msg-size">
       A relay MAY close a connection that sends a message larger than a limit it chooses, with
@@ -601,23 +686,26 @@
       does so. There is no window after a change during which an earlier decision still applies.
     </p>
     <p id="auth-deliver">
-      Before a relay sends a sync or awareness message on a connection, it MUST establish that the
-      connection's agent may read the room, taking into account every change to access control
-      that the storage committed before the message is sent.
+      When a relay hands a sync or awareness message to a connection for transmission, it MUST
+      establish that the connection's agent may read the room in the connection's
+      <a>authorization context</a>, taking into account every change to access control that the
+      storage committed before that moment.
     </p>
     <p id="auth-deliver-fail">
-      When the agent may no longer read the room, the relay MUST NOT send the message, MUST send an
-      auth message of type permission-denied with the reason <code>read</code>, and MUST close the
-      connection with status code 4403.
+      When the agent may no longer read the room, the relay MUST NOT send the message, MUST discard
+      every message queued for the connection and not yet transmitted, MUST send a
+      permission-denied message with the reason <code>read</code>, and MUST close the connection
+      with status code 4403.
     </p>
     <p id="auth-accept">
-      When a relay receives a sync step 2 or update on a connection, it MUST establish that the
-      connection's agent may write the room, taking into account every change to access control
-      that the storage committed before the relay received the message.
+      When a relay processes a sync step 2 or update received on a connection, it MUST establish
+      that the connection's agent may write the room in the connection's <a>authorization
+      context</a>, taking into account every change to access control that the storage committed
+      before that moment.
     </p>
     <p id="auth-accept-fail">
       When the agent may not write the room, the relay MUST NOT apply, persist or forward any part
-      of the message, and MUST send an auth message of type permission-denied with the reason
+      of the message, and MUST send a permission-denied message with the reason
       <code>write</code>. It MAY keep the connection open for reading.
     </p>
     <p id="auth-awareness">
@@ -626,16 +714,19 @@
     </p>
     <p id="auth-room-gone">
       When the room container is deleted, a relay MUST close every connection to the room with
-      status code 4404.
+      status code 4404, discard its room state, and stop accepting tickets issued for the room.
     </p>
     <p id="auth-client-denied">
-      A client that receives a permission-denied auth message with the reason <code>write</code>
-      MUST stop sending updates on that connection and MUST keep its unsent changes.
+      A client that receives a permission-denied message with the reason <code>write</code> MUST
+      stop sending updates on that connection and MUST keep every change it has not treated as
+      stored (<a href="#relay-client-durability"></a>), including changes it already sent.
     </p>
     <p>
       A relay that runs beside the storage server can meet these rules by consulting the storage's
       access control for each message, or by invalidating cached decisions inside the same
-      transaction that commits an access control change. A relay that learns of changes through
+      transaction that commits an access control change. The moments that count are when the
+      relay processes a received message and when it hands a message to the connection, not when
+      bytes reach the network. A relay that learns of changes through
       notifications sent after the commit does not meet them.
     </p>
   </section>
@@ -665,7 +756,8 @@
       1 has been created.
     </p>
     <p id="persist-no-echo">
-      A relay MUST NOT persist content that it read from the room's log resources.
+      A relay MUST NOT create update resources for content that it read from the room's log
+      resources. Snapshot resources it creates as a compactor are not affected.
     </p>
     <p id="persist-access">
       A relay MUST NOT give a log resource it creates access control of its own; it is governed by
@@ -714,7 +806,8 @@
     </p>
     <p id="dur-confirm">
       A client MUST treat a change it sent to a relay as stored only after it has received a sync
-      step 2 answering a sync step 1 that it sent after the change, on the same connection.
+      step 2 answering a sync step 1 that it sent after the change, on the same connection, with no
+      permission-denied message between sending the change and receiving that sync step 2.
     </p>
     <p id="dur-fallback">
       A client that holds changes not yet treated as stored and whose connection closed MUST,
@@ -759,9 +852,11 @@
     and revoking the owner's access ends it.
   </p>
   <p>
-    A relay holding the merged room state can only serve agents who may read every log resource.
-    Storages and clients should not give individual log resources access control that differs
-    from the room container's; the relay never does (<a href="#relay-persistence"></a>).
+    Access control applies to a room as a whole (<a href="#compaction"></a>). A storage that lets
+    agents set access control on individual resources cannot stop a client that ignores
+    <a href="#acl-room-wide"></a> from doing so; the relay then refuses tickets to agents who
+    cannot read every log resource, and compactors that can see such access control leave those
+    resources alone.
   </p>
   <p>
     Log resources and relayed messages come from other agents and may be hostile. Readers check
@@ -772,8 +867,10 @@
   </p>
   <p>
     Cross-site WebSocket hijacking relies on credentials a browser attaches on its own. Relays
-    authenticate connections by ticket only (<a href="#relay-connection"></a>), so a page on
-    another site cannot open a connection on a user's behalf without a ticket.
+    authenticate connections by ticket only and require the handshake's <code>Origin</code> to
+    match the ticket request's (<a href="#relay-connection"></a>), so a page on another site
+    cannot open a connection on a user's behalf, nor use another application's ticket to act
+    with that application's permissions.
   </p>
 </section>
 

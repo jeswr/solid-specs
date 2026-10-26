@@ -24,12 +24,18 @@ whatever its time. A time filter or "newest snapshot wins" loses updates written
 only by an older concurrent snapshot (suite ADR-006 amendment, tracker sst-br1.7). A listed
 resource that is gone when read was folded into a new snapshot, so the reader lists again before
 it reports the room loaded; a bounded loader reports failure rather than a partial load
-(ADR-006 review, 2026-10-26).
+(ADR-006 review, 2026-10-26). A room counts as loaded only against a *complete listing*, one
+that reflects a single state of the container: a paginated listing is checked with the
+container's strong ETag (or membership version) before and after, because a compaction between
+pages shifts members and can hide a record without any read returning 404 (spec review round 1).
+A payload is valid only if it decodes with no trailing bytes and applies to an empty document,
+and readers apply it to a copy first: Yjs can decode an update that then throws mid-apply.
 
 ## Y4 — Compaction: create first, delete only what you read, conditionally
 
 A compactor writes a snapshot holding everything it read, waits for a `2xx`, then deletes only
-those resources, with `If-Match`. Unique names and conditional creation keep an IRI from ever
+those resources, with `If-Match` and a strong ETag; with no strong ETag it does not delete
+(random names alone do not stop a deleted IRI being reused, spec review round 1). Unique names and conditional creation keep an IRI from ever
 naming two records, so a delayed compactor cannot delete a newer record that reused a URL
 (ADR-006 review). This needs no lock and stays safe with any number of concurrent or offline
 compactors. **Rejected:** serialized compaction through a lock resource (needs leases and
@@ -42,10 +48,11 @@ its storage credentials for a single-use ticket of at most 300 seconds bound to 
 The relay never accepts cookies, which removes cross-site WebSocket hijacking. The ticket URL
 must be `wss` on the ticket endpoint's host and port, so a ticket never leaves that origin.
 
-## Y6 — Explicit refusals: 400, 401, 404, 403
+## Y6 — Explicit refusals: 400, 401, 404, 403, in that order
 
-`404` covers both a missing room and an unreadable one, so the ticket endpoint is not an
-existence oracle. `403` is reserved for an agent who may read the container but not every record
+`404` covers both a missing room and an unreadable one for an authenticated agent, and `401`
+both for an unauthenticated one, so the ticket endpoint is not an existence oracle; the order is
+fixed so the two cannot both apply. `403` is reserved for an agent who may read the container but not every record
 in it: the relay merges the whole log into one state and cannot serve part of it.
 **Rejected:** a per-agent filtered relay state (Yjs cannot remove content from a merged state).
 
@@ -65,6 +72,20 @@ and answers a sync step 1 only after persisting everything accepted from that co
 it. A client therefore knows its changes are stored when a sync step 2 answers a sync step 1 it
 sent after them, and otherwise writes them to the log itself. This keeps unmodified y-protocols
 clients working. **Rejected:** a custom acknowledgement message type (breaks stock clients).
+
+## Y10 — Access control is room-wide
+
+Compaction moves content between resources and the relay merges the whole log, so per-resource
+access control inside a room cannot hold. Clients never set it, compactors leave alone resources
+they can see carry it, and the relay serves only agents who can read every record. Content meant
+for fewer readers goes in another room. **Rejected:** carrying the intersection of source ACLs
+onto snapshots (not expressible across WAC and ACP, and the relay state still merges everything).
+
+## Y11 — Tickets carry the authorization context, and the handshake Origin must match
+
+WAC decides on agent and Origin, and Solid-OIDC on client identifier too. A ticket bound only to
+the agent would let one application's ticket act with another's permissions, so the ticket binds
+the whole authorization context and the handshake's Origin must equal the ticket request's.
 
 ## Y9 — Legacy y-solid 0.1 rooms stay readable
 
