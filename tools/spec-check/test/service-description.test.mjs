@@ -113,6 +113,7 @@ describe("JSON-LD context order (SSD-REP-3)", () => {
   const CID = "https://www.w3.org/ns/cid/v1";
   const LWS = "https://www.w3.org/ns/lws/v1";
   const SSD_CONTEXT = "https://jeswr.org/ns/solid-sd/context/v1";
+  const ssdContext = JSON.parse(readFileSync(join(SPEC, "context/v1.jsonld"), "utf8"))["@context"];
   const docs = [
     ...listFiles(join(SPEC, "examples"), ".jsonld").map((f) => [basename(f), readFileSync(f, "utf8")]),
     ...htmlExamples(html)
@@ -125,7 +126,10 @@ describe("JSON-LD context order (SSD-REP-3)", () => {
       const ctx = JSON.parse(text)["@context"];
       assert.ok(Array.isArray(ctx), "@context is an array");
       assert.deepEqual(ctx.slice(0, 2), [CID, LWS], "the CID context comes first, then the LWS context");
-      if (ctx.includes(SSD_CONTEXT)) assert.ok(ctx.indexOf(SSD_CONTEXT) >= 2, "the solid-sd context follows them");
+      const third = ctx[2];
+      const inline = typeof third === "object" && third !== null;
+      assert.ok(third === SSD_CONTEXT || inline, "the solid-sd context, by IRI or inline, comes third");
+      if (inline) assert.deepEqual(third, ssdContext, "an inline third context is exactly the solid-sd context");
     });
   }
 });

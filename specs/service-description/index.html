@@ -650,8 +650,8 @@
     <p id="svc-trash-move">
       When a client sends a <code>POST</code> request to the trash container with an
       <code>application/json</code> body whose <code>resource</code> member is the IRI of a
-      resource in the same storage that the client may delete, the storage server MUST move that
-      resource into the trash and respond <code>201 Created</code> with a <code>Location</code>
+      resource in the same storage, and the client may delete that resource and, for a container,
+      every resource beneath it, the storage server MUST move that resource into the trash and respond <code>201 Created</code> with a <code>Location</code>
       header naming the trashed copy.
     </p>
     <p id="svc-trash-move-outside">
@@ -660,8 +660,9 @@
     </p>
     <p id="svc-trash-move-refuse">
       A storage server MUST refuse to trash a resource in the storage that the client may not
-      delete, responding as it would to a <code>DELETE</code> request for that resource by that
-      client.
+      delete, or a container beneath which is a resource the client may not delete, moving
+      nothing and responding <code>403 Forbidden</code> when the client may read the resource and
+      <code>404 Not Found</code> otherwise.
     </p>
     <p id="svc-trash-original">
       A storage server MUST include, in successful responses to <code>GET</code> and
@@ -902,24 +903,27 @@
       notification subscription), and the target of any redirect from either.
     </p>
     <p id="client-endpoint-origin">
-      A client MUST NOT send credentials it holds for the storage to a service URL whose origin
-      differs from the storage root's origin.
+      A client MUST NOT send a credential to a service URL whose origin differs from the origin
+      the credential was obtained for; credentials for the storage are obtained for the storage
+      root's origin.
     </p>
     <p id="client-redirect">
-      A client MUST NOT send credentials it holds for the storage in a request that follows a
-      redirect to another origin.
+      A client MUST NOT send a credential in a request that follows a redirect to an origin other
+      than the one the credential was obtained for.
     </p>
     <p id="client-endpoint-network">
-      A client that is not a web browser MUST NOT send a request to a service URL whose host
-      resolves to a loopback, private-use or link-local address unless the storage root's host
-      resolves to such an address too.
+      A client that can determine the address a service URL's host resolves to MUST NOT send a
+      request to it when that address is loopback, private-use or link-local, unless the client is
+      configured to trust that specific address.
     </p>
     <p>
       A subscription service on another origin, which the Solid Notifications Protocol allows,
-      is used only with credentials the client obtains for that origin. A web browser already
-      keeps pages from reaching private networks through its own policy; agents and servers that
-      act as clients have no such guard, so they check each endpoint's resolved address, and
-      again after each redirect, before sending a request.
+      is used only with credentials the client obtains for that origin, and those credentials go
+      nowhere else either. A storage on a private address does not make other private addresses
+      trustworthy: a client trusts each one explicitly. Script in a web page cannot see resolved
+      addresses, so it relies on whatever private-network protection its browser provides; agents
+      and servers that act as clients check each resolved address, and again after each redirect,
+      before sending a request.
     </p>
   </section>
 

@@ -84,9 +84,10 @@ A client never retrieves a storage description, Solid or LWS, from an origin oth
 the resource it started from, nor follows a redirect to one (SSD-CLI-18, SSD-CLI-19), so a
 hostile link cannot make it fetch from other hosts. It never sends the storage's credentials to
 an endpoint on another origin or across a redirect to one (SSD-CLI-8, SSD-CLI-17), never
-dereferences JSON-LD contexts at run time (SSD-CLI-15), and, when it is not a browser, never
-sends requests to loopback, private-use or link-local endpoints unless the storage itself is
-on one (SSD-CLI-21). The second review round found that checking the origin after fetching
+dereferences JSON-LD contexts at run time (SSD-CLI-15), and never sends a request to a loopback,
+private-use or link-local address it can see unless configured to trust that address
+(SSD-CLI-21). Every credential stays with the origin it was obtained for, including credentials
+for a notification service on another origin, across the URLs services return and redirects. The second review round found that checking the origin after fetching
 (the first fix) still allowed requests to internal hosts. Solid
 Notifications allows a subscription service on another origin; such a service is used only with
 credentials the client obtains for that origin. CRDT room URLs are capability URLs and carry no
@@ -111,7 +112,8 @@ loader change now (tracker follow-up sst-br1.7).
 
 ## D13 — Authorization of the trash, versions and recursive delete
 
-Trashing needs delete permission on a resource in the same storage; restoring needs delete on
+Trashing needs delete permission on a resource in the same storage and, for a container, on
+everything beneath it; restoring needs delete on
 the trashed copy and create at the restore location; refusals answer as the storage would
 (SSD-SVC-TRASH-8/9). Versions and histories are never more readable than the live resource
 (SSD-SVC-VER-5). A request naming a resource outside the storage is refused with 400 before

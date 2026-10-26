@@ -540,7 +540,7 @@
 
 <#SSD-SVC-TRASH-2> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-2" ;
-    spec:statement "When a client sends a POST request to the trash container with an application/json body whose resource member is the IRI of a resource in the same storage that the client may delete, the storage server MUST move that resource into the trash and respond 201 Created with a Location header naming the trashed copy." ;
+    spec:statement "When a client sends a POST request to the trash container with an application/json body whose resource member is the IRI of a resource in the same storage, and the client may delete that resource and, for a container, every resource beneath it, the storage server MUST move that resource into the trash and respond 201 Created with a Location header naming the trashed copy." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Server> ;
     sc:testability sc:Enforceable ;
@@ -558,7 +558,7 @@
 
 <#SSD-SVC-TRASH-8> a spec:Requirement ;
     dcterms:identifier "SSD-SVC-TRASH-8" ;
-    spec:statement "A storage server MUST refuse to trash a resource in the storage that the client may not delete, responding as it would to a DELETE request for that resource by that client." ;
+    spec:statement "A storage server MUST refuse to trash a resource in the storage that the client may not delete, or a container beneath which is a resource the client may not delete, moving nothing and responding 403 Forbidden when the client may read the resource and 404 Not Found otherwise." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Server> ;
     sc:testability sc:Enforceable ;
@@ -817,7 +817,7 @@
 
 <#SSD-CLI-8> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-8" ;
-    spec:statement "A client MUST NOT send credentials it holds for the storage to a service URL whose origin differs from the storage root's origin." ;
+    spec:statement "A client MUST NOT send a credential to a service URL whose origin differs from the origin the credential was obtained for; credentials for the storage are obtained for the storage root's origin." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
@@ -826,7 +826,7 @@
 
 <#SSD-CLI-17> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-17" ;
-    spec:statement "A client MUST NOT send credentials it holds for the storage in a request that follows a redirect to another origin." ;
+    spec:statement "A client MUST NOT send a credential in a request that follows a redirect to an origin other than the one the credential was obtained for." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
@@ -835,7 +835,7 @@
 
 <#SSD-CLI-21> a spec:Requirement ;
     dcterms:identifier "SSD-CLI-21" ;
-    spec:statement "A client that is not a web browser MUST NOT send a request to a service URL whose host resolves to a loopback, private-use or link-local address unless the storage root's host resolves to such an address too." ;
+    spec:statement "A client that can determine the address a service URL's host resolves to MUST NOT send a request to it when that address is loopback, private-use or link-local, unless the client is configured to trust that specific address." ;
     spec:requirementLevel spec:MUSTNOT ;
     spec:requirementSubject <#Client> ;
     sc:testability sc:Enforceable ;
