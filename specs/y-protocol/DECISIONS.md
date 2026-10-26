@@ -35,6 +35,10 @@ be reused (review round 2).
 A membership tag must never repeat across a membership change, even when members return to an
 earlier set, and listing requests carry `Cache-Control: no-cache`: a tag that cycles A→B→A, or a
 cached page, would let equal boundary tags hide a skipped member (review round 3).
+Because request cache directives are only advisory, the storage marks these responses (and
+access-control probes, including 404s) `no-cache`, and keeps the enumeration of a paginated
+listing stable while its membership tag is unchanged, so reordering cannot skip a member
+(review round 5).
 A payload is valid only if it decodes with no trailing bytes and applies to an empty document,
 and readers apply it to a copy first: Yjs can decode an update that then throws mid-apply.
 
@@ -88,7 +92,9 @@ state, and the answer also waits for everything that connection sent before; oth
 could drop a pending update and let a later sync step 1 pass. A client counts only a sync step 1
 it sent after every message carrying the change, matched in order, since y-websocket sends one on
 opening. "Stored" means creation confirmed by a `2xx` other than `202 Accepted` (or a later read),
-because `202` promises nothing (review round 3). **Rejected:** a custom acknowledgement message type (breaks stock clients).
+because `202` promises nothing (review round 3). A relay sends a sync step 2 only to answer that
+connection's sync step 1, and forwards everything else as update messages, so a forwarded step 2
+can never pass for a durability answer (review round 5). **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
 

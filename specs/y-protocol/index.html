@@ -378,8 +378,14 @@
     </p>
     <p id="load-no-cache">
       A reader MUST send every request for a listing page, a membership tag or a log resource,
-      and every request that confirms an entity tag, with <code>Cache-Control: no-cache</code>
-      [[RFC9111]], so that no cache answers it without the storage validating the answer.
+      every request that confirms an entity tag, and every request a compactor makes to learn a
+      resource's access control, with <code>Cache-Control: no-cache</code> [[RFC9111]].
+    </p>
+    <p id="srv-no-cache">
+      A storage server MUST mark every response to those requests, including error responses such
+      as <code>404 Not Found</code>, with <code>Cache-Control: no-cache</code> or
+      <code>no-store</code>, so that no cache reuses it without the storage validating it.
+      Request directives alone are advisory to caches.
     </p>
     <p id="load-all">
       A reader MUST apply every valid update resource, every valid snapshot resource and, when it
@@ -491,9 +497,16 @@
       every membership tag the container had before, even when the set of members returns to an
       earlier state.
     </p>
+    <p id="srv-stable-pages">
+      While a container's membership tag is unchanged, a storage server that paginates its listing
+      MUST list every member exactly once across the pages of a listing, whatever else changes,
+      such as a member's modification time or the order the storage would otherwise use.
+    </p>
     <p id="cmp-own-acl">
-      A compactor MUST NOT compact a resource unless it has confirmed, after reading the resource,
-      that the resource has no access control of its own and inherits the room container's.
+      A compactor MUST NOT compact a resource unless it has confirmed, from answers to requests it
+      sent after reading the resource and that no cache answered without the storage validating
+      them (<a href="#load-no-cache"></a>), that the resource has no access control of its own and
+      inherits the room container's.
     </p>
     <p id="cmp-gone">
       A compactor MUST treat a <code>404 Not Found</code> or <code>410 Gone</code> answer to a
@@ -797,6 +810,10 @@
       Once the creation of an update resource holding content accepted from one connection is
       <a>confirmed</a>, a relay MUST send that content to every other connection of the room,
       subject to <a href="#relay-authorization"></a>.
+    </p>
+    <p id="relay-step2-only-answers">
+      A relay MUST send content that it forwards or ingests as update messages, and MUST NOT send a
+      sync step 2 on a connection except to answer a sync step 1 received on that connection.
     </p>
     <p id="persist-ack">
       A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room
