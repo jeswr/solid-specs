@@ -85,6 +85,12 @@
           href: "https://www.rfc-editor.org/rfc/rfc9110",
           publisher: "IETF",
           status: "Internet Standard"
+        },
+        "RFC9111": {
+          title: "HTTP Caching",
+          href: "https://www.rfc-editor.org/rfc/rfc9111",
+          publisher: "IETF",
+          status: "Internet Standard"
         }
       }
     };
@@ -217,13 +223,20 @@
       container and every log resource in it.</dd>
     <dt><dfn>may write the room</dfn></dt>
     <dd>An agent may write the room when it may read the room and the storage's access control
-      lets it create resources in the room container (in Web Access Control [[WAC]],
-      <code>acl:Append</code> or <code>acl:Write</code> on the container).</dd>
+      lets it create log resources in the room container with the requests this specification
+      describes (in Web Access Control [[WAC]], the access modes the storage requires for those
+      requests, such as <code>acl:Append</code> on the container and, for a <code>PUT</code>,
+      <code>acl:Write</code> on the new resource as its inherited access control gives it).</dd>
     <dt><dfn>authorization context</dfn></dt>
     <dd>Everything besides the agent that the storage's access control takes into account for a
       request: in Web Access Control the request's <code>Origin</code>, in Solid-OIDC the client
       identifier, and any grant the request presents. "May read" and "may write" are always
       decided for an agent in an authorization context.</dd>
+    <dt><dfn>confirmed</dfn></dt>
+    <dd>The creation of a resource is confirmed when the storage answered the request that created
+      it with <code>201 Created</code> or another <code>2xx</code> status other than
+      <code>202 Accepted</code>, or when the creator has since read the resource and found the
+      body it wrote. A <code>202 Accepted</code> answer alone confirms nothing [[RFC9110]].</dd>
     <dt><dfn>valid payload</dfn></dt>
     <dd>A byte string that the Yjs v1 update decoder [[YJS]] decodes with no bytes left over,
       and that applies without error to a new, empty Yjs document.</dd>
@@ -354,12 +367,19 @@
       where the <a>membership tag</a> of the room container was the same before the first page was
       requested and after the last page was received. The <dfn>membership tag</dfn> is the strong
       entity tag of the room container itself, returned by a <code>HEAD</code> request on the
-      container IRI, not the entity tag of a page.
+      container IRI, not the entity tag of a page. Because the storage never gives a container the
+      same membership tag for two different moments separated by a membership change, equal tags
+      before and after mean no member was added or removed in between.
     </p>
     <p id="load-complete-listing">
       A reader MUST NOT use a listing that is not a <a>complete listing</a> to decide that a room
       is loaded; when the membership tag changed during a paginated listing, or the storage gave
       none, it MUST list again.
+    </p>
+    <p id="load-no-cache">
+      A reader MUST send every request for a listing page or a membership tag with
+      <code>Cache-Control: no-cache</code> [[RFC9111]], so that no cache answers it without the
+      storage validating the answer.
     </p>
     <p id="load-all">
       A reader MUST apply every valid update resource, every valid snapshot resource and, when it
@@ -437,8 +457,8 @@
       <var>R</var>, using a request that cannot replace an existing resource.
     </p>
     <p id="cmp-after-create">
-      A compactor MUST NOT delete a resource in <var>R</var> until the storage has answered the
-      creation of that snapshot resource with a <code>2xx</code> status.
+      A compactor MUST NOT delete a resource in <var>R</var> until the creation of that snapshot
+      resource is <a>confirmed</a>.
     </p>
     <p id="cmp-only-read">
       A compactor MUST NOT delete a resource unless it read the whole body of that resource,
@@ -460,7 +480,9 @@
     </p>
     <p id="srv-membership-tag">
       A storage server that paginates the listing of a container MUST give the container a
-      <a>membership tag</a> that changes whenever a member is added to or removed from it.
+      <a>membership tag</a> that, after any member is added to or removed from it, differs from
+      every membership tag the container had before, even when the set of members returns to an
+      earlier state.
     </p>
     <p id="cmp-own-acl">
       A compactor MUST NOT compact a resource unless it has confirmed, after reading the resource,
@@ -760,17 +782,28 @@
     </p>
     <p id="persist-before-forward">
       A relay MUST NOT send content accepted from one connection to any other connection before
-      the storage has answered the creation of an update resource holding it with a
-      <code>2xx</code> status.
+      the creation of an update resource holding it is <a>confirmed</a>.
     </p>
     <p id="persist-ack">
       A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room
-      state at the moment it processed that sync step 1 is held by a log resource that the storage
-      has confirmed, whichever connection the content came from.
+      state at the moment it processed that sync step 1, and all content it accepted from that
+      connection before that sync step 1, is held by a log resource whose creation is
+      <a>confirmed</a>, whichever connection the content came from.
+    </p>
+    <p id="persist-pending">
+      A relay MUST keep the content it accepted that no log resource with <a>confirmed</a>
+      creation holds yet until one does, MUST keep it across any rebuild of its room state, and
+      MUST apply it to the rebuilt room state.
+    </p>
+    <p id="persist-order">
+      A relay MUST answer the sync step 1 messages it receives on a connection in the order it
+      received them, with one sync step 2 each.
     </p>
     <p id="persist-no-echo">
-      A relay MUST NOT create update resources for content that it read from the room's log
-      resources. Snapshot resources it creates as a compactor are not affected.
+      A relay MUST NOT create update resources for content that it added to its room state by
+      reading the room's log resources; it persists only what accepted messages add
+      (<a href="#persist-accepted"></a>), even when a resource it once read held the same content.
+      Snapshot resources it creates as a compactor are not affected.
     </p>
     <p id="persist-access">
       A relay MUST NOT give a log resource it creates access control of its own; it is governed by
@@ -789,7 +822,8 @@
     </p>
     <p id="ingest-removal">
       When a log resource leaves the room other than by the relay's own compaction, the relay MUST
-      rebuild its room state by loading the room before it next delivers content to a connection.
+      rebuild its room state by loading the room, and applying the content kept under
+      <a href="#persist-pending"></a>, before it next delivers content to a connection.
     </p>
     <p>
       Deleting a log resource does not remove its content from a document: clients that hold the
@@ -830,13 +864,16 @@
     <h3>Client durability</h3>
     <p>
       The y-websocket protocol has no acknowledgement. A client knows its changes are stored when
-      the relay answers a sync step 1 the client sent after making them, because of
-      <a href="#relay-persistence"></a>.
+      the relay answers a sync step 1 the client sent after sending them, because of
+      <a href="#relay-persistence"></a>. A client that opens a connection sends a sync step 1 at
+      once, so the answer to that first sync step 1 confirms nothing the client sent after it.
     </p>
     <p id="dur-confirm">
       A client MUST treat a change it sent to a relay as stored only after it has received a sync
-      step 2 answering a sync step 1 that it sent after the change, on the same connection, with no
-      permission-denied message between sending the change and receiving that sync step 2.
+      step 2 answering a sync step 1 that it sent, on the same connection, after every message
+      carrying the change, with no permission-denied message between sending the change and
+      receiving that sync step 2. A client matches each sync step 2 it receives to the earliest
+      sync step 1 it sent on that connection that has no answer yet.
     </p>
     <p id="dur-fallback">
       A client that holds changes not yet treated as stored and whose connection closed MUST,

@@ -32,6 +32,9 @@ Page ETags do not cover the whole membership, so the check uses the container's 
 from HEAD (the *membership tag*), which a paginating storage must change on every membership
 change; records read before the final listing are revalidated by ETag, because a deleted IRI can
 be reused (review round 2).
+A membership tag must never repeat across a membership change, even when members return to an
+earlier set, and listing requests carry `Cache-Control: no-cache`: a tag that cycles A→B→A, or a
+cached page, would let equal boundary tags hide a skipped member (review round 3).
 A payload is valid only if it decodes with no trailing bytes and applies to an empty document,
 and readers apply it to a copy first: Yjs can decode an update that then throws mid-apply.
 
@@ -77,7 +80,12 @@ it. A client therefore knows its changes are stored when a sync step 2 answers a
 sent after them, and otherwise writes them to the log itself. The relay answers a sync step 1
 only once everything in its room state is held by a confirmed log resource, whichever connection
 it came from, so a duplicate submission cannot get an early confirmation (review round 2). This keeps unmodified y-protocols
-clients working. **Rejected:** a custom acknowledgement message type (breaks stock clients).
+clients working. Accepted content that is not yet stored survives a rebuild of the relay's
+state, and the answer also waits for everything that connection sent before; otherwise a rebuild
+could drop a pending update and let a later sync step 1 pass. A client counts only a sync step 1
+it sent after every message carrying the change, matched in order, since y-websocket sends one on
+opening. "Stored" means creation confirmed by a `2xx` other than `202 Accepted` (or a later read),
+because `202` promises nothing (review round 3). **Rejected:** a custom acknowledgement message type (breaks stock clients).
 
 ## Y10 — Access control is room-wide
 
