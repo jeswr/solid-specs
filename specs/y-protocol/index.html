@@ -767,7 +767,8 @@
     <p id="auth-accept-fail">
       When the agent may not write the room, the relay MUST NOT apply, persist or forward any part
       of the message, and MUST send a permission-denied message with the reason
-      <code>write</code>. It MAY keep the connection open for reading.
+      <code>write</code>, before it sends the answer to any sync step 1 it received after the
+      refused message on that connection. It MAY keep the connection open for reading.
     </p>
     <p id="auth-awareness">
       A relay MUST NOT forward an awareness update received on a connection whose agent may not
@@ -880,7 +881,9 @@
     <p id="ingest-removal">
       When a log resource leaves the room other than by the relay's own compaction, the relay MUST
       rebuild its room state by loading the room, and applying the content kept under
-      <a href="#persist-pending"></a>, before it next delivers content to a connection.
+      <a href="#persist-pending"></a>, before it next delivers content to a connection, and MUST
+      discard every message carrying document content that it had prepared but not yet sent; it
+      then sends connections only content of the rebuilt room state.
     </p>
     <p>
       Deleting a log resource does not remove its content from a document: clients that hold the
