@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<!-- AUTHORED-BY Claude Opus 5.5 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solid Storage Service Description</title>
+  <script src="https://www.w3.org/Tools/respec/respec-w3c" class="remove" defer></script>
+  <script class="remove">
+    var respecConfig = {
+      specStatus: "unofficial",
+      shortName: "solid-sd",
+      edDraftURI: "https://jeswr.github.io/solid-specs/specs/service-description/",
+      latestVersion: null,
+      github: "jeswr/solid-specs",
+      editors: [
+        {
+          name: "Jesse Wright",
+          url: "https://jeswr.org/#me"
+        }
+      ],
+      copyrightStart: "2026",
+      maxTocLevel: 3,
+      lint: { "no-unused-dfns": false },
+      localBiblio: {
+        "SOLID-PROTOCOL": {
+          title: "Solid Protocol",
+          href: "https://solidproject.org/TR/protocol",
+          authors: ["Sarven Capadisli", "Tim Berners-Lee", "Ruben Verborgh", "Kjetil Kjernsmo"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "SOLID-NOTIFICATIONS": {
+          title: "Solid Notifications Protocol",
+          href: "https://solidproject.org/TR/notifications-protocol",
+          authors: ["Sarven Capadisli"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WEBSOCKETCHANNEL2023": {
+          title: "WebSocketChannel2023",
+          href: "https://solidproject.org/TR/websocket-channel-2023",
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "WAC": {
+          title: "Web Access Control",
+          href: "https://solidproject.org/TR/wac",
+          authors: ["Sarven Capadisli"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "ACP": {
+          title: "Access Control Policy (ACP)",
+          href: "https://solidproject.org/TR/acp",
+          authors: ["Matthieu Bosquet"],
+          publisher: "W3C Solid Community Group",
+          status: "Draft Community Group Report"
+        },
+        "SOLID-TYPE-INDEXES": {
+          title: "Type Indexes",
+          href: "https://solid.github.io/type-indexes/",
+          publisher: "W3C Solid Community Group",
+          status: "Editor's Draft"
+        },
+        "SAI": {
+          title: "Solid Application Interoperability",
+          href: "https://solid.github.io/data-interoperability-panel/specification/",
+          authors: ["Justin Bingham", "Eric Prud'hommeaux", "elf Pavlik"],
+          publisher: "W3C Solid Community Group",
+          status: "Editor's Draft"
+        },
+        "LWS-CORE": {
+          title: "Linked Web Storage Protocol 1.0",
+          href: "https://www.w3.org/TR/lws10-core/",
+          publisher: "W3C Linked Web Storage Working Group",
+          status: "Working Draft"
+        },
+        "LWS-INDEX": {
+          title: "Linked Web Storage Type Index 1.0",
+          href: "https://w3c.github.io/lws-protocol/lws10-index/",
+          publisher: "W3C Linked Web Storage Working Group",
+          status: "Editor's Draft"
+        },
+        "ACQ": {
+          title: "Access-Controlled SPARQL Query over a Solid Pod",
+          href: "https://jeswr.github.io/solid-specs/specs/access-controlled-query/",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Draft"
+        },
+        "JLWS": {
+          title: "JLWS: a Linked Web Storage protocol draft",
+          href: "https://jeswr.github.io/lws-spec/",
+          authors: ["Jesse Wright"],
+          status: "Unofficial Draft"
+        },
+        "Y-PROTOCOLS": {
+          title: "y-protocols: binary encoding protocols for Yjs",
+          href: "https://github.com/yjs/y-protocols",
+          publisher: "Yjs"
+        },
+        "TUS": {
+          title: "tus resumable upload protocol 1.0.x",
+          href: "https://tus.io/protocols/resumable-upload",
+          publisher: "tus.io"
+        }
+      }
+    };
+  </script>
+</head>
+<body>
+
+<section id="abstract">
+  <p>
+    This specification lets a Solid storage describe the services and capabilities it offers,
+    such as notifications, server-side query, real-time collaboration, version history, trash,
+    patch formats and its access control model, in its existing storage description resource.
+    The description uses RDF terms that map one to one onto the <code>service</code> and
+    <code>capability</code> entries of a Linked Web Storage storage description [[LWS-CORE]],
+    so a single client parser serves storages of both protocols, and a Solid storage can serve
+    a description that is also a valid Linked Web Storage storage description.
+  </p>
+</section>
+
+<section id="sotd">
+  <p>
+    This is an unofficial personal draft. It is not a work item of the W3C Solid Community Group
+    or of any W3C Working Group, and its terms are minted under a personal namespace until a
+    venue adopts it. It is written to inform the open Solid Protocol discussions on server and
+    capability discovery (solid/specification issues 355, 699, 455 and 804) and the Linked Web
+    Storage discussion of Solid compatibility.
+  </p>
+  <p>
+    This draft was prepared with the assistance of AI systems operated on behalf of the editor
+    (drafting: Claude Opus 5.5). The editor is responsible for all content. Issues are welcome
+    on the <a href="https://github.com/jeswr/solid-specs">GitHub repository</a>.
+  </p>
+</section>
+
+<section class="informative" id="introduction">
+  <h2>Introduction</h2>
+
+  <section id="motivation">
+    <h3>Motivation</h3>
+    <p>
+      The Solid Protocol [[SOLID-PROTOCOL]] gives every storage a storage description resource,
+      found through a <code>Link</code> header with the relation
+      <code>http://www.w3.org/ns/solid/terms#storageDescription</code>. Today the only thing that
+      resource has to say is that the storage is a <code>pim:Storage</code>. The Solid
+      Notifications Protocol [[SOLID-NOTIFICATIONS]] adds subscription services to it, and the
+      access-controlled query draft [[ACQ]] adds a query endpoint, but everything else a client
+      wants to know (which access control model to write, which patch formats work, whether
+      deleting a folder needs a recursive walk) it learns by probing headers resource by
+      resource, or not at all.
+    </p>
+    <p>
+      Linked Web Storage [[LWS-CORE]] solved the same problem with one document: the storage
+      description lists <code>service</code> entries (a type and an endpoint) and
+      <code>capability</code> entries (a type and parameters), and clients ignore types they do
+      not know. This specification lets a Solid storage say the same things, in RDF, at the place
+      it already describes itself. It defines no new discovery mechanism and changes nothing a
+      client that ignores it relies on.
+    </p>
+  </section>
+
+  <section id="design-goals">
+    <h3>Design goals</h3>
+    <ul>
+      <li><strong>One parser for both protocols.</strong> The RDF graph a Solid storage serves
+        has the same shape as the graph a Linked Web Storage description means under its
+        JSON-LD context, with the same property IRIs.</li>
+      <li><strong>Reuse before minting.</strong> Terms Linked Web Storage, the Controlled
+        Identifier vocabulary, Solid Notifications and the access-controlled query draft already
+        define are used by IRI. This specification mints only the service and capability types
+        that have no existing term.</li>
+      <li><strong>Must-ignore extensibility.</strong> Any party can add a service or capability
+        type. Clients ignore what they do not understand, so adding an entry never breaks a
+        client.</li>
+      <li><strong>Advisory, never authoritative.</strong> The description tells a client what to
+        try. It never grants access and never replaces the authorization decision on each
+        request.</li>
+    </ul>
+  </section>
+
+  <section id="example-overview">
+    <h3>Example</h3>
+    <p>
+      A storage at <code>https://pod.example/</code> that offers WebSocket notifications, an
+      access-controlled SPARQL endpoint, a Yjs sync relay and N3 Patch on Turtle resources, and
+      enforces Web Access Control, describes itself as follows.
+    </p>
+    <pre class="example" title="A storage description (Turtle)">
+@prefix pim:    &lt;http://www.w3.org/ns/pim/space#&gt; .
+@prefix lws:    &lt;https://www.w3.org/ns/lws#&gt; .
+@prefix did:    &lt;https://www.w3.org/ns/did#&gt; .
+@prefix notify: &lt;http://www.w3.org/ns/solid/notifications#&gt; .
+@prefix dct:    &lt;http://purl.org/dc/terms/&gt; .
+@prefix ssd:    &lt;https://jeswr.org/ns/solid-sd#&gt; .
+
+&lt;https://pod.example/&gt; a pim:Storage, lws:Storage ;
+  did:service
+    [ a lws:StorageRoot ;
+      did:serviceEndpoint &lt;https://pod.example/&gt; ] ,
+    [ a ssd:SolidNotificationService ;
+      did:serviceEndpoint &lt;https://pod.example/.notifications/WebSocketChannel2023/&gt; ;
+      notify:channelType notify:WebSocketChannel2023 ] ,
+    [ a ssd:SparqlQueryService ;
+      did:serviceEndpoint &lt;https://pod.example/sparql&gt; ;
+      dct:conformsTo &lt;https://jeswr.github.io/solid-specs/specs/access-controlled-query/&gt; ] ,
+    [ a ssd:CrdtSyncService ;
+      did:serviceEndpoint &lt;https://pod.example/.sync/tickets&gt; ;
+      dct:conformsTo ssd:y-protocol-v1 ] ;
+  lws:capability
+    [ a ssd:AccessControl ; ssd:model ssd:WAC ] ,
+    [ a ssd:PatchSupport ;
+      ssd:source "text/turtle" ;
+      ssd:patchType "text/n3", "application/sparql-update" ] ,
+    [ a ssd:RecursiveDelete ] .
+    </pre>
+  </section>
+</section>
+
+<section id="conformance">
+  <p>
+    This specification defines two conformance classes. A <dfn>storage server</dfn> is a server
+    that hosts one or more Solid storages and serves their storage description resources. A
+    <dfn>client</dfn> is software that reads a storage description to decide how to interact
+    with a storage.
+  </p>
+  <p>
+    The machine-readable list of this specification's normative statements is the companion
+    document <a href="spec.statements.ttl">spec.statements.ttl</a>. The SHACL shapes in
+    <a href="shapes/solid-sd.ttl">shapes/solid-sd.ttl</a>, the vocabulary in
+    <a href="vocab/solid-sd.ttl">vocab/solid-sd.ttl</a> and the JSON-LD context in
+    <a href="context/v1.jsonld">context/v1.jsonld</a> are normative. Examples are informative.
+  </p>
+</section>
+
+<section id="terminology">
+  <h2>Terminology</h2>
+  <p>This specification uses the following terms.</p>
+  <dl>
+    <dt><dfn>storage</dfn></dt>
+    <dd>A storage as defined by the Solid Protocol [[SOLID-PROTOCOL]]: a space of URIs rooted at
+      a container typed <code>pim:Storage</code>.</dd>
+    <dt><dfn>storage root</dfn></dt>
+    <dd>The root container of a <a>storage</a>. Its IRI identifies the storage.</dd>
+    <dt><dfn>storage description resource</dfn></dt>
+    <dd>The resource a <a>storage server</a> links to from resources in a storage with the
+      relation <code>http://www.w3.org/ns/solid/terms#storageDescription</code>
+      [[SOLID-PROTOCOL]].</dd>
+    <dt><dfn>service</dfn></dt>
+    <dd>A network interface connected to a storage, described by a type and a service endpoint,
+      with the semantics of a service in a Controlled Identifier document [[CID]].</dd>
+    <dt><dfn>service endpoint</dfn></dt>
+    <dd>The IRI at which a client starts interacting with a <a>service</a>.</dd>
+    <dt><dfn>capability</dfn></dt>
+    <dd>A behaviour of the storage's own resource operations, described by a type and optional
+      parameters, with the semantics of a capability in a Linked Web Storage storage description
+      [[LWS-CORE]].</dd>
+    <dt><dfn>entry</dfn></dt>
+    <dd>A service or a capability in a storage description.</dd>
+    <dt><dfn>profile</dfn></dt>
+    <dd>A specification that pins the protocol a service speaks, named by
+      <code>dcterms:conformsTo</code>.</dd>
+  </dl>
+
+  <section id="namespaces">
+    <h3>Namespaces</h3>
+    <table class="simple">
+      <thead><tr><th>Prefix</th><th>Namespace</th><th>Defined by</th></tr></thead>
+      <tbody>
+        <tr><td><code>ssd</code></td><td><code>https://jeswr.org/ns/solid-sd#</code></td><td>this specification</td></tr>
+        <tr><td><code>lws</code></td><td><code>https://www.w3.org/ns/lws#</code></td><td>[[LWS-CORE]]</td></tr>
+        <tr><td><code>did</code></td><td><code>https://www.w3.org/ns/did#</code></td><td>[[CID]] (service terms)</td></tr>
+        <tr><td><code>notify</code></td><td><code>http://www.w3.org/ns/solid/notifications#</code></td><td>[[SOLID-NOTIFICATIONS]]</td></tr>
+        <tr><td><code>solid</code></td><td><code>http://www.w3.org/ns/solid/terms#</code></td><td>[[SOLID-PROTOCOL]]</td></tr>
+        <tr><td><code>solid-sparql</code></td><td><code>http://www.w3.org/ns/solid/sparql#</code></td><td>[[ACQ]]</td></tr>
+        <tr><td><code>pim</code></td><td><code>http://www.w3.org/ns/pim/space#</code></td><td>[[SOLID-PROTOCOL]]</td></tr>
+        <tr><td><code>dct</code></td><td><code>http://purl.org/dc/terms/</code></td><td>DCMI Metadata Terms</td></tr>
+      </tbody>
+    </table>
+    <p class="note">
+      The <code>ssd</code> namespace is provisional. If the Solid Community Group adopts this
+      specification, its terms move to <code>http://www.w3.org/ns/solid/terms#</code> and the
+      provisional terms are declared equivalent to them.
+    </p>
+  </section>
+</section>
+
+<section id="location">
+  <h2>Location and representation</h2>
+
+  <section id="location-resource">
+    <h3>The storage description resource</h3>
+    <p>
+      This specification adds statements to the <a>storage description resource</a> the Solid
+      Protocol already defines. It does not change how that resource is found.
+    </p>
+    <p id="loc-same-resource">
+      A storage server that describes services or capabilities of a storage MUST do so in the
+      storage description resource of that storage.
+    </p>
+    <p id="loc-subject">
+      The subject of every <code>did:service</code> and <code>lws:capability</code> statement in
+      a storage description resource MUST be the IRI of the storage root.
+    </p>
+    <p id="loc-lws-type">
+      A storage server SHOULD type the storage root <code>lws:Storage</code> in addition to
+      <code>pim:Storage</code>.
+    </p>
+    <p id="loc-no-vary">
+      The service and capability statements of a storage description resource MUST NOT vary with
+      the identity of the requester.
+    </p>
+  </section>
+
+  <section id="representation">
+    <h3>Representations</h3>
+    <p id="rep-turtle">
+      A storage server MUST serve the storage description resource as <code>text/turtle</code>
+      when the request prefers it.
+    </p>
+    <p id="rep-jsonld">
+      A storage server MUST serve the storage description resource as
+      <code>application/ld+json</code> when the request prefers it.
+    </p>
+    <p id="rep-context">
+      A JSON-LD representation that uses the context defined by this specification MUST list
+      <code>https://www.w3.org/ns/cid/v1</code>, then <code>https://www.w3.org/ns/lws/v1</code>,
+      then that context, before any other context.
+    </p>
+    <p>
+      The context's IRI is <code>https://jeswr.org/ns/solid-sd/context/v1</code>. Its content is
+      <a href="context/v1.jsonld">context/v1.jsonld</a>. It defines no term that the Controlled
+      Identifier or Linked Web Storage contexts define, so it never redefines a protected term.
+    </p>
+    <p id="rep-inline-context">
+      A storage server MAY embed the content of this specification's context inline instead of
+      referencing its IRI.
+    </p>
+    <p id="rep-lws-cid">
+      A storage server MAY also serve the storage description resource as
+      <code>application/lws+cid</code>.
+    </p>
+    <p id="rep-lws-cid-valid">
+      An <code>application/lws+cid</code> representation of a storage description resource MUST
+      satisfy the storage description requirements of [[LWS-CORE]].
+    </p>
+    <p id="rep-same-graph">
+      All representations of a storage description resource MUST express the same service and
+      capability statements.
+    </p>
+    <p class="note">
+      With these rules a Solid storage can be discovered by a Linked Web Storage client through
+      the description alone: the same graph, serialised with the Controlled Identifier and Linked
+      Web Storage contexts first, is a Linked Web Storage storage description. Whether the
+      storage also emits the Linked Web Storage <code>storage</code> link relation is outside
+      this specification.
+    </p>
+    <p class="issue" title="Linked Web Storage context not yet published">
+      The Linked Web Storage context <code>https://www.w3.org/ns/lws/v1</code> is not yet
+      published. This specification assumes it defines no global <code>source</code>,
+      <code>target</code>, <code>model</code> or <code>patchType</code> term. If it does, the
+      extension terms here are renamed before this draft is offered to a venue.
+    </p>
+  </section>
+</section>
+
+<section id="data-model">
+  <h2>Data model</h2>
+
+  <section id="dm-services">
+    <h3>Services</h3>
+    <p>
+      A storage lists each service as the object of <code>did:service</code>. The service node
+      carries its types and its endpoint.
+    </p>
+    <p id="dm-service-type">
+      A service node MUST have at least one <code>rdf:type</code>.
+    </p>
+    <p id="dm-service-endpoint">
+      A service node MUST have exactly one <code>did:serviceEndpoint</code> whose value is an
+      IRI.
+    </p>
+    <p id="dm-service-root">
+      A storage description MUST include a service of type <code>lws:StorageRoot</code> whose
+      endpoint is the storage root.
+    </p>
+    <p>
+      The <code>lws:StorageRoot</code> service is redundant on Solid, where the storage root is
+      the subject, but it makes the graph a valid Linked Web Storage description and lets one
+      client code path find the root.
+    </p>
+  </section>
+
+  <section id="dm-capabilities">
+    <h3>Capabilities</h3>
+    <p>
+      A storage lists each capability as the object of <code>lws:capability</code>. A capability
+      describes how the storage's ordinary resource operations behave, so it has no endpoint.
+    </p>
+    <p id="dm-capability-type">
+      A capability node MUST have at least one <code>rdf:type</code>.
+    </p>
+  </section>
+
+  <section id="dm-identification">
+    <h3>Identifying entries</h3>
+    <p id="dm-entry-node">
+      A service or capability node MAY be an IRI or a blank node.
+    </p>
+    <p id="dm-entry-iri-fragment">
+      A storage server SHOULD identify a service node by an IRI that is the storage description
+      resource's IRI or the storage root's IRI with a fragment.
+    </p>
+    <p>
+      Stable entry IRIs let other documents, such as access grants or audit records, point at a
+      particular service.
+    </p>
+  </section>
+
+  <section id="dm-profiles">
+    <h3>Profiles and versions</h3>
+    <p>
+      A service type names what kind of service it is. The protocol it speaks, and that
+      protocol's version, is a <a>profile</a>, named with <code>dcterms:conformsTo</code>. A new
+      version of a service's protocol is a new profile IRI, not a new service type.
+    </p>
+    <p id="dm-profile-iri">
+      The value of <code>dcterms:conformsTo</code> on an entry MUST be an IRI.
+    </p>
+    <p id="dm-profile-multiple">
+      An entry MAY list more than one profile when its endpoint speaks each of them.
+    </p>
+  </section>
+
+  <section id="dm-extensibility">
+    <h3>Extensibility</h3>
+    <p id="dm-ext-types">
+      Any party MAY define new service and capability types.
+    </p>
+    <p id="dm-ext-iri">
+      A service or capability type that this specification or [[LWS-CORE]] does not define MUST
+      be identified by an absolute IRI in a namespace its definer controls.
+    </p>
+    <p id="dm-ext-properties">
+      An entry MAY carry properties beyond those its type definition names.
+    </p>
+  </section>
+</section>
+
+<section id="service-types">
+  <h2>Service types</h2>
+
+  <section id="svc-lws">
+    <h3>Linked Web Storage service types</h3>
+    <p>
+      A Solid storage that offers a service Linked Web Storage already defines describes it with
+      the Linked Web Storage type. This specification adds no requirement to these services
+      beyond those of [[LWS-CORE]] and [[LWS-INDEX]].
+    </p>
+    <table class="simple">
+      <thead><tr><th>Type</th><th>Endpoint</th></tr></thead>
+      <tbody>
+        <tr><td><code>lws:StorageRoot</code></td><td>The storage root.</td></tr>
+        <tr><td><code>lws:NotificationService</code></td><td>A Linked Web Storage subscription
+          endpoint, with <code>lws:subscriptionType</code>.</td></tr>
+        <tr><td><code>lws:TypeIndexService</code>, <code>lws:TypeSearchService</code></td>
+          <td>A server-managed type index and type search [[LWS-INDEX]].</td></tr>
+        <tr><td><code>lws:AccessRequestService</code>, <code>lws:AccessGrantService</code></td>
+          <td>Access request and grant containers, with the access profile as
+          <code>dcterms:conformsTo</code>.</td></tr>
+      </tbody>
+    </table>
+    <p id="svc-lws-reuse">
+      A storage server MUST NOT describe a service that one of these Linked Web Storage types
+      covers with a different type IRI.
+    </p>
+  </section>
+
+  <section id="svc-notifications">
+    <h3>Solid notification service</h3>
+    <p>
+      <code>ssd:SolidNotificationService</code> is a subscription service of the Solid
+      Notifications Protocol [[SOLID-NOTIFICATIONS]]. It brings the subscription services a
+      storage already lists with <code>notify:subscription</code> into the
+      <code>did:service</code> list, so a client that reads services finds them in one place.
+    </p>
+    <p id="svc-notify-endpoint">
+      The endpoint of a <code>ssd:SolidNotificationService</code> MUST be the IRI of a
+      subscription service.
+    </p>
+    <p id="svc-notify-channel">
+      A <code>ssd:SolidNotificationService</code> node MUST have exactly one
+      <code>notify:channelType</code>.
+    </p>
+    <p id="svc-notify-feature">
+      A <code>ssd:SolidNotificationService</code> node MAY have <code>notify:feature</code>
+      values with the meaning the Solid Notifications Protocol gives them.
+    </p>
+    <p id="svc-notify-both">
+      A storage server that lists a subscription service with <code>notify:subscription</code>
+      SHOULD also list it as a <code>ssd:SolidNotificationService</code>.
+    </p>
+    <p>
+      The two forms describe the same thing and may share a node: the subscription service IRI
+      can be both the object of <code>notify:subscription</code> and a service node whose
+      endpoint is itself.
+    </p>
+  </section>
+
+  <section id="svc-sparql">
+    <h3>SPARQL query service</h3>
+    <p>
+      <code>ssd:SparqlQueryService</code> is a read-only SPARQL query service over the storage.
+      The access-controlled query draft [[ACQ]] already lets a storage name its query endpoint
+      with <code>solid-sparql:endpoint</code>; this type lists the same endpoint as a service.
+    </p>
+    <p id="svc-sparql-profile">
+      A <code>ssd:SparqlQueryService</code> node MUST have a <code>dcterms:conformsTo</code>
+      naming the query protocol profile its endpoint implements.
+    </p>
+    <p id="svc-sparql-acq">
+      A <code>ssd:SparqlQueryService</code> whose endpoint implements [[ACQ]] MUST list
+      <code>https://jeswr.github.io/solid-specs/specs/access-controlled-query/</code> as a
+      profile.
+    </p>
+    <p id="svc-sparql-both">
+      A storage server that names an endpoint with <code>solid-sparql:endpoint</code> SHOULD also
+      list it as a <code>ssd:SparqlQueryService</code>.
+    </p>
+  </section>
+
+  <section id="svc-crdt">
+    <h3>CRDT sync service</h3>
+    <p>
+      <code>ssd:CrdtSyncService</code> is a real-time relay for collaborative documents kept in
+      the storage as conflict-free replicated data types. Clients that find no such service can
+      still collaborate by writing updates as ordinary resources and watching for notifications;
+      the service adds low latency and presence.
+    </p>
+    <p id="svc-crdt-profile">
+      A <code>ssd:CrdtSyncService</code> node MUST have a <code>dcterms:conformsTo</code> naming
+      its sync profile.
+    </p>
+    <p id="svc-crdt-y">
+      A <code>ssd:CrdtSyncService</code> whose endpoint implements the Yjs sync profile this
+      specification defines MUST list <code>ssd:y-protocol-v1</code> as a profile.
+    </p>
+    <p>The profile is defined in <a href="#y-protocol"></a>.</p>
+    <p id="svc-crdt-room-template">
+      A <code>ssd:CrdtSyncService</code> node MAY have one <code>ssd:roomTemplate</code>, an
+      informative URI template for room URLs.
+    </p>
+  </section>
+
+  <section id="svc-versioning">
+    <h3>Versioning service</h3>
+    <p>
+      <code>ssd:VersioningService</code> says the storage keeps immutable prior versions of
+      resources. The versions of a resource are found from the resource itself.
+    </p>
+    <p id="svc-version-link">
+      A storage server that lists a <code>ssd:VersioningService</code> MUST include, in responses
+      to <code>GET</code> and <code>HEAD</code> requests on each versioned resource, a
+      <code>Link</code> header with the relation <code>version-history</code> whose target is a
+      container listing that resource's versions.
+    </p>
+    <p id="svc-version-immutable">
+      A storage server MUST reject requests that modify a version resource.
+    </p>
+    <p id="svc-version-datetime">
+      A storage server MUST include a <code>Memento-Datetime</code> header in responses to
+      <code>GET</code> and <code>HEAD</code> requests on a version resource.
+    </p>
+    <p id="svc-version-original">
+      A storage server MUST include, in responses to <code>GET</code> and <code>HEAD</code>
+      requests on a version resource, a <code>Link</code> header with the relation
+      <code>original</code> whose target is the versioned resource.
+    </p>
+    <p>
+      The service endpoint identifies the versioning service. This draft defines no operation on
+      it. To restore a version, a client reads the version and writes it over the current
+      resource with a conditional request; the server records the result as a new version.
+    </p>
+  </section>
+
+  <section id="svc-trash">
+    <h3>Trash service</h3>
+    <p>
+      <code>ssd:TrashService</code> is a container into which resources are moved instead of being
+      destroyed, and from which they can be restored or purged. Its endpoint is the trash
+      container.
+    </p>
+    <p id="svc-trash-retention">
+      A <code>ssd:TrashService</code> node MAY have one <code>ssd:retention</code>, an
+      <code>xsd:duration</code> after which the storage may purge a trashed resource.
+    </p>
+    <p id="svc-trash-move">
+      When a client sends a <code>POST</code> request to the trash container with an
+      <code>application/json</code> body whose <code>resource</code> member is the IRI of a
+      resource the client may delete, the storage server MUST move that resource into the trash
+      and respond <code>201 Created</code> with a <code>Location</code> header naming the trashed
+      copy.
+    </p>
+    <p id="svc-trash-original">
+      A storage server MUST include, in responses to <code>GET</code> and <code>HEAD</code>
+      requests on a trashed resource, a <code>Link</code> header with the relation
+      <code>original</code> whose target is the IRI the resource had before it was trashed.
+    </p>
+    <p id="svc-trash-restore">
+      When a client sends a <code>POST</code> request to the trash container with an
+      <code>application/json</code> body whose <code>restore</code> member is the IRI of a trashed
+      resource, the storage server MUST move it out of the trash and respond with a
+      <code>Location</code> header naming the restored resource.
+    </p>
+    <p id="svc-trash-restore-solid">
+      A Solid storage server MUST restore a resource to the IRI it had before it was trashed, or
+      refuse the restore with <code>409 Conflict</code> when that IRI is in use.
+    </p>
+    <p id="svc-trash-purge">
+      A storage server MUST destroy a trashed resource when a client with permission to delete it
+      sends a <code>DELETE</code> request to it.
+    </p>
+    <p id="svc-trash-access">
+      A trashed resource MUST NOT be readable by any agent who could not read it before it was
+      trashed.
+    </p>
+  </section>
+</section>
+
+<section id="capability-types">
+  <h2>Capability types</h2>
+
+  <section id="cap-access-control">
+    <h3>Access control</h3>
+    <p>
+      <code>ssd:AccessControl</code> names the authorization model a client must use to read or
+      change who has access: <code>ssd:WAC</code> for Web Access Control [[WAC]],
+      <code>ssd:ACP</code> for Access Control Policy [[ACP]], or <code>ssd:ODRLGrants</code> for
+      ODRL access grants issued through an <code>lws:AccessGrantService</code>.
+    </p>
+    <p id="cap-ac-model">
+      An <code>ssd:AccessControl</code> node MUST have at least one <code>ssd:model</code>.
+    </p>
+    <p id="cap-ac-all">
+      A storage server that lists an <code>ssd:AccessControl</code> capability MUST list every
+      authorization model it enforces on the storage.
+    </p>
+    <p>
+      The access control resource of a particular resource is still found from that resource's
+      <code>Link</code> headers. The capability tells a client which model to expect before it
+      has read any resource.
+    </p>
+  </section>
+
+  <section id="cap-patch">
+    <h3>Patch support</h3>
+    <p>
+      <code>ssd:PatchSupport</code> says which patch document formats the storage accepts for
+      resources of one media type. A storage lists one capability per resource media type.
+    </p>
+    <p id="cap-patch-source">
+      An <code>ssd:PatchSupport</code> node MUST have exactly one <code>ssd:source</code>, the
+      media type of the resources it applies to.
+    </p>
+    <p id="cap-patch-type">
+      An <code>ssd:PatchSupport</code> node MUST have at least one <code>ssd:patchType</code>, a
+      patch document media type the storage accepts in <code>PATCH</code> requests on those
+      resources.
+    </p>
+    <p id="cap-patch-accept">
+      The patch types a storage server lists for a media type MUST be a subset of those its
+      <code>Accept-Patch</code> headers announce for resources of that media type.
+    </p>
+    <p>
+      The Solid Protocol requires N3 Patch on RDF documents, so a Solid storage normally lists
+      <code>text/n3</code> for <code>text/turtle</code>. The flat shape mirrors the
+      <code>source</code> and <code>target</code> shape of the content negotiation capability in
+      the Linked Web Storage discovery example.
+    </p>
+  </section>
+
+  <section id="cap-recursive-delete">
+    <h3>Recursive delete</h3>
+    <p id="cap-rd">
+      A storage server that lists an <code>ssd:RecursiveDelete</code> capability MUST, on a
+      <code>DELETE</code> request to a non-empty container that carries the header
+      <code>Depth: infinity</code> and that the client is allowed to make, delete the container
+      and everything beneath it.
+    </p>
+    <p id="cap-rd-atomic">
+      When a recursive delete cannot delete every resource beneath the container, the storage
+      server MUST NOT delete the container.
+    </p>
+  </section>
+
+  <section id="cap-resumable">
+    <h3>Resumable uploads</h3>
+    <p id="cap-resumable-profile">
+      An <code>ssd:ResumableUploads</code> node MUST have a <code>dcterms:conformsTo</code>
+      naming the upload protocol, such as <code>https://tus.io/protocols/resumable-upload</code>
+      for [[TUS]].
+    </p>
+  </section>
+
+  <section id="cap-pagination">
+    <h3>Pagination</h3>
+    <p>
+      The Solid Protocol returns a container's whole listing in one representation. A storage
+      that splits listings into pages lists <code>ssd:Pagination</code>, so clients know to
+      follow page links.
+    </p>
+    <p id="cap-pagination-profile">
+      An <code>ssd:Pagination</code> node SHOULD have a <code>dcterms:conformsTo</code> naming
+      the paging mechanism.
+    </p>
+  </section>
+
+  <section id="cap-conneg">
+    <h3>Content negotiation</h3>
+    <p id="cap-conneg-shape">
+      An <code>ssd:ContentNegotiation</code> node MUST have exactly one <code>ssd:source</code>
+      and at least one <code>ssd:target</code>, each a media type.
+    </p>
+    <p id="cap-conneg-serve">
+      A storage server that lists an <code>ssd:ContentNegotiation</code> capability MUST serve
+      every resource stored as its source media type in each of its target media types when a
+      request prefers it.
+    </p>
+  </section>
+</section>
+
+<section id="subscription-types">
+  <h2>Subscription types for Linked Web Storage notification services</h2>
+  <p>
+    The Linked Web Storage notification service lists the subscription types it offers with
+    <code>lws:subscriptionType</code>, and the core specification defines only webhooks. Browser
+    clients cannot receive webhooks, so this specification names two streaming subscription
+    types whose bindings are those of the JLWS draft [[JLWS]].
+  </p>
+  <table class="simple">
+    <thead><tr><th>Type</th><th>Binding</th></tr></thead>
+    <tbody>
+      <tr><td><code>ssd:SseSubscription</code></td><td>The SSE binding of [[JLWS]]: the
+        subscription response carries a <code>source</code> event-stream URL; events carry ids
+        and resume with <code>Last-Event-ID</code>.</td></tr>
+      <tr><td><code>ssd:WebSocketSubscription</code></td><td>The WebSocket binding of [[JLWS]]:
+        the subscription response carries a <code>receiveFrom</code> <code>wss:</code>
+        capability URL; each message is one notification.</td></tr>
+    </tbody>
+  </table>
+  <p id="sub-binding">
+    A notification service that lists <code>ssd:SseSubscription</code> or
+    <code>ssd:WebSocketSubscription</code> MUST implement the corresponding binding of [[JLWS]].
+  </p>
+  <p id="sub-authz">
+    A notification service MUST check, for each notification it delivers through these
+    subscription types, that the subscriber may read the resource the notification is about at
+    the time of delivery.
+  </p>
+</section>
+
+<section id="client">
+  <h2>Client processing</h2>
+
+  <section id="client-resolution">
+    <h3>Finding the description</h3>
+    <p>A client finds a storage's services and capabilities from any resource in it as follows.</p>
+    <ol>
+      <li>Read the <code>Link</code> headers of a response for the resource.</li>
+      <li>If they contain the relation <code>https://www.w3.org/ns/lws#storage</code>, the storage
+        is a Linked Web Storage storage; read its description as [[LWS-CORE]] defines.</li>
+      <li>Otherwise, if they contain the relation
+        <code>http://www.w3.org/ns/solid/terms#storageDescription</code>, retrieve its target,
+        preferring <code>application/ld+json</code> or <code>text/turtle</code>, and parse it as
+        RDF.</li>
+      <li>Find the storage root: the resource itself if its <code>Link</code> headers type it
+        <code>pim:Storage</code>, otherwise the nearest ancestor container whose headers do, and
+        otherwise the subject typed <code>pim:Storage</code> in the description.</li>
+      <li>Read the entries as <a href="#client-entries"></a> describes.</li>
+    </ol>
+    <p id="client-origin">
+      A client MUST ignore the <code>did:service</code> and <code>lws:capability</code> statements
+      of a storage description resource whose origin differs from the origin of the storage
+      root.
+    </p>
+    <p id="client-root-match">
+      A client MUST ignore <code>did:service</code> and <code>lws:capability</code> statements
+      whose subject is not the storage root it found.
+    </p>
+  </section>
+
+  <section id="client-entries">
+    <h3>Reading entries</h3>
+    <p id="client-ignore">
+      A client MUST ignore any entry none of whose types it recognises.
+    </p>
+    <p id="client-ignore-props">
+      A client MUST ignore properties of an entry that it does not recognise.
+    </p>
+    <p id="client-profile">
+      A client MUST NOT use a service whose profiles it does not implement, when the service's type
+      requires a profile.
+    </p>
+    <p id="client-notify-merge">
+      A client MUST treat a subscription service listed with <code>notify:subscription</code> and a
+      <code>ssd:SolidNotificationService</code> with the same endpoint and channel type as one
+      service.
+    </p>
+    <p id="client-acq-merge">
+      A client MUST treat the object of <code>solid-sparql:endpoint</code> on the storage root as a
+      <code>ssd:SparqlQueryService</code> conforming to [[ACQ]], and as the same service as a
+      <code>ssd:SparqlQueryService</code> with that endpoint.
+    </p>
+    <p id="client-endpoint-origin">
+      A client MUST NOT send credentials to a service endpoint whose origin differs from the
+      storage root's origin, unless the service type's definition permits it.
+    </p>
+    <p>
+      Of the types this specification defines, only <code>ssd:SolidNotificationService</code>
+      permits an endpoint on another origin, because the Solid Notifications Protocol does. The
+      WebSocket URL a CRDT sync ticket returns is a capability URL and carries no credentials.
+    </p>
+  </section>
+
+  <section id="client-precedence">
+    <h3>Descriptions, probes and errors</h3>
+    <p id="client-prefer">
+      A client SHOULD use the storage description in preference to probing resources for the same
+      information.
+    </p>
+    <p id="client-absent">
+      A client MUST NOT conclude from the absence of an entry that a storage lacks the behaviour,
+      unless the storage description lists at least one entry this specification defines.
+    </p>
+    <p id="client-not-authority">
+      A client MUST NOT treat a storage description as evidence that an agent is permitted to
+      perform an operation.
+    </p>
+    <p id="client-fallback">
+      A client that receives an error from an advertised service SHOULD continue without that
+      service where an alternative exists.
+    </p>
+    <p id="client-cache">
+      A client MAY cache a storage description for the storage root, subject to the HTTP caching
+      headers of the response that carried it.
+    </p>
+  </section>
+</section>
+
+<section id="lws-mapping">
+  <h2>Relationship to Linked Web Storage</h2>
+  <p>
+    A Linked Web Storage description is a JSON document whose meaning under its JSON-LD context
+    is an RDF graph. This specification describes the same graph, so the mapping is the identity
+    on IRIs.
+  </p>
+  <table class="simple">
+    <thead><tr><th>Linked Web Storage JSON</th><th>RDF in a Solid storage description</th></tr></thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>The storage root IRI (the subject).</td></tr>
+      <tr><td><code>type: "Storage"</code></td><td><code>a lws:Storage</code>, alongside
+        <code>a pim:Storage</code>.</td></tr>
+      <tr><td><code>service[]</code></td><td><code>did:service</code></td></tr>
+      <tr><td><code>service[].type</code></td><td><code>rdf:type</code> on the service node.</td></tr>
+      <tr><td><code>service[].serviceEndpoint</code></td><td><code>did:serviceEndpoint</code></td></tr>
+      <tr><td><code>service[].conformsTo</code></td><td><code>dcterms:conformsTo</code></td></tr>
+      <tr><td><code>service[].subscriptionType</code></td><td><code>lws:subscriptionType</code></td></tr>
+      <tr><td><code>capability[]</code></td><td><code>lws:capability</code></td></tr>
+      <tr><td><code>capability[].type</code></td><td><code>rdf:type</code> on the capability node.</td></tr>
+      <tr><td><code>MoveResource</code> with <code>appliesTo</code>,
+        <code>preservesIdentifier</code></td><td><code>lws:MoveResource</code>,
+        <code>lws:appliesTo</code>, <code>lws:preservesIdentifier</code></td></tr>
+      <tr><td>Any other member</td><td>The property its context maps it to; unmapped members
+        carry no RDF meaning and clients reading RDF ignore them.</td></tr>
+    </tbody>
+  </table>
+  <p>
+    The Linked Web Storage discovery section shows a patch capability as a JSON object keyed by
+    media type. That shape has no RDF meaning under a JSON-LD context, so this specification uses
+    one <code>ssd:PatchSupport</code> per source media type instead.
+  </p>
+  <p id="lws-storage-uses">
+    A Linked Web Storage storage server MAY list the service and capability types this
+    specification defines in its own storage description.
+  </p>
+</section>
+
+<section class="informative" id="related">
+  <h2>Relationship to other Solid mechanisms</h2>
+  <dl>
+    <dt>Solid Notifications</dt>
+    <dd><code>notify:subscription</code> stays valid. <code>ssd:SolidNotificationService</code> is
+      the same subscription service listed as a service, so clients that read services find
+      notifications without a second code path.</dd>
+    <dt>Type Indexes and Solid Application Interoperability</dt>
+    <dd>Type indexes [[SOLID-TYPE-INDEXES]] and interoperability registries [[SAI]] are linked
+      from an agent's profile, not from a storage, and one agent's data can span several
+      storages. A storage description therefore does not point to them. A storage that maintains
+      a server-side index of its own resources lists <code>lws:TypeIndexService</code> and
+      <code>lws:TypeSearchService</code>.</dd>
+    <dt>Access-controlled query</dt>
+    <dd>The <code>solid-sparql:endpoint</code> link and statement [[ACQ]] stay valid and are read
+      as a <code>ssd:SparqlQueryService</code>.</dd>
+    <dt>Server and capability discovery issues</dt>
+    <dd>The Solid Protocol issues on a server description (355, with 699 as its duplicate) and on
+      query interface discovery (455, 804) asked where a storage should say what it supports.
+      This specification answers: in the storage description resource, in the Linked Web Storage
+      shape.</dd>
+  </dl>
+</section>
+
+<section id="security">
+  <h2>Security considerations</h2>
+  <p>
+    A storage description is public metadata about a storage. An attacker who can change it, or
+    who can serve a description for a storage they do not control, can point clients at an
+    endpoint they run. The origin rules in <a href="#client-resolution"></a> and
+    <a href="#client-entries"></a> stop a description on another origin, or an endpoint on another
+    origin, from receiving a client's credentials.
+  </p>
+  <p>
+    A capability can make a client send a request it would not otherwise send, such as a
+    recursive delete. Clients confirm destructive operations with the user as they would without
+    the capability, and the server authorizes each request as usual.
+  </p>
+  <p id="sec-no-private">
+    A storage description MUST NOT disclose the IRIs of resources that are not themselves public,
+    other than service endpoints and the storage root.
+  </p>
+</section>
+
+<section id="privacy">
+  <h2>Privacy considerations</h2>
+  <p>
+    A storage description reveals which services a storage offers, and so something about the
+    server software and its configuration. It reveals nothing about the agents who use the
+    storage, because its service and capability statements do not vary with the requester. A
+    storage that hosts one person's data still reveals, through a version history or trash
+    service, that such data may exist; it never reveals the data itself.
+  </p>
+</section>
+
+<section class="appendix" id="y-protocol">
+  <h2>The y-protocol-v1 profile</h2>
+  <p>
+    This appendix defines the profile <code>ssd:y-protocol-v1</code> for a
+    <code>ssd:CrdtSyncService</code> that relays Yjs document updates. A Yjs document is kept in
+    a container of the storage (its room container) as update resources and snapshot resources,
+    so a client without the service can still load and edit it.
+  </p>
+
+  <section id="y-ticket">
+    <h3>Tickets</h3>
+    <p id="y-ticket-request">
+      To join a room, a client MUST send a <code>POST</code> request to the service endpoint with
+      an <code>application/json</code> body whose <code>room</code> member is the IRI of the room
+      container, authenticated as for any request to the storage.
+    </p>
+    <p id="y-ticket-response">
+      When the client may read the room container, the service MUST respond with an
+      <code>application/json</code> body whose <code>url</code> member is a <code>wss:</code>
+      URL for the room and whose <code>expires</code> member is the time, as an RFC 3339
+      date-time, after which the URL can no longer be used to connect.
+    </p>
+    <p id="y-ticket-refuse">
+      When the client may not read the room container, the service MUST respond as the storage
+      responds to a read of the room container by that client.
+    </p>
+    <p id="y-ticket-capability">
+      The room URL MUST contain at least 128 bits of entropy and MUST be bound to the client's
+      identity and the room.
+    </p>
+  </section>
+
+  <section id="y-room">
+    <h3>Rooms</h3>
+    <p id="y-messages">
+      Over the room's WebSocket, the client and service MUST exchange the y-websocket messages of
+      [[Y-PROTOCOLS]]: sync (type 0), awareness (type 1) and auth (type 2).
+    </p>
+    <p id="y-read-only">
+      The service MUST NOT apply or relay a document update from a client that may not write to
+      the room container.
+    </p>
+    <p id="y-read-only-close">
+      The service MUST close the connection of a client that sends an update it may not make,
+      with close code 4403.
+    </p>
+    <p id="y-revoke">
+      The service MUST close a client's connection within 30 seconds after the client loses read
+      access to the room container.
+    </p>
+  </section>
+
+  <section id="y-persistence">
+    <h3>Persistence</h3>
+    <p id="y-persist">
+      The service MUST store every update it relays as a resource in the room container before
+      relaying it to other clients.
+    </p>
+    <p id="y-persist-format">
+      The service MUST store updates and snapshots in the encoding that clients without the
+      service use, so that all clients converge on the same document.
+    </p>
+    <p>
+      The encoding is that of the suite's log-mode provider: each update resource begins with
+      the 4-byte magic <code>JYU1</code>, an 8-byte big-endian millisecond timestamp and 4 random
+      bytes, followed by the Yjs update; snapshots begin with <code>JYS1</code>. Loaders apply the
+      newest snapshot, then every update with a timestamp at or after the snapshot's.
+    </p>
+    <p class="issue" title="Byte layout in a companion">
+      The byte layout is specified here by reference to one implementation. A later draft moves
+      it into a normative subsection with test vectors.
+    </p>
+  </section>
+</section>
+
+<section class="appendix" id="vocabulary">
+  <h2>Vocabulary</h2>
+  <p>
+    The terms this specification defines. The RDF definitions are in
+    <a href="vocab/solid-sd.ttl">vocab/solid-sd.ttl</a>.
+  </p>
+  <table class="simple">
+    <thead><tr><th>Term</th><th>Kind</th><th>Section</th></tr></thead>
+    <tbody>
+      <tr><td><code>ssd:Service</code>, <code>ssd:Capability</code></td><td>superclasses of the types below</td><td><a href="#data-model"></a></td></tr>
+      <tr><td><code>ssd:AccessControlModel</code></td><td>class of access control models</td><td><a href="#cap-access-control"></a></td></tr>
+      <tr><td><code>ssd:SolidNotificationService</code></td><td>service type</td><td><a href="#svc-notifications"></a></td></tr>
+      <tr><td><code>ssd:SparqlQueryService</code></td><td>service type</td><td><a href="#svc-sparql"></a></td></tr>
+      <tr><td><code>ssd:CrdtSyncService</code></td><td>service type</td><td><a href="#svc-crdt"></a></td></tr>
+      <tr><td><code>ssd:VersioningService</code></td><td>service type</td><td><a href="#svc-versioning"></a></td></tr>
+      <tr><td><code>ssd:TrashService</code></td><td>service type</td><td><a href="#svc-trash"></a></td></tr>
+      <tr><td><code>ssd:AccessControl</code></td><td>capability type</td><td><a href="#cap-access-control"></a></td></tr>
+      <tr><td><code>ssd:PatchSupport</code></td><td>capability type</td><td><a href="#cap-patch"></a></td></tr>
+      <tr><td><code>ssd:RecursiveDelete</code></td><td>capability type</td><td><a href="#cap-recursive-delete"></a></td></tr>
+      <tr><td><code>ssd:ResumableUploads</code></td><td>capability type</td><td><a href="#cap-resumable"></a></td></tr>
+      <tr><td><code>ssd:Pagination</code></td><td>capability type</td><td><a href="#cap-pagination"></a></td></tr>
+      <tr><td><code>ssd:ContentNegotiation</code></td><td>capability type</td><td><a href="#cap-conneg"></a></td></tr>
+      <tr><td><code>ssd:WAC</code>, <code>ssd:ACP</code>, <code>ssd:ODRLGrants</code></td><td>access control models</td><td><a href="#cap-access-control"></a></td></tr>
+      <tr><td><code>ssd:SseSubscription</code>, <code>ssd:WebSocketSubscription</code></td><td>subscription types</td><td><a href="#subscription-types"></a></td></tr>
+      <tr><td><code>ssd:y-protocol-v1</code></td><td>profile</td><td><a href="#y-protocol"></a></td></tr>
+      <tr><td><code>ssd:model</code></td><td>property</td><td><a href="#cap-access-control"></a></td></tr>
+      <tr><td><code>ssd:source</code>, <code>ssd:patchType</code>, <code>ssd:target</code></td><td>properties</td><td><a href="#cap-patch"></a>, <a href="#cap-conneg"></a></td></tr>
+      <tr><td><code>ssd:retention</code></td><td>property</td><td><a href="#svc-trash"></a></td></tr>
+      <tr><td><code>ssd:roomTemplate</code></td><td>property</td><td><a href="#svc-crdt"></a></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="appendix informative" id="examples">
+  <h2>Examples</h2>
+  <p>
+    The <a href="examples/">examples</a> directory holds complete descriptions that the shapes
+    validate: a Community Solid Server style description that lists only notification
+    subscriptions, the description of a Solid storage with every service type, and the same
+    storage as a Linked Web Storage description in JSON-LD.
+  </p>
+
+  <pre class="example" title="The same storage as JSON-LD (application/lws+cid)">
+{
+  "@context": [
+    "https://www.w3.org/ns/cid/v1",
+    "https://www.w3.org/ns/lws/v1",
+    "https://jeswr.org/ns/solid-sd/context/v1"
+  ],
+  "id": "https://pod.example/",
+  "type": ["Storage", "http://www.w3.org/ns/pim/space#Storage"],
+  "service": [
+    { "type": "StorageRoot", "serviceEndpoint": "https://pod.example/" },
+    { "type": "SolidNotificationService",
+      "serviceEndpoint": "https://pod.example/.notifications/WebSocketChannel2023/",
+      "channelType": "WebSocketChannel2023" },
+    { "type": "SparqlQueryService",
+      "serviceEndpoint": "https://pod.example/sparql",
+      "conformsTo": ["https://jeswr.github.io/solid-specs/specs/access-controlled-query/"] }
+  ],
+  "capability": [
+    { "type": "AccessControl", "model": "WAC" },
+    { "type": "PatchSupport", "source": "text/turtle",
+      "patchType": ["text/n3", "application/sparql-update"] },
+    { "type": "RecursiveDelete" }
+  ]
+}
+  </pre>
+</section>
+
+<section class="appendix informative" id="implementation-status">
+  <h2>Implementation status</h2>
+  <p>
+    The suite's client library <code>@jeswr/storage-capabilities</code> reads both description
+    forms. The sparq server advertises services and capabilities in both its Solid and Linked Web
+    Storage modes. Both predate this draft and differ from it as follows; the differences are
+    tracked for change.
+  </p>
+  <ul>
+    <li>sparq lists the notification channel of a <code>ssd:SolidNotificationService</code> with
+      a property <code>ssd:channelType</code>. This draft reuses
+      <code>notify:channelType</code> and defines no <code>ssd:channelType</code>.</li>
+    <li>sparq's Solid mode nests the patch formats under a <code>ssd:format</code> node, and its
+      Linked Web Storage mode uses a <code>mediaType</code> member that no context maps. This
+      draft uses one flat <code>ssd:PatchSupport</code> per source media type.</li>
+    <li>sparq lists a service of type <code>lws:StorageDescription</code>, a term of the JLWS
+      draft that Linked Web Storage does not define. Clients ignore it.</li>
+  </ul>
+</section>
+
+<section class="appendix informative" id="acknowledgements">
+  <h2>Acknowledgements</h2>
+  <p>
+    The shape of this specification is that of the Linked Web Storage storage description, and
+    its notification and query parts build on the Solid Notifications Protocol and the
+    access-controlled query draft.
+  </p>
+</section>
+
+</body>
+</html>

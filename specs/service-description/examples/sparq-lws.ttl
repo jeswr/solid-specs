@@ -1,0 +1,44 @@
+# AUTHORED-BY Claude Opus 5.5
+# The RDF meaning of sparq-lws.jsonld under its three contexts. The tooling checks the two
+# are the same graph.
+@prefix lws:  <https://www.w3.org/ns/lws#> .
+@prefix did:  <https://www.w3.org/ns/did#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix ssd:  <https://jeswr.org/ns/solid-sd#> .
+
+<https://lws.example/> a lws:Storage ;
+    did:service <https://lws.example/#storage-root> , <https://lws.example/#notifications> ,
+                <https://lws.example/#type-index> , <https://lws.example/#type-search> ,
+                <https://lws.example/#access-requests> , <https://lws.example/#access-grants> ,
+                <https://lws.example/#sparql> , <https://lws.example/#sync> ;
+    lws:capability [ a ssd:AccessControl ; ssd:model ssd:ODRLGrants ] ,
+                   [ a ssd:PatchSupport ; ssd:source "application/json" ;
+                     ssd:patchType "application/json-patch+json" ] ,
+                   [ a ssd:PatchSupport ; ssd:source "application/ld+json" ;
+                     ssd:patchType "application/json-patch+json" ] ,
+                   [ a ssd:RecursiveDelete ] ,
+                   [ a lws:MoveResource ; lws:appliesTo lws:DataResource, lws:Container ;
+                     lws:preservesIdentifier false ] .
+
+<https://lws.example/#storage-root> a lws:StorageRoot ;
+    did:serviceEndpoint <https://lws.example/> .
+<https://lws.example/#notifications> a lws:NotificationService ;
+    did:serviceEndpoint <https://lws.example/.lws/subscriptions/> ;
+    lws:subscriptionType lws:WebhookSubscription, ssd:SseSubscription, ssd:WebSocketSubscription .
+<https://lws.example/#type-index> a lws:TypeIndexService ;
+    did:serviceEndpoint <https://lws.example/.lws/types/index> .
+<https://lws.example/#type-search> a lws:TypeSearchService ;
+    did:serviceEndpoint <https://lws.example/.lws/types/search> .
+<https://lws.example/#access-requests> a lws:AccessRequestService ;
+    did:serviceEndpoint <https://lws.example/.lws/requests/> ;
+    dct:conformsTo lws:AccessProfile .
+<https://lws.example/#access-grants> a lws:AccessGrantService ;
+    did:serviceEndpoint <https://lws.example/.lws/grants/> ;
+    dct:conformsTo lws:AccessProfile .
+<https://lws.example/#sparql> a ssd:SparqlQueryService ;
+    did:serviceEndpoint <https://lws.example/sparql> ;
+    dct:conformsTo <https://jeswr.github.io/solid-specs/specs/access-controlled-query/> .
+<https://lws.example/#sync> a ssd:CrdtSyncService ;
+    did:serviceEndpoint <https://lws.example/.sync/tickets> ;
+    dct:conformsTo ssd:y-protocol-v1 .

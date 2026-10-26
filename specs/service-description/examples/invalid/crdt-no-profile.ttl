@@ -1,0 +1,5 @@
+# AUTHORED-BY Claude Opus 5.5
+# EXPECT: SSD-SVC-CRDT-1
+# A CRDT sync service with no profile.
+@prefix pim: <http://www.w3.org/ns/pim/space#> . @prefix lws: <https://www.w3.org/ns/lws#> . @prefix did: <https://www.w3.org/ns/did#> . @prefix notify: <http://www.w3.org/ns/solid/notifications#> . @prefix dct: <http://purl.org/dc/terms/> . @prefix xsd: <http://www.w3.org/2001/XMLSchema#> . @prefix ssd: <https://jeswr.org/ns/solid-sd#> .
+<https://pod.example/> a pim:Storage ; did:service [ a lws:StorageRoot ; did:serviceEndpoint <https://pod.example/> ] , [ a ssd:CrdtSyncService ; did:serviceEndpoint <https://pod.example/.sync/tickets> ] .
