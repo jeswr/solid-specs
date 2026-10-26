@@ -1,0 +1,257 @@
+# AUTHORED-BY Claude Opus 5.5
+#
+# Normative SHACL shapes for the Solid Storage Service Description draft (../index.html).
+# They validate the RDF graph of a storage description resource, whichever representation it
+# was parsed from. Each constraint names the section and statement id (spec.statements.ttl)
+# it encodes.
+#
+# The shapes are OPEN: unknown service and capability types, and unknown properties on known
+# ones, validate (#dm-extensibility). Requirements on server behaviour (patch acceptance,
+# trash and version operations, origin rules) are protocol-level and are not graph-checkable.
+#
+# NOT graph-checkable here:
+#   - SSD-LOC-2 "the subject ... MUST be the IRI of the storage root" and SSD-DM-3's "whose
+#     endpoint is the storage root": the storage root is known from the protocol, not from the
+#     graph. StorageShape instead requires the StorageRoot service to exist.
+#   - SSD-REP-* (media types, context order): checked on the representation, not the graph.
+
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct:     <http://purl.org/dc/terms/> .
+@prefix did:     <https://www.w3.org/ns/did#> .
+@prefix lws:     <https://www.w3.org/ns/lws#> .
+@prefix pim:     <http://www.w3.org/ns/pim/space#> .
+@prefix notify:  <http://www.w3.org/ns/solid/notifications#> .
+@prefix ssd:     <https://jeswr.org/ns/solid-sd#> .
+@prefix ssdsh:   <https://jeswr.org/ns/solid-sd/shapes#> .
+
+#################################################################
+# The storage
+#################################################################
+
+ssdsh:StorageShape
+    a sh:NodeShape ;
+    rdfs:label "Storage with services or capabilities"@en ;
+    rdfs:comment "Any subject that lists services or capabilities: it is a storage (#data-model)."@en ;
+    sh:targetSubjectsOf did:service, lws:capability ;
+    sh:nodeKind sh:IRI ;
+    sh:or (
+        [ sh:property [ sh:path rdf:type ; sh:hasValue pim:Storage ] ]
+        [ sh:property [ sh:path rdf:type ; sh:hasValue lws:Storage ] ]
+    ) ;
+    sh:message "A subject with did:service or lws:capability is a storage: an IRI typed pim:Storage or lws:Storage (#location-resource)." ;
+    # SSD-DM-3: a StorageRoot service is REQUIRED.
+    sh:property [
+        sh:path did:service ;
+        sh:qualifiedValueShape [ sh:class lws:StorageRoot ] ;
+        sh:qualifiedMinCount 1 ;
+        sh:message "A storage description MUST include a service of type lws:StorageRoot (SSD-DM-3, #dm-services)." ;
+    ] .
+
+#################################################################
+# Every service and capability
+#################################################################
+
+ssdsh:ServiceShape
+    a sh:NodeShape ;
+    rdfs:label "Service entry"@en ;
+    sh:targetObjectsOf did:service ;
+    # SSD-DM-1
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A service node MUST have at least one rdf:type (SSD-DM-1, #dm-services) Types are IRIs (SSD-DM-10)." ;
+    ] ;
+    # SSD-DM-2
+    sh:property [
+        sh:path did:serviceEndpoint ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A service node MUST have exactly one did:serviceEndpoint whose value is an IRI (SSD-DM-2, #dm-services)." ;
+    ] ;
+    # SSD-DM-6
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:nodeKind sh:IRI ;
+        sh:message "The value of dcterms:conformsTo on an entry MUST be an IRI (SSD-DM-6, #dm-profiles)." ;
+    ] .
+
+ssdsh:CapabilityShape
+    a sh:NodeShape ;
+    rdfs:label "Capability entry"@en ;
+    sh:targetObjectsOf lws:capability ;
+    # SSD-DM-4
+    sh:property [
+        sh:path rdf:type ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A capability node MUST have at least one rdf:type (SSD-DM-4, #dm-capabilities) Types are IRIs (SSD-DM-10)." ;
+    ] ;
+    # SSD-DM-6
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:nodeKind sh:IRI ;
+        sh:message "The value of dcterms:conformsTo on an entry MUST be an IRI (SSD-DM-6, #dm-profiles)." ;
+    ] .
+
+#################################################################
+# Service types
+#################################################################
+
+ssdsh:SolidNotificationServiceShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:SolidNotificationService ;
+    # SSD-SVC-NOTIFY-2
+    sh:property [
+        sh:path notify:channelType ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "A ssd:SolidNotificationService node MUST have exactly one notify:channelType (SSD-SVC-NOTIFY-2, #svc-notifications)." ;
+    ] ;
+    sh:property [
+        sh:path notify:feature ;
+        sh:nodeKind sh:IRI ;
+        sh:message "notify:feature values are IRIs (#svc-notifications)." ;
+    ] .
+
+ssdsh:SparqlQueryServiceShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:SparqlQueryService ;
+    # SSD-SVC-SPARQL-1
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:minCount 1 ;
+        sh:message "A ssd:SparqlQueryService node MUST have a dcterms:conformsTo naming its query protocol profile (SSD-SVC-SPARQL-1, #svc-sparql)." ;
+    ] .
+
+ssdsh:CrdtSyncServiceShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:CrdtSyncService ;
+    # SSD-SVC-CRDT-1
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:minCount 1 ;
+        sh:message "A ssd:CrdtSyncService node MUST have a dcterms:conformsTo naming its sync profile (SSD-SVC-CRDT-1, #svc-crdt)." ;
+    ] ;
+    # SSD-SVC-CRDT-3
+    sh:property [
+        sh:path ssd:roomTemplate ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "A ssd:CrdtSyncService node MAY have one ssd:roomTemplate, a string (SSD-SVC-CRDT-3, #svc-crdt)." ;
+    ] .
+
+ssdsh:TrashServiceShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:TrashService ;
+    # SSD-SVC-TRASH-1
+    sh:property [
+        sh:path ssd:retention ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:duration ;
+        sh:message "A ssd:TrashService node MAY have one ssd:retention, an xsd:duration (SSD-SVC-TRASH-1, #svc-trash)." ;
+    ] .
+
+#################################################################
+# Capability types
+#################################################################
+
+ssdsh:AccessControlShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:AccessControl ;
+    # SSD-CAP-AC-1
+    sh:property [
+        sh:path ssd:model ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "An ssd:AccessControl node MUST have at least one ssd:model, an IRI (SSD-CAP-AC-1, #cap-access-control)." ;
+    ] .
+
+ssdsh:PatchSupportShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:PatchSupport ;
+    # SSD-CAP-PATCH-1
+    sh:property [
+        sh:path ssd:source ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "An ssd:PatchSupport node MUST have exactly one ssd:source, a media type string (SSD-CAP-PATCH-1, #cap-patch)." ;
+    ] ;
+    # SSD-CAP-PATCH-2
+    sh:property [
+        sh:path ssd:patchType ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "An ssd:PatchSupport node MUST have at least one ssd:patchType, a media type string (SSD-CAP-PATCH-2, #cap-patch)." ;
+    ] .
+
+ssdsh:ResumableUploadsShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:ResumableUploads ;
+    # SSD-CAP-RESUME-1
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:minCount 1 ;
+        sh:message "An ssd:ResumableUploads node MUST have a dcterms:conformsTo naming the upload protocol (SSD-CAP-RESUME-1, #cap-resumable)." ;
+    ] .
+
+ssdsh:PaginationShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:Pagination ;
+    # SSD-CAP-PAGE-1 (SHOULD: reported as a warning)
+    sh:property [
+        sh:path dct:conformsTo ;
+        sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "An ssd:Pagination node SHOULD have a dcterms:conformsTo naming the paging mechanism (SSD-CAP-PAGE-1, #cap-pagination)." ;
+    ] .
+
+ssdsh:ContentNegotiationShape
+    a sh:NodeShape ;
+    sh:targetClass ssd:ContentNegotiation ;
+    # SSD-CAP-CONNEG-1
+    sh:property [
+        sh:path ssd:source ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "An ssd:ContentNegotiation node MUST have exactly one ssd:source, a media type string (SSD-CAP-CONNEG-1, #cap-conneg)." ;
+    ] ;
+    sh:property [
+        sh:path ssd:target ;
+        sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "An ssd:ContentNegotiation node MUST have at least one ssd:target, a media type string (SSD-CAP-CONNEG-1, #cap-conneg)." ;
+    ] .
+
+#################################################################
+# Media types (SSD-DM-12) and reused Linked Web Storage services
+#################################################################
+
+ssdsh:MediaTypeShape
+    a sh:NodeShape ;
+    sh:targetObjectsOf ssd:source, ssd:patchType, ssd:target ;
+    sh:datatype xsd:string ;
+    sh:pattern "^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}$" ;
+    sh:message "Every value of ssd:source, ssd:patchType and ssd:target MUST be a media type type/subtype without parameters (SSD-DM-12, #dm-media-type)." .
+
+ssdsh:LwsNotificationServiceShape
+    a sh:NodeShape ;
+    sh:targetClass lws:NotificationService ;
+    # Inherited from LWS core #Notification Discovery: subscriptionType is required.
+    sh:property [
+        sh:path lws:subscriptionType ;
+        sh:minCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "An lws:NotificationService MUST list its subscription types with lws:subscriptionType (LWS core, Notification Discovery; #svc-lws)." ;
+    ] .

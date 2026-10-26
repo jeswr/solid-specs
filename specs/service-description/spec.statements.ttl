@@ -1,0 +1,903 @@
+# AUTHORED-BY Claude Opus 5.5
+#
+# Machine-readable normative-statement companion for "Solid Storage Service Description"
+# (index.html in this directory). COMPLEMENTARY: the full-text spec is the normative document;
+# this graph enumerates its normative statements so conformance suites and coverage gates can
+# consume them. Format: the jeswr/spec-companion model (spec: requirement markup + the
+# E / A-int / A-exist / P testability spine + per-statement test-case links or honest gaps).
+# Statement texts are verbatim quotes of index.html (tags stripped, entities decoded, [[refs]]
+# unbracketed, whitespace collapsed); tools/spec-check checks the quotes, anchors, levels and
+# that every normative paragraph is listed.
+#
+# Testability:
+#   E       deterministically black-box testable (a document or request/response decides it).
+#   A-int   a non-interference or uniformity property: samplable, not exhaustively decidable.
+#   A-exist audit or inspection only.
+#   P       not testable as specified.
+# Graph-shape statements link the invalid vectors in examples/invalid/ that the SHACL shapes
+# reject; protocol statements carry a test gap until the storage-conformance suite covers them.
+
+@base <https://jeswr.github.io/solid-specs/specs/service-description/spec.statements.ttl> .
+@prefix sc:      <https://w3id.org/jeswr/spec-companion#> .
+@prefix spec:    <http://www.w3.org/ns/spec#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+
+<> a sc:CompanionDocument ;
+    dcterms:title "Solid Storage Service Description normative-statement companion"@en ;
+    sc:companionOf <https://jeswr.github.io/solid-specs/specs/service-description/> ;
+    sc:specVersion "2026-10-26" ;
+    dcterms:created "2026-10-26"^^xsd:date ;
+    prov:wasAttributedTo <https://jeswr.org/#me> ;
+    dcterms:description "Extracted with AI assistance (Claude Opus 5.5, Anthropic) from the spec source in the same commit; awaiting review by the human editor, like the spec itself."@en .
+
+<https://jeswr.github.io/solid-specs/specs/service-description/> a spec:Specification ;
+    dcterms:title "Solid Storage Service Description"@en ;
+    spec:conformance <https://jeswr.github.io/solid-specs/specs/service-description/#conformance> ;
+    spec:consideration <https://jeswr.github.io/solid-specs/specs/service-description/#security> ;
+    spec:requirement
+        <#SSD-LOC-1> ,
+        <#SSD-LOC-2> ,
+        <#SSD-LOC-3> ,
+        <#SSD-LOC-4> ,
+        <#SSD-REP-1> ,
+        <#SSD-REP-2> ,
+        <#SSD-REP-3> ,
+        <#SSD-REP-4> ,
+        <#SSD-REP-5> ,
+        <#SSD-REP-6> ,
+        <#SSD-REP-7> ,
+        <#SSD-DM-1> ,
+        <#SSD-DM-2> ,
+        <#SSD-DM-3> ,
+        <#SSD-DM-4> ,
+        <#SSD-DM-5> ,
+        <#SSD-DM-6> ,
+        <#SSD-DM-12> ,
+        <#SSD-DM-7> ,
+        <#SSD-DM-8> ,
+        <#SSD-DM-9> ,
+        <#SSD-DM-10> ,
+        <#SSD-DM-13> ,
+        <#SSD-DM-11> ,
+        <#SSD-SVC-LWS-1> ,
+        <#SSD-SVC-NOTIFY-1> ,
+        <#SSD-SVC-NOTIFY-2> ,
+        <#SSD-SVC-NOTIFY-3> ,
+        <#SSD-SVC-NOTIFY-4> ,
+        <#SSD-SVC-SPARQL-1> ,
+        <#SSD-SVC-SPARQL-2> ,
+        <#SSD-SVC-SPARQL-3> ,
+        <#SSD-SVC-CRDT-1> ,
+        <#SSD-SVC-CRDT-3> ,
+        <#SSD-SVC-RD-1> ,
+        <#SSD-SVC-RD-3> ,
+        <#SSD-SVC-RD-4> ,
+        <#SSD-SVC-RD-2> ,
+        <#SSD-SVC-VER-1> ,
+        <#SSD-SVC-VER-2> ,
+        <#SSD-SVC-VER-3> ,
+        <#SSD-SVC-VER-4> ,
+        <#SSD-SVC-VER-5> ,
+        <#SSD-SVC-TRASH-1> ,
+        <#SSD-SVC-TRASH-11> ,
+        <#SSD-SVC-TRASH-2> ,
+        <#SSD-SVC-TRASH-10> ,
+        <#SSD-SVC-TRASH-8> ,
+        <#SSD-SVC-TRASH-3> ,
+        <#SSD-SVC-TRASH-4> ,
+        <#SSD-SVC-TRASH-9> ,
+        <#SSD-SVC-TRASH-5> ,
+        <#SSD-SVC-TRASH-6> ,
+        <#SSD-SVC-TRASH-7> ,
+        <#SSD-CAP-AC-1> ,
+        <#SSD-CAP-AC-2> ,
+        <#SSD-CAP-PATCH-1> ,
+        <#SSD-CAP-PATCH-2> ,
+        <#SSD-CAP-PATCH-3> ,
+        <#SSD-CAP-RESUME-1> ,
+        <#SSD-CAP-PAGE-1> ,
+        <#SSD-CAP-CONNEG-1> ,
+        <#SSD-CAP-CONNEG-2> ,
+        <#SSD-SUB-1> ,
+        <#SSD-SUB-2> ,
+        <#SSD-CLI-18> ,
+        <#SSD-CLI-19> ,
+        <#SSD-CLI-15> ,
+        <#SSD-CLI-16> ,
+        <#SSD-CLI-2> ,
+        <#SSD-CLI-3> ,
+        <#SSD-CLI-4> ,
+        <#SSD-CLI-5> ,
+        <#SSD-CLI-20> ,
+        <#SSD-CLI-6> ,
+        <#SSD-CLI-7> ,
+        <#SSD-CLI-8> ,
+        <#SSD-CLI-17> ,
+        <#SSD-CLI-21> ,
+        <#SSD-CLI-9> ,
+        <#SSD-CLI-10> ,
+        <#SSD-CLI-11> ,
+        <#SSD-CLI-12> ,
+        <#SSD-CLI-13> ,
+        <#SSD-LWS-1> ,
+        <#SSD-SEC-1> .
+
+<https://jeswr.github.io/solid-specs/specs/service-description/#security> a spec:SecurityConsiderations .
+
+<#Server> a sc:ConformanceClass ;
+    rdfs:label "storage server"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/service-description/#conformance> .
+
+<#Client> a sc:ConformanceClass ;
+    rdfs:label "client"@en ;
+    sc:definedBy <https://jeswr.github.io/solid-specs/specs/service-description/#conformance> .
+
+<#gap-no-vectors-yet> a sc:TestGap ;
+    dcterms:description "No conformance vector exercises this statement yet. The examples/ vectors cover the graph-shape statements through the SHACL shapes and the Solid root check; protocol behaviour (representations, origin rules, version, trash and recursive delete operations, client processing) is to be covered by the storage-conformance suite in jeswr/solid-sdk (tools/storage-conformance, groups SC-DESC, SC-TRASH, SC-VERSIONS) and the sparq SQ-3, SQ-5 and SQ-8 acceptance tests."@en .
+
+<#gap-extension-governance> a sc:TestGap ;
+    dcterms:description "Not testable as specified: whether a type IRI lies in a namespace its definer controls, or duplicates a Linked Web Storage type under another IRI, is a question of governance and intent, not of an observable response. Reviewers check it when a new type is proposed."@en .
+
+<#gap-audit-only> a sc:TestGap ;
+    dcterms:description "Audit only: the statement constrains how a party uses information internally (here, whether a client treats a description as evidence of permission), which no black-box exchange can decide. Evidence is a code or design review."@en .
+
+### Normative statements
+
+<#SSD-LOC-1> a spec:Requirement ;
+    dcterms:identifier "SSD-LOC-1" ;
+    spec:statement "A storage server that describes services or capabilities of a storage MUST do so in the storage description resource of that storage." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#loc-same-resource> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-LOC-2> a spec:Requirement ;
+    dcterms:identifier "SSD-LOC-2" ;
+    spec:statement "The subject of every did:service and lws:capability statement in a storage description resource MUST be the IRI of the storage root." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#loc-subject> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-LOC-3> a spec:Requirement ;
+    dcterms:identifier "SSD-LOC-3" ;
+    spec:statement "A storage server SHOULD type the storage root lws:Storage in addition to pim:Storage." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#loc-lws-type> .
+
+<#SSD-LOC-4> a spec:Requirement ;
+    dcterms:identifier "SSD-LOC-4" ;
+    spec:statement "The service and capability statements of a storage description resource MUST NOT vary with the identity of the requester." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#loc-no-vary> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-REP-1> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-1" ;
+    spec:statement "A storage server MUST serve the storage description resource as text/turtle when the request prefers it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-turtle> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-REP-2> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-2" ;
+    spec:statement "A storage server MUST serve the storage description resource as application/ld+json when the request prefers it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-jsonld> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-REP-3> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-3" ;
+    spec:statement "A JSON-LD representation that uses the context defined by this specification MUST list https://www.w3.org/ns/cid/v1, then https://www.w3.org/ns/lws/v1, then that context, before any other context." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-context> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/sparq-lws.jsonld> .
+
+<#SSD-REP-4> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-4" ;
+    spec:statement "A storage server MAY embed the content of this specification's context inline instead of referencing its IRI." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-inline-context> .
+
+<#SSD-REP-5> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-5" ;
+    spec:statement "A storage server MAY also serve the storage description resource as application/lws+cid." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-lws-cid> .
+
+<#SSD-REP-6> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-6" ;
+    spec:statement "An application/lws+cid representation of a storage description resource MUST satisfy the storage description requirements of LWS-CORE." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-lws-cid-valid> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-REP-7> a spec:Requirement ;
+    dcterms:identifier "SSD-REP-7" ;
+    spec:statement "All representations of a storage description resource MUST express the same service and capability statements." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#rep-same-graph> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/sparq-lws.jsonld> .
+
+<#SSD-DM-1> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-1" ;
+    spec:statement "A service node MUST have at least one rdf:type." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-service-type> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/untyped-service.ttl> .
+
+<#SSD-DM-2> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-2" ;
+    spec:statement "A service node MUST have exactly one did:serviceEndpoint whose value is an IRI." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-service-endpoint> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/two-endpoints.ttl> , <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/literal-endpoint.ttl> .
+
+<#SSD-DM-3> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-3" ;
+    spec:statement "A storage description that lists any service or capability MUST include a service of type lws:StorageRoot whose endpoint is the storage root." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-service-root> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/no-storage-root.ttl> , <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/root-elsewhere.ttl> .
+
+<#SSD-DM-4> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-4" ;
+    spec:statement "A capability node MUST have at least one rdf:type." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-capability-type> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/untyped-capability.ttl> .
+
+<#SSD-DM-5> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-5" ;
+    spec:statement "A service or capability node MAY be an IRI or a blank node." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-entry-node> .
+
+<#SSD-DM-6> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-6" ;
+    spec:statement "The value of dcterms:conformsTo on an entry MUST be an IRI." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-profile-iri> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/literal-profile.ttl> .
+
+<#SSD-DM-12> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-12" ;
+    spec:statement "Every value of ssd:source, ssd:patchType and ssd:target MUST be a media type of the form type/subtype, without parameters." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-media-type> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/bad-media-type.ttl> , <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/media-type-params.ttl> , <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/media-type-too-long.ttl> .
+
+<#SSD-DM-7> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-7" ;
+    spec:statement "A storage server SHOULD identify a service node by an IRI that is the storage description resource's IRI or the storage root's IRI with a fragment." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-entry-iri-fragment> .
+
+<#SSD-DM-8> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-8" ;
+    spec:statement "An entry MAY list more than one profile when its endpoint speaks each of them." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-profile-multiple> .
+
+<#SSD-DM-9> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-9" ;
+    spec:statement "Any party MAY define new service and capability types." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-ext-types> .
+
+<#SSD-DM-10> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-10" ;
+    spec:statement "Every type of a service or capability entry MUST be an absolute IRI." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-ext-iri> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/blank-type.ttl> , <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/literal-type.ttl> .
+
+<#SSD-DM-13> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-13" ;
+    spec:statement "A service or capability type that this specification or LWS-CORE does not define MUST be in a namespace its definer controls." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-ext-namespace> ;
+    sc:testGap <#gap-extension-governance> .
+
+<#SSD-DM-11> a spec:Requirement ;
+    dcterms:identifier "SSD-DM-11" ;
+    spec:statement "An entry MAY carry properties beyond those its type definition names." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#dm-ext-properties> .
+
+<#SSD-SVC-LWS-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-LWS-1" ;
+    spec:statement "A storage server MUST NOT describe a service that one of these Linked Web Storage types covers with a different type IRI." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-lws-reuse> ;
+    sc:testGap <#gap-extension-governance> .
+
+<#SSD-SVC-NOTIFY-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-NOTIFY-1" ;
+    spec:statement "The endpoint of a ssd:SolidNotificationService MUST be the IRI of a subscription service." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-notify-endpoint> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-NOTIFY-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-NOTIFY-2" ;
+    spec:statement "A ssd:SolidNotificationService node MUST have exactly one notify:channelType." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-notify-channel> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/notify-no-channel.ttl> .
+
+<#SSD-SVC-NOTIFY-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-NOTIFY-3" ;
+    spec:statement "A ssd:SolidNotificationService node MAY have notify:feature values with the meaning the Solid Notifications Protocol gives them." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-notify-feature> .
+
+<#SSD-SVC-NOTIFY-4> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-NOTIFY-4" ;
+    spec:statement "A storage server that lists a subscription service with notify:subscription SHOULD also list it as a ssd:SolidNotificationService." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-notify-both> .
+
+<#SSD-SVC-SPARQL-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-SPARQL-1" ;
+    spec:statement "A ssd:SparqlQueryService node MUST have a dcterms:conformsTo naming the query protocol profile its endpoint implements." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-sparql-profile> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/sparql-no-profile.ttl> .
+
+<#SSD-SVC-SPARQL-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-SPARQL-2" ;
+    spec:statement "A ssd:SparqlQueryService whose endpoint implements ACQ MUST list https://jeswr.github.io/solid-specs/specs/access-controlled-query/ as a profile." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-sparql-acq> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-SPARQL-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-SPARQL-3" ;
+    spec:statement "A storage server that names an endpoint with solid-sparql:endpoint SHOULD also list it as a ssd:SparqlQueryService." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-sparql-both> .
+
+<#SSD-SVC-CRDT-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-CRDT-1" ;
+    spec:statement "A ssd:CrdtSyncService node MUST have a dcterms:conformsTo naming its sync profile." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-crdt-profile> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/crdt-no-profile.ttl> .
+
+<#SSD-SVC-CRDT-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-CRDT-3" ;
+    spec:statement "A ssd:CrdtSyncService node MAY have one ssd:roomTemplate, an informative URI template for room URLs." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-crdt-room-template> .
+
+<#SSD-SVC-RD-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-RD-1" ;
+    spec:statement "When a client sends a POST request to a recursive delete service endpoint with an application/json body whose container member is the IRI of a container in the storage, and the client may delete the container and every resource beneath it, the storage server MUST delete them all and respond 204 No Content." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-rd> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-RD-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-RD-3" ;
+    spec:statement "A storage server MUST refuse a recursive delete of a container outside the storage with 400 Bad Request, without reading or changing that container." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-rd-outside> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-RD-4> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-RD-4" ;
+    spec:statement "A storage server MUST refuse a recursive delete that the client is not permitted to make, deleting nothing and responding 403 Forbidden when the client may read the container and 404 Not Found otherwise." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-rd-refuse> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-RD-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-RD-2" ;
+    spec:statement "When a recursive delete cannot delete every resource beneath the container, the storage server MUST NOT delete the container." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-rd-atomic> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-VER-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-VER-1" ;
+    spec:statement "A storage server that lists a ssd:VersioningService MUST include, in successful responses to GET and HEAD requests on each versioned resource, a Link header with the relation version-history whose target is a container listing that resource's versions." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-version-link> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-VER-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-VER-2" ;
+    spec:statement "A storage server MUST reject requests that modify a version resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-version-immutable> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-VER-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-VER-3" ;
+    spec:statement "A storage server MUST include a Memento-Datetime header in successful responses to GET and HEAD requests on a version resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-version-datetime> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-VER-4> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-VER-4" ;
+    spec:statement "A storage server MUST include, in successful responses to GET and HEAD requests on a version resource, a Link header with the relation original whose target is the versioned resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-version-original> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-VER-5> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-VER-5" ;
+    spec:statement "A version or version history MUST NOT be readable by any agent who cannot currently read the versioned resource." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-version-access> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-1" ;
+    spec:statement "A ssd:TrashService node MAY have one ssd:retention, an xsd:duration after which the storage may purge a trashed resource." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-retention> .
+
+<#SSD-SVC-TRASH-11> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-11" ;
+    spec:statement "A storage server MUST refuse with 400 Bad Request, without changing anything, a POST request to the trash container whose body does not have exactly one of the members resource and restore." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-one-op> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-2" ;
+    spec:statement "When a client sends a POST request to the trash container with an application/json body whose resource member is the IRI of a resource in the same storage, and the client may delete that resource and, for a container, every resource beneath it, the storage server MUST move that resource into the trash and respond 201 Created with a Location header naming the trashed copy." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-move> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-10> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-10" ;
+    spec:statement "A storage server MUST refuse a request to trash a resource outside the storage with 400 Bad Request, without reading or changing that resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-move-outside> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-8> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-8" ;
+    spec:statement "A storage server MUST refuse to trash a resource in the storage that the client may not delete, or a container beneath which is a resource the client may not delete, moving nothing and responding 403 Forbidden when the client may read the resource and 404 Not Found otherwise." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-move-refuse> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-3> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-3" ;
+    spec:statement "A storage server MUST include, in successful responses to GET and HEAD requests on a trashed resource, a Link header with the relation original whose target is the IRI the resource had before it was trashed." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-original> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-4> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-4" ;
+    spec:statement "When a client sends a POST request to the trash container with an application/json body whose restore member is the IRI of a trashed resource in that trash, and the client may delete the trashed resource and, for a container, every resource beneath it, and may create a resource at each location the restore fills, the storage server MUST move it out of the trash and respond with a Location header naming the restored resource." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-restore> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-9> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-9" ;
+    spec:statement "A storage server MUST refuse a restore that the client is not permitted to make, moving nothing and responding 403 Forbidden when the client may read the trashed resource and 404 Not Found otherwise." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-restore-refuse> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-5> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-5" ;
+    spec:statement "A Solid storage server MUST restore a resource to the IRI it had before it was trashed, or refuse the restore with 409 Conflict when that IRI is in use." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-restore-solid> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-6> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-6" ;
+    spec:statement "A storage server MUST destroy a trashed data resource or empty trashed container when a client with permission to delete it sends a DELETE request to it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-purge> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SVC-TRASH-7> a spec:Requirement ;
+    dcterms:identifier "SSD-SVC-TRASH-7" ;
+    spec:statement "A trashed resource MUST NOT be readable by any agent who could not read it before it was trashed." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#svc-trash-access> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CAP-AC-1> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-AC-1" ;
+    spec:statement "An ssd:AccessControl node MUST have at least one ssd:model." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-ac-model> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/ac-no-model.ttl> .
+
+<#SSD-CAP-AC-2> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-AC-2" ;
+    spec:statement "A storage server that lists an ssd:AccessControl capability MUST list every authorization model it enforces on the storage." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-ac-all> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CAP-PATCH-1> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-PATCH-1" ;
+    spec:statement "An ssd:PatchSupport node MUST have exactly one ssd:source, the media type of the resources it applies to." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-patch-source> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/patch-no-source.ttl> .
+
+<#SSD-CAP-PATCH-2> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-PATCH-2" ;
+    spec:statement "An ssd:PatchSupport node MUST have at least one ssd:patchType, a patch document media type the storage accepts in PATCH requests on those resources." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-patch-type> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/patch-no-type.ttl> .
+
+<#SSD-CAP-PATCH-3> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-PATCH-3" ;
+    spec:statement "The patch types a storage server lists for a media type MUST be a subset of those its Accept-Patch headers announce for resources of that media type." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-patch-accept> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CAP-RESUME-1> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-RESUME-1" ;
+    spec:statement "An ssd:ResumableUploads node MUST have a dcterms:conformsTo naming the upload protocol, such as https://tus.io/protocols/resumable-upload for TUS." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-resumable-profile> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/resumable-no-profile.ttl> .
+
+<#SSD-CAP-PAGE-1> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-PAGE-1" ;
+    spec:statement "An ssd:Pagination node SHOULD have a dcterms:conformsTo naming the paging mechanism." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-pagination-profile> .
+
+<#SSD-CAP-CONNEG-1> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-CONNEG-1" ;
+    spec:statement "An ssd:ContentNegotiation node MUST have exactly one ssd:source and at least one ssd:target, each a media type." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-conneg-shape> ;
+    spec:testCase <https://github.com/jeswr/solid-specs/blob/main/specs/service-description/examples/invalid/conneg-no-target.ttl> .
+
+<#SSD-CAP-CONNEG-2> a spec:Requirement ;
+    dcterms:identifier "SSD-CAP-CONNEG-2" ;
+    spec:statement "A storage server that lists an ssd:ContentNegotiation capability MUST serve every resource stored as its source media type in each of its target media types when a request prefers it." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#cap-conneg-serve> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SUB-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SUB-1" ;
+    spec:statement "A notification service that lists ssd:SseSubscription or ssd:WebSocketSubscription MUST implement the corresponding binding of JLWS." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#sub-binding> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-SUB-2> a spec:Requirement ;
+    dcterms:identifier "SSD-SUB-2" ;
+    spec:statement "A notification service MUST check, for each notification it delivers through these subscription types, that the subscriber may read the resource the notification is about at the time of delivery." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#sub-authz> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-18> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-18" ;
+    spec:statement "A client MUST NOT retrieve a storage description, Solid or Linked Web Storage, whose origin differs from the origin of the resource it started from." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-desc-origin> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-19> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-19" ;
+    spec:statement "A client MUST NOT follow a redirect to another origin while retrieving a storage description." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-desc-redirect> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-15> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-15" ;
+    spec:statement "A client MUST NOT dereference JSON-LD contexts named by a storage description at run time, other than from a cache of contexts it already trusts." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-no-remote-context> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-16> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-16" ;
+    spec:statement "A client MUST ignore the did:service and lws:capability statements of a Solid storage description when the storage root is unknown." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-root-unknown> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-2> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-2" ;
+    spec:statement "A client MUST ignore did:service and lws:capability statements in a Solid storage description whose subject is not the storage root it found." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-root-match> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-3> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-3" ;
+    spec:statement "A client MUST ignore any entry none of whose types it recognises." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-ignore> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-4> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-4" ;
+    spec:statement "A client MUST ignore properties of an entry that it does not recognise." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-ignore-props> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-5> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-5" ;
+    spec:statement "A client MUST NOT use a service whose type requires a profile unless the client implements at least one of the profiles the service lists." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-profile> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-20> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-20" ;
+    spec:statement "A client MAY use such a service through any one of its listed profiles that the client implements." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-profile-choice> .
+
+<#SSD-CLI-6> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-6" ;
+    spec:statement "A client MUST treat a subscription service listed with notify:subscription and a ssd:SolidNotificationService with the same endpoint and channel type as one service." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-notify-merge> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-7> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-7" ;
+    spec:statement "A client MUST treat the object of solid-sparql:endpoint on the storage root as a ssd:SparqlQueryService conforming to ACQ, and as the same service as a ssd:SparqlQueryService with that endpoint." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-acq-merge> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-8> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-8" ;
+    spec:statement "A client MUST NOT send a credential to a service URL whose origin differs from the origin the credential was obtained for; credentials for the storage are obtained for the storage root's origin." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-endpoint-origin> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-17> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-17" ;
+    spec:statement "A client MUST NOT send a credential in a request that follows a redirect to an origin other than the one the credential was obtained for." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-redirect> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-21> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-21" ;
+    spec:statement "A client that can determine the address a service URL's host resolves to MUST NOT send a request to it when that address is loopback, private-use or link-local, unless the client is configured to trust that specific address." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-endpoint-network> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-9> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-9" ;
+    spec:statement "A client SHOULD use the storage description in preference to probing resources for the same information." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-prefer> .
+
+<#SSD-CLI-10> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-10" ;
+    spec:statement "A client MUST NOT conclude from the absence of an entry that a storage lacks the behaviour." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-absent> ;
+    sc:testGap <#gap-no-vectors-yet> .
+
+<#SSD-CLI-11> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-11" ;
+    spec:statement "A client MUST NOT treat a storage description as evidence that an agent is permitted to perform an operation." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-not-authority> ;
+    sc:testGap <#gap-audit-only> .
+
+<#SSD-CLI-12> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-12" ;
+    spec:statement "A client that receives an error from an advertised service SHOULD continue without that service where an alternative exists." ;
+    spec:requirementLevel spec:SHOULD ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:AccountableExistence ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-fallback> .
+
+<#SSD-CLI-13> a spec:Requirement ;
+    dcterms:identifier "SSD-CLI-13" ;
+    spec:statement "A client MAY cache a storage description for the storage root, subject to the HTTP caching headers of the response that carried it." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Client> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#client-cache> .
+
+<#SSD-LWS-1> a spec:Requirement ;
+    dcterms:identifier "SSD-LWS-1" ;
+    spec:statement "A Linked Web Storage storage server MAY list the service and capability types this specification defines in its own storage description." ;
+    spec:requirementLevel spec:MAY ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#lws-storage-uses> .
+
+<#SSD-SEC-1> a spec:Requirement ;
+    dcterms:identifier "SSD-SEC-1" ;
+    spec:statement "A storage description MUST NOT disclose the IRIs of resources that are not themselves public, other than service endpoints and the storage root." ;
+    spec:requirementLevel spec:MUSTNOT ;
+    spec:requirementSubject <#Server> ;
+    sc:testability sc:AccountableIntegrity ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/service-description/#sec-no-private> ;
+    sc:testGap <#gap-no-vectors-yet> .
+

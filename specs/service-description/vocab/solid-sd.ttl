@@ -1,0 +1,213 @@
+# AUTHORED-BY Claude Opus 5.5
+#
+# Solid Storage Service Description vocabulary (draft).
+#
+# The terms the draft at ../index.html defines. Everything else the draft uses is reused by
+# IRI from its own vocabulary (LWS, DID/CID, Solid Notifications, Solid terms, PIM, ACQ,
+# Dublin Core) and is deliberately NOT restated here.
+#
+# Namespace status: draft terms minted under https://jeswr.org/ns/solid-sd# and served by the
+# jeswr.org persistent-ID layer once the /ns redirect for solid-sd is deployed. If the Solid
+# Community Group adopts the draft, the terms move to http://www.w3.org/ns/solid/terms# and
+# this file gains owl:equivalentClass / owl:equivalentProperty links to the adopted IRIs.
+
+@prefix ssd:     <https://jeswr.org/ns/solid-sd#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
+@prefix lws:     <https://www.w3.org/ns/lws#> .
+@prefix jlws:    <https://w3id.org/jeswr/lws#> .
+
+<https://jeswr.org/ns/solid-sd#> a owl:Ontology ;
+    dcterms:title "Solid Storage Service Description vocabulary"@en ;
+    dcterms:description "Service and capability types a Solid storage uses to describe itself in its storage description resource, in the same shape as a Linked Web Storage storage description."@en ;
+    vann:preferredNamespacePrefix "ssd" ;
+    vann:preferredNamespaceUri "https://jeswr.org/ns/solid-sd#" ;
+    rdfs:seeAlso <https://jeswr.github.io/solid-specs/specs/service-description/> ;
+    dcterms:creator <https://jeswr.org/#me> ;
+    owl:versionInfo "draft" .
+
+#################################################################
+# Abstract classes
+#################################################################
+
+ssd:Service a rdfs:Class ;
+    rdfs:label "Service"@en ;
+    rdfs:comment "Superclass of the service types this vocabulary defines. A service is the object of did:service on a storage and carries a did:serviceEndpoint."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:Capability a rdfs:Class ;
+    rdfs:label "Capability"@en ;
+    rdfs:comment "Superclass of the capability types this vocabulary defines. A capability is the object of lws:capability on a storage."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:AccessControlModel a rdfs:Class ;
+    rdfs:label "Access control model"@en ;
+    rdfs:comment "An authorization model a storage enforces. Instances are the values of ssd:model."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Service types
+#################################################################
+
+ssd:SolidNotificationService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "Solid notification service"@en ;
+    rdfs:comment "A Solid Notifications Protocol subscription service. The service node carries exactly one notify:channelType and any number of notify:feature values; its did:serviceEndpoint is the subscription service IRI."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:SparqlQueryService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "SPARQL query service"@en ;
+    rdfs:comment "A read-only, access-controlled SPARQL query service over the storage. Its did:serviceEndpoint is the query endpoint, and dcterms:conformsTo names the query protocol profile, such as the Access-Controlled SPARQL Query draft."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:CrdtSyncService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "CRDT sync service"@en ;
+    rdfs:comment "A real-time sync relay for CRDT documents stored in the storage. dcterms:conformsTo names the sync protocol profile; its did:serviceEndpoint is the profile's entry point."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:VersioningService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "Versioning service"@en ;
+    rdfs:comment "The storage keeps immutable prior versions of resources and links each versioned resource to its version history with the version-history link relation."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:TrashService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "Trash service"@en ;
+    rdfs:comment "A container into which resources are moved instead of being destroyed, from which they can be restored or purged. Its did:serviceEndpoint is the trash container."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:RecursiveDeleteService a rdfs:Class ;
+    rdfs:subClassOf ssd:Service ;
+    rdfs:label "Recursive delete service"@en ;
+    rdfs:comment "Deletes a container and everything beneath it in one request: a POST to its did:serviceEndpoint naming the container. DELETE on a non-empty container keeps its Solid Protocol behaviour."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Capability types
+#################################################################
+
+ssd:AccessControl a rdfs:Class ;
+    rdfs:subClassOf ssd:Capability ;
+    rdfs:label "Access control"@en ;
+    rdfs:comment "Names the authorization model or models (ssd:model) the storage enforces."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:PatchSupport a rdfs:Class ;
+    rdfs:subClassOf ssd:Capability ;
+    rdfs:label "Patch support"@en ;
+    rdfs:comment "The storage accepts PATCH requests on resources of one media type (ssd:source) in the listed patch document media types (ssd:patchType). A storage describes one PatchSupport capability per source media type."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:ResumableUploads a rdfs:Class ;
+    rdfs:subClassOf ssd:Capability ;
+    rdfs:label "Resumable uploads"@en ;
+    rdfs:comment "The storage accepts resumable uploads; dcterms:conformsTo names the upload protocol."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:Pagination a rdfs:Class ;
+    rdfs:subClassOf ssd:Capability ;
+    rdfs:label "Pagination"@en ;
+    rdfs:comment "The storage may split container listings into pages; dcterms:conformsTo names the paging mechanism."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:ContentNegotiation a rdfs:Class ;
+    rdfs:subClassOf ssd:Capability ;
+    rdfs:label "Content negotiation"@en ;
+    rdfs:comment "The storage serves resources stored as ssd:source in each ssd:target media type."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Access control models
+#################################################################
+
+ssd:WAC a ssd:AccessControlModel ;
+    rdfs:label "Web Access Control"@en ;
+    rdfs:seeAlso <https://solidproject.org/TR/wac> ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:ACP a ssd:AccessControlModel ;
+    rdfs:label "Access Control Policy"@en ;
+    rdfs:seeAlso <https://solidproject.org/TR/acp> ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:ODRLGrants a ssd:AccessControlModel ;
+    rdfs:label "ODRL access grants"@en ;
+    rdfs:comment "Access is governed by ODRL access grants issued through an lws:AccessGrantService."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Notification subscription types for LWS notification services
+#################################################################
+
+ssd:SseSubscription a rdfs:Class ;
+    rdfs:label "Server-sent events subscription"@en ;
+    rdfs:comment "A subscription type value for lws:subscriptionType: notifications delivered as a text/event-stream. The binding is the SSE binding of the JLWS draft."@en ;
+    rdfs:seeAlso jlws:SseSubscription ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:WebSocketSubscription a rdfs:Class ;
+    rdfs:label "WebSocket subscription"@en ;
+    rdfs:comment "A subscription type value for lws:subscriptionType: notifications delivered over a WebSocket. The binding is the WebSocket binding of the JLWS draft."@en ;
+    rdfs:seeAlso jlws:WebSocketSubscription ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Profiles
+#################################################################
+
+ssd:y-protocol-v1 a dcterms:Standard ;
+    rdfs:label "Yjs sync protocol, version 1"@en ;
+    rdfs:comment "The suite's Yjs relay profile. The service description draft names this IRI; the profile itself is specified in a separate draft."@en ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+#################################################################
+# Properties
+#################################################################
+
+ssd:model a rdf:Property ;
+    rdfs:label "model"@en ;
+    rdfs:comment "An authorization model the storage enforces."@en ;
+    rdfs:domain ssd:AccessControl ;
+    rdfs:range ssd:AccessControlModel ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:source a rdf:Property ;
+    rdfs:label "source"@en ;
+    rdfs:comment "The media type of the stored resources a ssd:PatchSupport or ssd:ContentNegotiation capability applies to, as a string."@en ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:patchType a rdf:Property ;
+    rdfs:label "patch type"@en ;
+    rdfs:comment "A patch document media type the storage accepts for resources of the capability's ssd:source media type, as a string."@en ;
+    rdfs:domain ssd:PatchSupport ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:target a rdf:Property ;
+    rdfs:label "target"@en ;
+    rdfs:comment "A media type the storage can serve a resource of the ssd:source media type in, as a string."@en ;
+    rdfs:domain ssd:ContentNegotiation ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:retention a rdf:Property ;
+    rdfs:label "retention"@en ;
+    rdfs:comment "How long the trash keeps a trashed resource before it may purge it."@en ;
+    rdfs:domain ssd:TrashService ;
+    rdfs:range xsd:duration ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .
+
+ssd:roomTemplate a rdf:Property ;
+    rdfs:label "room template"@en ;
+    rdfs:comment "An informative RFC 6570 URI template, with the variable room, for the sync relay's room URLs. The sync profile says how a client obtains the URL it actually connects to."@en ;
+    rdfs:domain ssd:CrdtSyncService ;
+    rdfs:range xsd:string ;
+    rdfs:isDefinedBy <https://jeswr.org/ns/solid-sd#> .

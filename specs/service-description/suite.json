@@ -1,0 +1,9 @@
+{
+  "name": "solid-service-description",
+  "kind": "specification",
+  "status": "design",
+  "description": "Solid Storage Service Description — lets a Solid storage list its services and capabilities in its storage description resource, in the Linked Web Storage service/capability shape (unofficial draft).",
+  "conformsTo": ["sparq-org/sparq", "jeswr/solid-sdk"],
+  "relatedIssues": ["solid/specification#355", "solid/specification#699", "solid/specification#455", "solid/specification#804"],
+  "tr": "solidproject.org/TR/ (target, on CG adoption)"
+}
