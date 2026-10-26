@@ -24,7 +24,7 @@
 <> a sc:CompanionDocument ;
     dcterms:title "Yjs Sync Profile for Solid Storages normative-statement companion"@en ;
     sc:companionOf <https://jeswr.github.io/solid-specs/specs/y-protocol/> ;
-    sc:specVersion "sha256:0122d89d324c5e6fe6afbecd1be3d4eb676d07e41fc3c9e6948dfdac97918972" ;
+    sc:specVersion "sha256:06028fb0f49dc610e2c2c4e2d36da9002f38e6bce2222d17f6f0496041fa0b85" ;
     dcterms:created "2026-10-26"^^xsd:date ;
     prov:wasAttributedTo <https://jeswr.org/#me> ;
     dcterms:description "Extracted with AI assistance (Codex GPT-6.1-Sol, OpenAI) from the index.html bytes pinned by sc:specVersion; awaiting review by the human editor."@en .
@@ -59,6 +59,7 @@
         <#YP-LOAD-7> ,
         <#YP-WATCH-1> ,
         <#YP-CMP-1> ,
+        <#YP-CMP-9> ,
         <#YP-CMP-2> ,
         <#YP-CMP-3> ,
         <#YP-CMP-4> ,
@@ -107,6 +108,7 @@
         <#YP-PERSIST-1> ,
         <#YP-PERSIST-2> ,
         <#YP-PERSIST-3> ,
+        <#YP-PERSIST-9> ,
         <#YP-PERSIST-4> ,
         <#YP-PERSIST-7> ,
         <#YP-PERSIST-8> ,
@@ -160,7 +162,7 @@
     dcterms:description "The vectors verify rejection without partial application. They do not check the SHOULD-level diagnostic reporting of invalid resources by a client or relay."@en .
 
 <#gap-compaction> a sc:TestGap ;
-    dcterms:description "The vectors exercise inclusion of integrated or pending Yjs content in snapshot payloads. They do not exercise conditional resource creation, deletion ordering, entity tags, or the alternative of retaining resources whose pending content is not included."@en .
+    dcterms:description "The vectors exercise inclusion of integrated or pending Yjs content in snapshot payloads. They do not exercise isolation of snapshot content to eligible log resources of the room, confirmation of access-control inheritance, conditional resource creation, deletion ordering, entity tags, or the alternative of retaining resources whose pending content is not included."@en .
 
 ### Normative statements
 
@@ -317,7 +319,7 @@
 
 <#YP-LOAD-11> a spec:Requirement ;
     dcterms:identifier "YP-LOAD-11" ;
-    spec:statement "A reader MUST send every request for a listing page or a membership tag with Cache-Control: no-cache RFC9111, so that no cache answers it without the storage validating the answer." ;
+    spec:statement "A reader MUST send every request for a listing page, a membership tag or a log resource, and every request that confirms an entity tag, with Cache-Control: no-cache RFC9111, so that no cache answers it without the storage validating the answer." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Client>, <#Relay>, <#Compactor> ;
     sc:testability sc:Enforceable ;
@@ -460,6 +462,15 @@
     spec:testCase <https://jeswr.github.io/solid-specs/specs/y-protocol/vectors/manifest.json#snapshot-with-pending-update> ;
     sc:testGap <#gap-compaction> .
 
+<#YP-CMP-9> a spec:Requirement ;
+    dcterms:identifier "YP-CMP-9" ;
+    spec:statement "A compactor MUST build the snapshot payload only from log resources of the room that meet , for example by applying them to a new, empty Yjs document, and MUST NOT include content that it holds from any other source." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Compactor> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#cmp-sources> ;
+    sc:testGap <#gap-compaction> .
+
 <#YP-CMP-2> a spec:Requirement ;
     dcterms:identifier "YP-CMP-2" ;
     spec:statement "A compactor MUST NOT delete a resource in R until the creation of that snapshot resource is confirmed." ;
@@ -499,7 +510,7 @@
 
 <#YP-SRV-1> a spec:Requirement ;
     dcterms:identifier "YP-SRV-1" ;
-    spec:statement "A storage server MUST send a strong entity tag with every successful read of a log resource." ;
+    spec:statement "A storage server MUST send a strong entity tag with every successful read of a log resource, and MUST give a resource that moves to another container a strong entity tag it has not had before, so that a conditional request prepared in one room never matches it in another." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#StorageServer> ;
     sc:testability sc:Enforceable ;
@@ -724,7 +735,7 @@
 
 <#YP-CONN-5> a spec:Requirement ;
     dcterms:identifier "YP-CONN-5" ;
-    spec:statement "Before a relay sends the first sync message on a connection, its room state MUST hold every log resource in the room container when the relay accepted the connection: it MUST either load the room as describes after accepting the connection, or have observed every log resource created in the room since its last such load." ;
+    spec:statement "Before a relay sends the first sync message on a connection, it MUST either complete a load of the room as describes after accepting the connection, or have ingested, as , and require, every change to the room container since its last such load. Content that left the room before the relay read it, and that no log resource holds, is exempt." ;
     spec:requirementLevel spec:MUST ;
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
@@ -891,6 +902,15 @@
     spec:requirementSubject <#Relay> ;
     sc:testability sc:Enforceable ;
     sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-before-forward> ;
+    sc:testGap <#gap-protocol> .
+
+<#YP-PERSIST-9> a spec:Requirement ;
+    dcterms:identifier "YP-PERSIST-9" ;
+    spec:statement "Once the creation of an update resource holding content accepted from one connection is confirmed, a relay MUST send that content to every other connection of the room, subject to ." ;
+    spec:requirementLevel spec:MUST ;
+    spec:requirementSubject <#Relay> ;
+    sc:testability sc:Enforceable ;
+    sc:anchor <https://jeswr.github.io/solid-specs/specs/y-protocol/#persist-forward> ;
     sc:testGap <#gap-protocol> .
 
 <#YP-PERSIST-4> a spec:Requirement ;
