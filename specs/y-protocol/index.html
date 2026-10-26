@@ -813,7 +813,8 @@
       While a room has open connections, a relay MUST apply to its room state the content of every
       log resource that another writer creates in the room container or moves into it, either from
       that resource or from a log resource that holds its content, and deliver the content it adds
-      to the connections, subject to <a href="#relay-authorization"></a>.
+      to the connections, subject to <a href="#relay-authorization"></a>. Content that left the
+      room before the relay read it, and that no log resource holds, is exempt.
     </p>
     <p id="ingest-gap">
       When a resource the relay learned of is gone when read, or the relay cannot tell whether it
