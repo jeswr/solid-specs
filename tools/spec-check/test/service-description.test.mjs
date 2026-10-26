@@ -26,6 +26,7 @@ const RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 const html = readFileSync(join(SPEC, "index.html"), "utf8");
 const shapes = readTurtle(join(SPEC, "shapes/solid-sd.ttl"));
 const vocab = readTurtle(join(SPEC, "vocab/solid-sd.ttl"));
+const companionShape = readTurtle(join(REPO, "tools/spec-check/shapes/spec-companion.shape.ttl"));
 const statements = readTurtle(join(SPEC, "spec.statements.ttl"), "https://jeswr.github.io/solid-specs/specs/service-description/spec.statements.ttl");
 
 const definedTerms = new Set(
@@ -97,6 +98,15 @@ describe("invalid examples are rejected for the expected reason", () => {
       );
     });
   }
+});
+
+describe("media type length boundary (RFC 6838 caps names at 127 characters)", () => {
+  it("a 127-character subtype conforms", async () => {
+    const turtle = `@prefix pim: <http://www.w3.org/ns/pim/space#> . @prefix lws: <https://www.w3.org/ns/lws#> . @prefix did: <https://www.w3.org/ns/did#> . @prefix ssd: <${SSD}> .
+<https://pod.example/> a pim:Storage ; did:service [ a lws:StorageRoot ; did:serviceEndpoint <https://pod.example/> ] ; lws:capability [ a ssd:PatchSupport ; ssd:source "text/turtle" ; ssd:patchType "text/${"a".repeat(127)}" ] .`;
+    const report = await check(parseTurtle(turtle, "https://pod.example/"));
+    assert.ok(report.conforms, describeFailures(report));
+  });
 });
 
 describe("JSON-LD examples mean the same graph as their Turtle twins", () => {
@@ -171,6 +181,20 @@ describe("statement companion", () => {
   const value = (s, p) => statements.find((q) => q.subject.value === s && q.predicate.value === p)?.object.value;
 
   it("lists requirements", () => assert.ok(requirements.length > 50));
+
+  it("conforms to the spec-companion shape (provenance, pinned version, actors, testability, coverage)", async () => {
+    const report = await validate(companionShape, statements);
+    assert.ok(report.conforms, describeFailures(report));
+  });
+
+  it("describes this spec, and the spec lists every requirement", () => {
+    const specIri = "https://jeswr.github.io/solid-specs/specs/service-description/";
+    assert.equal(byPredicate("https://w3id.org/jeswr/spec-companion#companionOf")[0]?.object.value, specIri);
+    const linked = new Set(
+      statements.filter((q) => q.subject.value === specIri && q.predicate.value === `${SPEC_NS}requirement`).map((q) => q.object.value),
+    );
+    assert.deepEqual(requirements.filter((r) => !linked.has(r)), []);
+  });
 
   it("identifiers are unique", () => {
     const idents = byPredicate("http://purl.org/dc/terms/identifier").map((q) => q.object.value);
