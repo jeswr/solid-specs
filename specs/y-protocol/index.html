@@ -377,9 +377,9 @@
       none, it MUST list again.
     </p>
     <p id="load-no-cache">
-      A reader MUST send every request for a listing page or a membership tag with
-      <code>Cache-Control: no-cache</code> [[RFC9111]], so that no cache answers it without the
-      storage validating the answer.
+      A reader MUST send every request for a listing page, a membership tag or a log resource,
+      and every request that confirms an entity tag, with <code>Cache-Control: no-cache</code>
+      [[RFC9111]], so that no cache answers it without the storage validating the answer.
     </p>
     <p id="load-all">
       A reader MUST apply every valid update resource, every valid snapshot resource and, when it
@@ -456,6 +456,11 @@
       resource whose payload is a Yjs update containing the content of every resource in
       <var>R</var>, using a request that cannot replace an existing resource.
     </p>
+    <p id="cmp-sources">
+      A compactor MUST build the snapshot payload only from log resources of the room that meet
+      <a href="#cmp-own-acl"></a>, for example by applying them to a new, empty Yjs document, and
+      MUST NOT include content that it holds from any other source.
+    </p>
     <p id="cmp-after-create">
       A compactor MUST NOT delete a resource in <var>R</var> until the creation of that snapshot
       resource is <a>confirmed</a>.
@@ -476,7 +481,9 @@
       it received no strong entity tag.
     </p>
     <p id="srv-etag">
-      A storage server MUST send a strong entity tag with every successful read of a log resource.
+      A storage server MUST send a strong entity tag with every successful read of a log resource,
+      and MUST give a resource that moves to another container a strong entity tag it has not had
+      before, so that a conditional request prepared in one room never matches it in another.
     </p>
     <p id="srv-membership-tag">
       A storage server that paginates the listing of a container MUST give the container a
@@ -647,10 +654,12 @@
       ticket, whatever else the URL's path says.
     </p>
     <p id="conn-loaded">
-      Before a relay sends the first sync message on a connection, its room state MUST hold every
-      log resource in the room container when the relay accepted the connection: it MUST either
-      load the room as <a href="#loading"></a> describes after accepting the connection, or have
-      observed every log resource created in the room since its last such load.
+      Before a relay sends the first sync message on a connection, it MUST either complete a load
+      of the room as <a href="#loading"></a> describes after accepting the connection, or have
+      ingested, as <a href="#ingest"></a>, <a href="#ingest-gap"></a> and
+      <a href="#ingest-removal"></a> require, every change to the room container since its last
+      such load. Content that left the room before the relay read it, and that no log resource
+      holds, is exempt.
     </p>
     <p id="conn-observe">
       A relay that relies on observing the room container MUST start observing before it starts a
@@ -783,6 +792,11 @@
     <p id="persist-before-forward">
       A relay MUST NOT send content accepted from one connection to any other connection before
       the creation of an update resource holding it is <a>confirmed</a>.
+    </p>
+    <p id="persist-forward">
+      Once the creation of an update resource holding content accepted from one connection is
+      <a>confirmed</a>, a relay MUST send that content to every other connection of the room,
+      subject to <a href="#relay-authorization"></a>.
     </p>
     <p id="persist-ack">
       A relay MUST NOT send a sync step 2 answering a sync step 1 until every part of its room

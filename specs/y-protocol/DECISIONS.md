@@ -42,7 +42,10 @@ and readers apply it to a copy first: Yjs can decode an update that then throws 
 
 A compactor writes a snapshot holding everything it read, waits for a `2xx`, then deletes only
 those resources, with `If-Match` and a strong ETag; with no strong ETag it does not delete
-(random names alone do not stop a deleted IRI being reused, spec review round 1). Unique names and conditional creation keep an IRI from ever
+(random names alone do not stop a deleted IRI being reused, spec review round 1). A storage
+gives a moved resource a fresh entity tag, so a delayed delete cannot follow a record into another
+room, and a snapshot is built only from eligible records of the room, never from the compactor's
+whole state, which may hold content it may not copy (review round 4). Unique names and conditional creation keep an IRI from ever
 naming two records, so a delayed compactor cannot delete a newer record that reused a URL
 (ADR-006 review). This needs no lock and stays safe with any number of concurrent or offline
 compactors. **Rejected:** serialized compaction through a lock resource (needs leases and
